@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Мой прогресс</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="title-wrap">
+        <p class="eyebrow">GYM TRACKER</p>
+        <h1 id="screen-title">Мой прогресс</h1>
+      </div>
+      <div class="avatar" id="avatar-badge">M</div>
+    </header>
+
+    <main class="screen">
+      <section class="panel active" data-panel="home">
+        <div class="stats-card">
+          <div class="stats-grid">
+            <div class="metric">
+              <span class="label">Вес</span>
+              <strong id="weight-value">-</strong>
+            </div>
+            <div class="metric">
+              <span class="label">Рост</span>
+              <strong id="height-value">-</strong>
+            </div>
+            <div class="metric">
+              <span class="label">Стаж</span>
+              <strong id="experience-value">-</strong>
+            </div>
+            <div class="metric">
+              <span class="label">Тренировок</span>
+              <strong id="workouts-value">-</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="shortcut-row">
+          <button class="shortcut ghost" data-tab-target="records">🏆 Рекорды</button>
+          <button class="shortcut ghost" data-tab-target="faq">❔ Вопросы</button>
+        </div>
+
+        <section class="section-head">
+          <h2>История тренировок</h2>
+          <span class="muted">последние 8 дней</span>
+        </section>
+        <div id="history-list" class="stack"></div>
+      </section>
+
+      <section class="panel" data-panel="records">
+        <section class="section-head">
+          <h2>Рекорды</h2>
+          <span class="muted">лучшие веса</span>
+        </section>
+        <div id="records-list" class="stack"></div>
+      </section>
+
+      <section class="panel" data-panel="faq">
+        <div class="search-shell">
+          <input type="search" id="faq-search" placeholder="Поиск вопросов...">
+        </div>
+        <div class="chip-row" id="faq-tabs"></div>
+        <div id="faq-list" class="stack"></div>
+      </section>
+
+      <section class="panel" data-panel="more">
+        <div class="empty-card">
+          <h2 id="profile-name">Пользователь</h2>
+          <p id="profile-note">Mini App берет данные из твоего Telegram-бота.</p>
+          <p class="muted small">Чтобы увидеть полную статистику, сначала заполни профиль и добавь тренировки в боте.</p>
+        </div>
+      </section>
+    </main>
+
+    <nav class="bottom-nav">
+      <button class="nav-btn active" data-tab="home">Главная</button>
+      <button class="nav-btn" data-tab="records">Рекорды</button>
+      <button class="nav-btn" data-tab="faq">Вопросы</button>
+      <button class="nav-btn" data-tab="more">Ещё</button>
+    </nav>
+  </div>
+
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,9 +1,9 @@
-import json
 from pathlib import Path
 
 from aiohttp import web
 
 from bot.db import (
+    add_workout,
     get_records,
     get_started_user,
     get_total_workout_days,
@@ -85,11 +85,12 @@ async def app_data(request: web.Request) -> web.Response:
         for chunk in raw.split("||"):
             if not chunk:
                 continue
-            exercise, weight, reps = chunk.split("|")
+            exercise, weight, sets, reps = chunk.split("|")
             exercises.append(
                 {
                     "exercise": exercise,
                     "weight": f"{float(weight):.1f}",
+                    "sets": int(sets),
                     "reps": int(reps),
                 }
             )
@@ -120,12 +121,62 @@ async def faq_data(request: web.Request) -> web.Response:
     return web.json_response({"faq": FAQ_DATA})
 
 
+async def save_workout(request: web.Request) -> web.Response:
+    try:
+        payload = await request.json()
+    except Exception:
+        return web.json_response({"error": "invalid json"}, status=400)
+
+    user_id = payload.get("user_id")
+    workout_date = str(payload.get("workout_date", "")).strip()
+    exercises = payload.get("exercises", [])
+
+    if not isinstance(user_id, int):
+        return web.json_response({"error": "user_id must be int"}, status=400)
+    if not workout_date:
+        return web.json_response({"error": "workout_date is required"}, status=400)
+    if not isinstance(exercises, list) or not exercises:
+        return web.json_response({"error": "exercises must be a non-empty list"}, status=400)
+
+    if not get_started_user(user_id):
+        return web.json_response({"error": "user not found"}, status=404)
+
+    saved = 0
+    for item in exercises:
+        exercise_name = str(item.get("exercise", "")).strip()
+        if not exercise_name:
+            continue
+
+        try:
+            weight = float(item.get("weight", 0))
+            sets = max(1, int(item.get("sets", 1)))
+            reps = max(1, int(item.get("reps", 1)))
+        except (TypeError, ValueError):
+            continue
+
+        add_workout(
+            user_id=user_id,
+            workout_date=workout_date,
+            exercise=exercise_name,
+            weight=weight,
+            sets=sets,
+            reps=reps,
+        )
+        saved += 1
+
+    if saved == 0:
+        return web.json_response({"error": "no valid exercises to save"}, status=400)
+
+    return web.json_response({"ok": True, "saved": saved})
+
+
 def create_web_app() -> web.Application:
     app = web.Application()
     app.router.add_get("/", index)
     app.router.add_get("/app", index)
     app.router.add_get("/api/app-data", app_data)
     app.router.add_get("/api/faq", faq_data)
+    app.router.add_post("/api/workouts", save_workout)
     app.router.add_static("/static/", STATIC_DIR, show_index=False)
     return app
 

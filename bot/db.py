@@ -48,10 +48,17 @@ def init_db() -> None:
                 workout_date TEXT NOT NULL,
                 exercise TEXT NOT NULL,
                 weight REAL NOT NULL,
+                sets INTEGER NOT NULL DEFAULT 1,
                 reps INTEGER NOT NULL,
                 FOREIGN KEY(user_id) REFERENCES users(user_id)
             )
             """
+        )
+        ensure_column(
+            cursor=cursor,
+            table_name="workouts",
+            column_name="sets",
+            definition="INTEGER NOT NULL DEFAULT 1",
         )
         connection.commit()
 
@@ -124,15 +131,22 @@ def get_user(user_id: int) -> sqlite3.Row | None:
         return cursor.fetchone()
 
 
-def add_workout(user_id: int, workout_date: str, exercise: str, weight: float, reps: int) -> None:
+def add_workout(
+    user_id: int,
+    workout_date: str,
+    exercise: str,
+    weight: float,
+    reps: int,
+    sets: int = 1,
+) -> None:
     with closing(get_connection()) as connection:
         cursor = connection.cursor()
         cursor.execute(
             """
-            INSERT INTO workouts (user_id, workout_date, exercise, weight, reps)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO workouts (user_id, workout_date, exercise, weight, sets, reps)
+            VALUES (?, ?, ?, ?, ?, ?)
             """,
-            (user_id, workout_date, exercise, weight, reps),
+            (user_id, workout_date, exercise, weight, sets, reps),
         )
         connection.commit()
 
@@ -142,7 +156,7 @@ def get_recent_workouts(user_id: int, limit: int = 5) -> list[sqlite3.Row]:
         cursor = connection.cursor()
         cursor.execute(
             """
-            SELECT workout_date, exercise, weight, reps
+            SELECT workout_date, exercise, weight, sets, reps
             FROM workouts
             WHERE user_id = ?
             ORDER BY workout_date DESC, id DESC
@@ -246,7 +260,7 @@ def get_workout_days(user_id: int, limit: int = 10) -> list[sqlite3.Row]:
             SELECT
                 workout_date,
                 GROUP_CONCAT(
-                    exercise || '|' || printf('%.1f', weight) || '|' || reps,
+                    exercise || '|' || printf('%.1f', weight) || '|' || sets || '|' || reps,
                     '||'
                 ) AS exercises
             FROM workouts
@@ -273,3 +287,10 @@ def get_total_workout_days(user_id: int) -> int:
         )
         row = cursor.fetchone()
         return int(row["total"]) if row else 0
+
+
+def ensure_column(cursor: sqlite3.Cursor, table_name: str, column_name: str, definition: str) -> None:
+    cursor.execute(f"PRAGMA table_info({table_name})")
+    existing_columns = {row[1] for row in cursor.fetchall()}
+    if column_name not in existing_columns:
+        cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {definition}")

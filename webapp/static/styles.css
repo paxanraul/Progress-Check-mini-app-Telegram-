@@ -1,4 +1,5 @@
 :root {
+  --app-vh: 100vh;
   --bg: #020305;
   --bg-soft: #0a0b0f;
   --card: linear-gradient(180deg, rgba(40, 40, 46, 0.98), rgba(27, 28, 33, 0.98));
@@ -23,7 +24,7 @@
 html,
 body {
   margin: 0;
-  min-height: 100vh;
+  min-height: var(--app-vh);
   background: radial-gradient(circle at top, rgba(255, 255, 255, 0.03), transparent 22%), #121212;
   color: var(--text);
   font-family: "SF Pro Display", "Segoe UI", sans-serif;
@@ -43,6 +44,11 @@ textarea {
 
 button {
   cursor: pointer;
+}
+
+.round-tool {
+  background: transparent;
+  border: 0;
 }
 
 .device-shell {
@@ -115,6 +121,7 @@ h2 {
 
 .content {
   padding: 0 18px 92px;
+  overflow-anchor: none;
 }
 
 .panel {
@@ -142,7 +149,16 @@ h2 {
   display: flex;
   align-items: center;
 }
-
+#exercise-name-input,
+#workout-name-input {
+  color: white;
+  font-size: 18px;
+  margin-bottom: 8px;
+  padding: 0;
+  display: block;
+ top: 50%;
+ transform: translateY(22%);
+}
 .hero-row,
 .records-toolbar,
 .modal-head {
@@ -151,18 +167,20 @@ h2 {
 
 .hero-row {
   margin: 2px 0 14px;
+  justify-content: flex-end;
+  padding-right: 6px;
 }
 
 .streak-badge {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 18px;
+  font-size: 43px !important;
   font-weight: 700;
 }
 
 .fire {
-  font-size: 18px;
+  font-size: 43px !important;
 }
 
 .action-card,
@@ -201,29 +219,51 @@ h2 {
 }
 
 .plus {
-  font-size: 28px;
+  font-size: 35px;
   line-height: 1;
   font-weight: 300;
+ transform: translateY(-5%);
+ 
+}
+
+.pluss{
+  font-size: 30px;
+  line-height: 1;
+  font-weight: 300;
+  transform: translate(10%,5%);
+ 
 }
 
 .note-card {
   min-height: 180px;
-  padding: 12px;
+  padding: 12px 14px;
 }
-
-.note-label,
-.field-label {
+.field-label{
+   font-size: 18px;
+  margin-bottom: 8px;
+  padding: 0;
+transform: translateY(15%);
+  display: block;
+  color: white;
+}
+.note-label
+ {
   color: var(--muted);
   font-size: 13px;
   margin-bottom: 8px;
-}
-
+  padding: 0;
+transform: translateY(15%);
+  display: block;
+  }
 #wellbeing-note,
+#workout-note-input,
 .field-card input,
 .metric-big input {
   width: 100%;
   border: 0;
   outline: 0;
+  padding: 0;
+  margin: 0;
   resize: none;
   background: transparent;
   color: var(--text);
@@ -231,6 +271,12 @@ h2 {
 
 #wellbeing-note {
   min-height: 128px;
+  padding-left: 0 !important;
+  text-indent: 0;
+}
+
+#workout-note-input {
+  min-height: 72px;
 }
 
 .panel-stack,
@@ -276,7 +322,7 @@ h2 {
 }
 
 .history-card {
-  padding: 10px 12px;
+  padding: 12px 14px;
 }
 
 .history-head {
@@ -287,7 +333,7 @@ h2 {
 }
 
 .history-main {
-  font-size: 15px;
+  font-size: 20px;
   font-weight: 600;
 }
 
@@ -296,12 +342,61 @@ h2 {
   font-size: 12px;
 }
 
-.exercise-list {
-  display: grid;
+.history-head-right {
+  display: flex;
+  align-items: center;
   gap: 8px;
 }
 
+.history-edit-btn {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  font-size: 12px;
+  padding: 4px 8px;
+}
+
+.exercise-list {
+  display: grid;
+  gap: 10px;
+}
+
+.history-note {
+  margin: 0;
+  color: #d3d4da;
+  line-height: 1.4;
+  font-size: 13px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.exercise-list + .history-note {
+  margin-top: 20px;
+}
+
 .exercise-row {
+  justify-content: space-between;
+  gap: 14px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.exercise-row span:first-child {
+  font-weight: 400;
+}
+
+.exercise-row:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+.savedtrain{
+font-size: 1.5em;
+}
+.wrow {
   justify-content: space-between;
   gap: 10px;
   font-size: 14px;
@@ -312,21 +407,6 @@ h2 {
   white-space: nowrap;
 }
 
-.records-toolbar {
-  margin: 6px 0 14px;
-}
-
-.round-tool {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.85);
-  background: transparent;
-  color: var(--text);
-  display: grid;
-  place-items: center;
-  font-size: 14px;
-}
 
 .record-card {
   padding: 12px 14px;
@@ -410,7 +490,17 @@ h2 {
 .faq-card summary::-webkit-details-marker {
   display: none;
 }
-
+#delete-btn{
+font-size: 3em;
+color: #d3d4da;
+}
+#move-btn{
+  color: #d3d4da;
+  font-size: 3em;
+}
+#move-btn.active-tool{
+  color: #ff7b7b;
+}
 .faq-card p {
   margin-top: 10px;
   color: #d3d4da;
@@ -459,21 +549,33 @@ h2 {
 .workout-overlay {
   position: fixed;
   inset: 0;
+  height: var(--app-vh);
   background: rgba(0, 0, 0, 0.62);
   display: grid;
-  place-items: center;
+  align-items: start;
+  justify-items: center;
   padding: 18px;
+  overflow: hidden;
+  overscroll-behavior: contain;
   z-index: 50;
 }
 
 .workout-modal {
   width: min(100%, 390px);
   min-height: 620px;
+  max-height: calc(var(--app-vh) - 36px);
   border-radius: 28px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: linear-gradient(180deg, rgba(4, 4, 6, 0.995), rgba(12, 12, 16, 0.99));
   box-shadow: var(--shadow);
   padding: 16px 16px 20px;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  overflow-anchor: none;
+}
+
+body.modal-open {
+  overflow: hidden;
 }
 
 .modal-head {
@@ -490,13 +592,23 @@ h2 {
 }
 
 .modal-step.active {
-  display: block;
+  display: grid;
+  gap: 12px;
 }
 
 .draft-list {
   display: grid;
   gap: 8px;
   margin-bottom: 10px;
+}
+
+.modal-step.active .field-card,
+.modal-step.active .metrics-card,
+.modal-step.active .date-card,
+.modal-step.active .result-card,
+.modal-step.active .draft-list,
+.modal-step.active .action-card {
+  margin-bottom: 0;
 }
 
 .draft-item {
@@ -540,8 +652,36 @@ h2 {
   font-size: 18px;
 }
 
+#exercise-weight-input {
+  width: 96px;
+  min-height: 36px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--line-strong);
+  font-size: 22px;
+  font-weight: 600;
+  text-align: center;
+  margin: 0;
+}
+
 .metric-big {
-  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 0;
+  margin-bottom: 0;
+}
+
+.metric-big .field-label {
+  color: #fff;
+  margin-bottom: 0;
+  transform: none;
+}
+
+.metric-big > .field-label {
+  color: #fff !important;
 }
 
 .counter-line {
@@ -566,27 +706,32 @@ h2 {
   line-height: 1;
 }
 
-.date-preview {
-  width: 100%;
+
+#workout-date-input {
+  color: white;
+  width: 300px;
   border-radius: 10px;
   min-height: 48px;
-  display: grid;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   place-items: center;
-  margin: 12px 0 10px;
+  text-align: center;
+  margin: 12px auto 10px;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
   font-size: 28px;
   font-weight: 700;
   letter-spacing: 0.12em;
 }
-
-#workout-date-input {
-  width: 100%;
-  background: transparent;
-  color: var(--text);
-  border: 0;
+.namein{
+color: white;
+  font-size: 18px;
+  margin-bottom: 8px;
+  padding: 0;
+transform: translateY(15%);
+display: block;
 }
-
 .result-card {
   min-height: 220px;
   display: grid;
@@ -607,6 +752,15 @@ h2 {
   z-index: 100;
 }
 
+.record-card.delete-mode {
+  cursor: pointer;
+  border-color: rgba(255, 123, 123, 0.65);
+}
+
+.record-card.delete-mode:hover {
+  background: linear-gradient(180deg, rgba(56, 34, 38, 0.96), rgba(35, 22, 25, 0.96));
+}
+
 @media (max-width: 420px) {
   body {
     padding: 0;
@@ -617,11 +771,11 @@ h2 {
   }
 
   .app-shell {
-    min-height: 100vh;
+    min-height: var(--app-vh);
     border-radius: 0;
   }
 
   .workout-modal {
-    min-height: calc(100vh - 24px);
+    min-height: calc(var(--app-vh) - 24px);
   }
 }

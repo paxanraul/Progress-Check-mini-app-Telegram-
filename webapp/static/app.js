@@ -24,6 +24,7 @@ const overlay = document.getElementById("workout-overlay");
 const modalSteps = [...document.querySelectorAll(".modal-step")];
 const modalTitle = document.getElementById("modal-title");
 const saveOverlay = document.getElementById("save-overlay");
+let saveOverlayTimer = null;
 
 const workoutNameInput = document.getElementById("workout-name-input");
 const dateInput = document.getElementById("workout-date-input");
@@ -511,11 +512,30 @@ async function updateWorkoutMeta(date, patch) {
 }
 
 function showSavedOverlay() {
+  if (saveOverlayTimer) {
+    clearTimeout(saveOverlayTimer);
+    saveOverlayTimer = null;
+  }
   saveOverlay.hidden = false;
-  setTimeout(() => {
-    saveOverlay.hidden = true;
+  saveOverlayTimer = setTimeout(() => {
+    hideSavedOverlay();
   }, 1500);
 }
+
+function hideSavedOverlay() {
+  if (saveOverlayTimer) {
+    clearTimeout(saveOverlayTimer);
+    saveOverlayTimer = null;
+  }
+  saveOverlay.hidden = true;
+}
+
+saveOverlay?.addEventListener("click", hideSavedOverlay);
+window.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !saveOverlay.hidden) {
+    hideSavedOverlay();
+  }
+});
 
 function setupLongPress(node, delayMs, handler) {
   let timer = null;

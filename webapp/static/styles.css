@@ -876,8 +876,10 @@ h2 {
 .plus,
 .plusik,
 .pluss {
+  font-size: 24px;
   transform: none;
-  font-weight: 500;
+  font-weight: 450;
+  opacity: 0.92;
 }
 
 .profile-card,
@@ -940,6 +942,8 @@ h2 {
 .nav-btn {
   border-radius: 8px;
   transition: color 0.18s ease, background 0.18s ease;
+  gap: 2px;
+  padding-top: 2px;
 }
 
 .nav-btn.active {
@@ -967,4 +971,29 @@ h2 {
 .toast {
   border-radius: 12px;
   backdrop-filter: blur(6px);
+}
+
+.streak-badge {
+  font-size: 30px !important;
+  gap: 2px;
+}
+
+.fire {
+  font-size: 27px !important;
+}
+
+.nav-icon {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.nav-label {
+  font-size: 10px;
+  letter-spacing: 0.2px;
+  font-weight: 500;
+}
+
+#delete-btn,
+#move-btn {
+  font-size: 2.2em;
 }

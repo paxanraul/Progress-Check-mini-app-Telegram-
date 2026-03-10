@@ -47,6 +47,7 @@ const motionStagger = typeof motionApi?.stagger === "function" ? motionApi.stagg
 let stableViewportHeight = 0;
 let wellbeingNoteSaving = false;
 let lastWorkoutStep = "";
+let bodyScrollTop = 0;
 
 function syncViewportHeight(force = false) {
   const next = Math.round(window.innerHeight || document.documentElement.clientHeight || 0);
@@ -63,10 +64,18 @@ function syncViewportHeight(force = false) {
 
 function setBodyScrollLock(locked) {
   if (locked) {
+    bodyScrollTop = window.scrollY || document.documentElement.scrollTop || 0;
     document.body.classList.add("modal-open");
+    document.body.style.top = `-${bodyScrollTop}px`;
+    document.body.style.position = "fixed";
+    document.body.style.width = "100%";
     return;
   }
   document.body.classList.remove("modal-open");
+  document.body.style.top = "";
+  document.body.style.position = "";
+  document.body.style.width = "";
+  window.scrollTo(0, bodyScrollTop);
 }
 
 function runMotion(target, keyframes, options) {

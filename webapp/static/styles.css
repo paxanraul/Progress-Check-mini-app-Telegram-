@@ -560,7 +560,8 @@ color: #d3d4da;
   align-items: start;
   justify-items: center;
   padding: 18px;
-  overflow: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
   z-index: 50;
 }
@@ -574,12 +575,19 @@ color: #d3d4da;
   background: linear-gradient(180deg, rgba(4, 4, 6, 0.995), rgba(12, 12, 16, 0.99));
   box-shadow: var(--shadow);
   padding: 16px 16px 20px;
-  overflow: auto;
+  overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overflow-anchor: none;
+  touch-action: pan-y;
 }
 
 body.modal-open {
+  overflow: hidden;
+  height: var(--app-vh);
+  overscroll-behavior: none;
+}
+
+body.modal-open .content {
   overflow: hidden;
 }
 

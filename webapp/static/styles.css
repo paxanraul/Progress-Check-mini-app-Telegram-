@@ -813,3 +813,158 @@ display: block;
     min-height: calc(var(--app-vh) - 24px);
   }
 }
+
+/* Design polish overrides */
+:root {
+  --radius-card: 12px;
+  --radius-control: 10px;
+  --space-1: 8px;
+  --space-2: 12px;
+  --space-3: 16px;
+  --space-4: 20px;
+}
+
+h1 {
+  font-size: 26px;
+  letter-spacing: 0.2px;
+}
+
+h2 {
+  font-size: 18px;
+}
+
+.content {
+  padding: 0 var(--space-3) 88px;
+}
+
+.action-card,
+.profile-card,
+.note-card,
+.history-card,
+.record-card,
+.faq-card,
+.field-card,
+.metrics-card,
+.date-card,
+.result-card,
+.search-shell {
+  border-radius: var(--radius-card);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.action-card,
+.record-card,
+.history-card,
+.faq-card {
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+}
+
+.action-card:active,
+.record-card:active,
+.history-card:active {
+  transform: scale(0.995);
+}
+
+.action-card.primary {
+  background: linear-gradient(180deg, rgba(58, 61, 72, 0.98), rgba(39, 41, 50, 0.98));
+}
+
+.action-card.secondary {
+  background: linear-gradient(180deg, rgba(48, 50, 60, 0.94), rgba(32, 34, 42, 0.96));
+}
+
+.plus,
+.plusik,
+.pluss {
+  transform: none;
+  font-weight: 500;
+}
+
+.profile-card,
+.note-card,
+.history-card,
+.record-card {
+  padding: var(--space-3);
+}
+
+.section-title {
+  margin-bottom: var(--space-2);
+}
+
+.history-head {
+  margin-bottom: var(--space-2);
+}
+
+.history-main {
+  font-size: 19px;
+  line-height: 1.25;
+}
+
+.history-date,
+.record-date,
+.nav-label {
+  color: #9ea3ae;
+}
+
+.exercise-row {
+  padding: 8px 0;
+}
+
+.history-note {
+  border-radius: var(--radius-control);
+  line-height: 1.45;
+}
+
+.history-edit-btn,
+.counter-btn {
+  border-radius: var(--radius-control);
+}
+
+.history-edit-btn {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.record-title {
+  font-size: 17px;
+}
+
+.record-weight {
+  font-size: 18px;
+}
+
+.bottom-nav {
+  backdrop-filter: blur(8px);
+  background: linear-gradient(180deg, rgba(17, 18, 24, 0.9), rgba(13, 14, 19, 0.96));
+}
+
+.nav-btn {
+  border-radius: 8px;
+  transition: color 0.18s ease, background 0.18s ease;
+}
+
+.nav-btn.active {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.nav-btn[data-tab="records"].active {
+  color: #e1b637;
+}
+
+#wellbeing-note,
+#workout-note-input,
+#faq-search,
+.field-card input,
+.metric-big input {
+  font-size: 15px;
+}
+
+#faq-search::placeholder,
+#wellbeing-note::placeholder,
+#workout-note-input::placeholder {
+  color: #8e93a0;
+}
+
+.toast {
+  border-radius: 12px;
+  backdrop-filter: blur(6px);
+}

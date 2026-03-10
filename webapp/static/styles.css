@@ -1160,3 +1160,45 @@ body {
 .content {
   padding-bottom: 122px;
 }
+
+.bottom-nav {
+  position: relative;
+  overflow: hidden;
+}
+
+.nav-pill {
+  position: absolute;
+  top: 6px;
+  left: 0;
+  width: 0;
+  height: 56px;
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.26), rgba(255, 255, 255, 0.08));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.48),
+    0 10px 24px rgba(0, 0, 0, 0.24);
+  transform: translateX(0);
+  transition: transform 0.36s cubic-bezier(0.22, 1, 0.36, 1), width 0.28s ease;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.nav-btn {
+  position: relative;
+  z-index: 1;
+}
+
+.nav-btn .nav-icon,
+.nav-btn .nav-label {
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.22s ease;
+}
+
+.nav-btn.active .nav-icon {
+  transform: translateY(-1px) scale(1.06);
+}
+
+.nav-btn.active .nav-label {
+  opacity: 1;
+  transform: translateY(0) scale(1.02);
+}

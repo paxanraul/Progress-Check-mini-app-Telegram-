@@ -24,6 +24,8 @@ const state = {
 };
 
 const navButtons = [...document.querySelectorAll(".nav-btn")];
+const bottomNav = document.getElementById("bottom-nav");
+const navPill = document.getElementById("nav-pill");
 const panels = [...document.querySelectorAll(".panel")];
 const faqTabs = document.getElementById("faq-tabs");
 const faqList = document.getElementById("faq-list");
@@ -187,6 +189,9 @@ syncViewportHeight(true);
 window.addEventListener("orientationchange", () => {
   window.setTimeout(() => syncViewportHeight(true), 120);
 }, { passive: true });
+window.addEventListener("resize", () => {
+  syncNavPillPosition(state.activeTab, true);
+}, { passive: true });
 
 function bindClick(id, handler) {
   const node = document.getElementById(id);
@@ -265,6 +270,10 @@ bootstrap().catch((error) => {
 });
 
 async function bootstrap() {
+  requestAnimationFrame(() => {
+    syncNavPillPosition(state.activeTab, true);
+  });
+
   const userId = resolveUserId();
   if (!userId) {
     showToast("Не удалось определить пользователя");
@@ -491,9 +500,53 @@ function switchTab(tab) {
   }
   state.activeTab = tab;
   navButtons.forEach((button) => button.classList.toggle("active", button.dataset.tab === tab));
+  syncNavPillPosition(tab, false);
+  animateActiveNavButton(tab);
   panels.forEach((panel) => panel.classList.toggle("active", panel.dataset.panel === tab));
   document.getElementById("screen-title").textContent = titleForTab(tab);
   animatePanelEnter(tab);
+}
+
+function syncNavPillPosition(tab, immediate) {
+  if (!bottomNav || !navPill) {
+    return;
+  }
+  const activeButton = navButtons.find((button) => button.dataset.tab === tab);
+  if (!activeButton) {
+    return;
+  }
+
+  const navRect = bottomNav.getBoundingClientRect();
+  const btnRect = activeButton.getBoundingClientRect();
+  const x = btnRect.left - navRect.left;
+
+  navPill.style.width = `${btnRect.width}px`;
+  if (immediate) {
+    navPill.style.transition = "none";
+    navPill.style.transform = `translateX(${x}px)`;
+    void navPill.offsetWidth;
+    navPill.style.transition = "";
+    return;
+  }
+
+  navPill.style.transform = `translateX(${x}px)`;
+}
+
+function animateActiveNavButton(tab) {
+  const activeButton = navButtons.find((button) => button.dataset.tab === tab);
+  if (!activeButton) {
+    return;
+  }
+  runMotion(
+    activeButton,
+    {
+      transform: ["translateY(2px) scale(0.96)", "translateY(0px) scale(1.03)", "translateY(0px) scale(1)"],
+    },
+    {
+      duration: 0.34,
+      easing: [0.2, 0.9, 0.2, 1],
+    }
+  );
 }
 
 function titleForTab(tab) {

@@ -1,124 +1,173 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Progress Check</title>
-  <link rel="stylesheet" href="/static/styles.css?v=20260309-1">
+  <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+  <link rel="stylesheet" href="/static/styles.css?v=14">
 </head>
 <body>
-  <div class="app-shell">
-    <header class="topbar">
-      <h1 id="screen-title">Главная</h1>
-      <div class="streak"><span id="streak-value">0</span>🔥</div>
-    </header>
+  <div class="device-shell">
+    <div class="screen-glow"></div>
+    <div class="app-shell">
+      <header class="topbar">
 
-    <main class="content">
-      <section class="panel active" data-panel="home">
-        <button id="open-workout-flow" class="action-card" type="button">
-          <span>Добавить тренировку</span>
-          <span class="plus">+</span>
+        <h1 id="screen-title">Главная</h1>
+        
+      </header>
+
+      <main class="content">
+        <section class="panel active" data-panel="home">
+          <div class="hero-row">
+         
+            <div class="streak-badge"><span id="streak-value">0</span><span class="fire">🔥</span></div>
+          </div>
+
+          <button class="action-card primary" id="open-workout-flow" type="button">
+            <span>Добавить тренировку</span>
+            <span class="plus">+</span>
+          </button>
+
+          <section class="note-card">
+            
+            <textarea  placeholder = "Поделись своим самочувствием" id="wellbeing-note"></textarea>
+          </section>
+        </section>
+
+        <section class="panel" data-panel="profile">
+          <section class="profile-card">
+            <h2>Мои данные</h2>
+            <div class="profile-list">
+              <div class="profile-line"><span>Имя</span><strong id="profile-name">Пользователь</strong></div>
+              <div class="profile-line"><span>Вес</span><strong id="weight-value">—</strong></div>
+              <div class="profile-line"><span>Рост</span><strong id="height-value">—</strong></div>
+              <div class="profile-line"><span>Стаж</span><strong id="experience-value">—</strong></div>
+              <div class="profile-line"><span>Тренировок</span><strong id="workouts-value">0</strong></div>
+            </div>
+          </section>
+
+          <section class="section-block">
+            <div class="section-title"> `
+              <h2>История тренировок</h2>
+            </div>
+            <div id="history-list" class="list-stack"></div>
+          </section>
+        </section>
+
+        <section class="panel" data-panel="records">
+          <div class="records-toolbar">
+            <button class="round-tool" type="button" id="delete-btn" aria-label="Добавить рекорд">
+              <i class='bx bx-minus-circle'></i>
+            </button>
+            <button class="round-tool" type="button" id="move-btn" aria-label="Удалить рекорд">
+              <i class='bx bx-plus-circle'></i>
+            </button>
+          </div>
+          <div id="records-list" class="list-stack"></div>
+        </section>
+
+        <section class="panel" data-panel="faq">
+          <div class="search-shell">
+            <input type="search" id="faq-search" placeholder="Поиск вопросов...">
+          </div>
+          <div id="faq-tabs" class="chip-row"></div>
+          <div id="faq-list" class="list-stack"></div>
+        </section>
+      </main>
+
+      <nav class="bottom-nav">
+        <button class="nav-btn active" data-tab="home" type="button">
+          <span class="nav-icon">🏠</span>
+          <span class="nav-label">Главная</span>
         </button>
-        <section class="note-card">
-          <textarea id="wellbeing-note" placeholder="Комментарий к тренировке на сегодня"></textarea>
-          <button id="save-wellbeing-note" type="button">Сохранить комментарий</button>
-        </section>
-      </section>
-
-      <section class="panel" data-panel="profile">
-        <section class="profile-card">
-          <h2>Ваши данные</h2>
-          <div class="profile-row"><span>Имя</span><strong id="profile-name">—</strong></div>
-          <div class="profile-row"><span>Вес</span><strong id="weight-value">—</strong></div>
-          <div class="profile-row"><span>Рост</span><strong id="height-value">—</strong></div>
-          <div class="profile-row"><span>Стаж</span><strong id="experience-value">—</strong></div>
-          <div class="profile-row"><span>Тренировок</span><strong id="workouts-value">0</strong></div>
-        </section>
-        <h2 class="section-title">История тренировок</h2>
-        <div id="history-list" class="list-stack"></div>
-      </section>
-
-      <section class="panel" data-panel="records">
-        <h2 class="section-title">Рекорды</h2>
-        <div id="records-list" class="list-stack"></div>
-      </section>
-    </main>
-
-    <nav class="bottom-nav">
-      <button class="nav-btn active" data-tab="home" type="button">Главная</button>
-      <button class="nav-btn" data-tab="profile" type="button">Профиль</button>
-      <button class="nav-btn" data-tab="records" type="button">Рекорды</button>
-    </nav>
+        <button class="nav-btn" data-tab="profile" type="button">
+          <span class="nav-icon">🏋️‍♂️</span>
+          <span class="nav-label">Профиль</span>
+        </button>
+        <button class="nav-btn" data-tab="records" type="button">
+          <span class="nav-icon">🏆</span>
+          <span class="nav-label">Рекорды</span>
+        </button>
+      </nav>
+    </div>
   </div>
 
-  <div id="workout-overlay" class="overlay" hidden>
-    <div class="modal">
+  <div class="workout-overlay" id="workout-overlay" hidden>
+    <div class="workout-modal">
       <div class="modal-head">
-        <button id="close-workout-flow" type="button">Назад</button>
-        <h3 id="modal-title">Добавить упражнения</h3>
-        <button id="save-workout-flow" type="button">Далее</button>
+        <button class="icon-btn subtle" id="close-workout-flow" type="button" aria-label="Закрыть"> <i class='bx bxs-left-arrow' ></i> </button>
+        <p id="modal-title">Добавить упражнения</p>
+        <button class="icon-btn subtle" id="save-workout-flow" type="button" aria-label="Сохранить">✓</button>
       </div>
-
       <section class="modal-step active" data-step="list">
-        <label class="field">
-          <span>Название тренировки</span>
-          <input id="workout-name-input" type="text" placeholder="например, День груди">
+        <label class="field-card workout-name-card">
+          
+          <input type="text" id="workout-name-input" placeholder="Название тренировки">
         </label>
         <div id="draft-list" class="draft-list"></div>
-        <button id="add-draft-item" class="action-card" type="button">
+        <button class="action-card secondary" id="add-draft-item" type="button">
           <span>Добавить упражнение</span>
           <span class="plus">+</span>
+        </button>
+        <button class="action-card danger" id="delete-workout-day" type="button" hidden>
+          <span>Удалить тренировку</span>
+          <span class="pluss"><i class='bx bx-trash'></i></span>
         </button>
       </section>
 
       <section class="modal-step" data-step="form">
-        <label class="field">
-          <span>Название упражнения</span>
-          <input id="exercise-name-input" type="text" placeholder="жим лежа">
+        <label class="field-card">
+         
+          <input type="text" id="exercise-name-input" placeholder="Название упражнения">
         </label>
-        <label class="field">
-          <span>Вес (кг)</span>
-          <input id="exercise-weight-input" type="number" min="0" step="0.5" placeholder="80">
-        </label>
-        <div class="counter-line">
-          <span>Подходы</span>
-          <div>
-            <button class="counter-btn" data-counter="sets" data-direction="-1" type="button">-</button>
-            <strong id="sets-value">1</strong>
-            <button class="counter-btn" data-counter="sets" data-direction="1" type="button">+</button>
+        <div class="metrics-card">
+          <div class="metric-big">
+            <span class="field-label">Вес (кг)</span>
+            <input type="number" id="exercise-weight-input" min="0" step="0.5" placeholder="80">
+          </div>
+          <div class="counter-line">
+            <span>Подходы</span>
+            <div class="counter-control">
+              <button class="counter-btn" data-counter="sets" data-direction="-1" type="button">−</button>
+              <strong id="sets-value">1</strong>
+              <button class="counter-btn" data-counter="sets" data-direction="1" type="button">+</button>
+            </div>
+          </div>
+          <div class="counter-line">
+            <span>Повторы</span>
+            <div class="counter-control">
+              <button class="counter-btn" data-counter="reps" data-direction="-1" type="button">−</button>
+              <strong id="reps-value">8</strong>
+              <button class="counter-btn" data-counter="reps" data-direction="1" type="button">+</button>
+            </div>
           </div>
         </div>
-        <div class="counter-line">
-          <span>Повторы</span>
-          <div>
-            <button class="counter-btn" data-counter="reps" data-direction="-1" type="button">-</button>
-            <strong id="reps-value">8</strong>
-            <button class="counter-btn" data-counter="reps" data-direction="1" type="button">+</button>
-          </div>
-        </div>
-        <button id="confirm-draft-item" class="action-card" type="button">
+        <button class="action-card primary" id="confirm-draft-item" type="button">
           <span>Сохранить упражнение</span>
-          <span>✓</span>
+          <span class="plusik"><i class='bx bx-check'></i></span>
         </button>
       </section>
 
       <section class="modal-step" data-step="date">
-        <label class="field">
-          <span>Дата тренировки</span>
-          <input id="workout-date-input" type="date">
-        </label>
+        <div class="date-card">
+          <p class="field-label">Дата тренировки</p>
+          
+          <input type="date" id="workout-date-input">
+        </div>
       </section>
-    </div>
-  </div>
 
-  <div id="save-overlay" class="save-overlay" hidden>
-    <div class="save-box">
-      <img src="https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/svg/1f4aa.svg" alt="muscle">
-      <div>Тренировка сохранена</div>
-    </div>
+      <section class="modal-step" data-step="done">
+        <div class="result-card">
+          <h2 class="savedtrain">Тренировка сохранена</h2>
+          <p id="saved-summary">Все упражнения добавлены.</p>
+        </div>
+      </section>
+    </div>  
   </div>
 
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <script src="/static/app.js?v=20260309-1"></script>
+  <script src="https://unpkg.com/motion@11.11.13/dist/motion.js"></script>
+<script src="/static/app.js?v=17"></script>
 </body>
 </html>

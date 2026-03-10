@@ -1,17 +1,22 @@
-const telegram = window.Telegram?.WebApp;
-if (telegram) telegram.ready();
+﻿const telegram = window.Telegram?.WebApp;
+if (telegram) {
+  telegram.ready();
+}
 
 const state = {
-  userId: "",
-  payload: null,
   activeTab: "home",
+  faqCategory: "technique",
+  faqQuery: "",
+  recordsDeleteMode: false,
+  payload: null,
+  userId: "",
   workoutFlow: {
     open: false,
     mode: "create",
     sourceDate: "",
+    editingIndex: null,
     step: "list",
     items: [],
-    editingIndex: null,
     draft: { sets: 1, reps: 8 },
     date: todayValue(),
     saving: false,
@@ -20,40 +25,229 @@ const state = {
 
 const navButtons = [...document.querySelectorAll(".nav-btn")];
 const panels = [...document.querySelectorAll(".panel")];
+const faqTabs = document.getElementById("faq-tabs");
+const faqList = document.getElementById("faq-list");
+const faqSearch = document.getElementById("faq-search");
 const overlay = document.getElementById("workout-overlay");
 const modalSteps = [...document.querySelectorAll(".modal-step")];
 const modalTitle = document.getElementById("modal-title");
-const saveOverlay = document.getElementById("save-overlay");
-let saveOverlayTimer = null;
-
-const workoutNameInput = document.getElementById("workout-name-input");
 const dateInput = document.getElementById("workout-date-input");
+const workoutNameInput = document.getElementById("workout-name-input");
+const workoutNoteInput = document.getElementById("workout-note-input");
 const wellbeingNoteInput = document.getElementById("wellbeing-note");
+const deleteWorkoutDayBtn = document.getElementById("delete-workout-day");
+const removeRecordBtn = document.getElementById("delete-btn");
+const addRecordBtn = document.getElementById("move-btn");
+const workoutModal = document.querySelector(".workout-modal");
+
+const motionApi = window.Motion;
+const motionAnimate = typeof motionApi?.animate === "function" ? motionApi.animate : null;
+const motionStagger = typeof motionApi?.stagger === "function" ? motionApi.stagger : null;
+
+let stableViewportHeight = 0;
+let wellbeingNoteSaving = false;
+let lastWorkoutStep = "";
+
+function syncViewportHeight(force = false) {
+  const next = Math.round(window.innerHeight || document.documentElement.clientHeight || 0);
+  if (!next) {
+    return;
+  }
+  // Keep viewport height stable to prevent jumps in Telegram WebView when keyboard appears.
+  if (!force && stableViewportHeight) {
+    return;
+  }
+  stableViewportHeight = next;
+  document.documentElement.style.setProperty("--app-vh", `${stableViewportHeight}px`);
+}
+
+function setBodyScrollLock(locked) {
+  if (locked) {
+    document.body.classList.add("modal-open");
+    return;
+  }
+  document.body.classList.remove("modal-open");
+}
+
+function runMotion(target, keyframes, options) {
+  if (!motionAnimate || !target) {
+    return null;
+  }
+  try {
+    return motionAnimate(target, keyframes, options);
+  } catch (error) {
+    console.warn("motion animate failed", error);
+    return null;
+  }
+}
+
+function animatePanelEnter(tab) {
+  const panel = panels.find((node) => node.dataset.panel === tab);
+  if (!panel) {
+    return;
+  }
+  runMotion(
+    panel,
+    {
+      opacity: [0, 1],
+      transform: ["translateY(12px)", "translateY(0px)"],
+    },
+    {
+      duration: 0.28,
+      easing: [0.22, 1, 0.36, 1],
+    }
+  );
+}
+
+function animateCollection(root, selector) {
+  if (!root) {
+    return;
+  }
+  const nodes = [...root.querySelectorAll(selector)];
+  if (!nodes.length) {
+    return;
+  }
+  runMotion(
+    nodes,
+    {
+      opacity: [0, 1],
+      transform: ["translateY(10px)", "translateY(0px)"],
+    },
+    {
+      duration: 0.24,
+      delay: motionStagger ? motionStagger(0.04) : 0,
+      easing: [0.22, 1, 0.36, 1],
+    }
+  );
+}
+
+function animateExerciseRows(root) {
+  if (!root) {
+    return;
+  }
+  const rows = [...root.querySelectorAll(".exercise-row")];
+  if (!rows.length) {
+    return;
+  }
+  runMotion(
+    rows,
+    {
+      opacity: [0, 1],
+      transform: ["translateX(-8px)", "translateX(0px)"],
+    },
+    {
+      duration: 0.2,
+      delay: motionStagger ? motionStagger(0.03) : 0,
+      easing: [0.22, 1, 0.36, 1],
+    }
+  );
+}
+
+function animateModalOpen() {
+  runMotion(
+    overlay,
+    { opacity: [0, 1] },
+    { duration: 0.2, easing: "ease-out" }
+  );
+  runMotion(
+    workoutModal,
+    {
+      opacity: [0.6, 1],
+      transform: ["translateY(24px) scale(0.98)", "translateY(0px) scale(1)"],
+    },
+    { duration: 0.28, easing: [0.22, 1, 0.36, 1] }
+  );
+}
+
+function animateWorkoutStep(step) {
+  const activeStep = modalSteps.find((node) => node.dataset.step === step);
+  if (!activeStep) {
+    return;
+  }
+  runMotion(
+    activeStep,
+    {
+      opacity: [0, 1],
+      transform: ["translateY(12px)", "translateY(0px)"],
+    },
+    { duration: 0.24, easing: [0.22, 1, 0.36, 1] }
+  );
+}
+
+syncViewportHeight(true);
+window.addEventListener("orientationchange", () => {
+  window.setTimeout(() => syncViewportHeight(true), 120);
+}, { passive: true });
+
+function bindClick(id, handler) {
+  const node = document.getElementById(id);
+  if (node) {
+    node.addEventListener("click", handler);
+  }
+}
+
+function preventTapFocusShift(node) {
+  if (!node) {
+    return;
+  }
+  node.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+  });
+}
 
 bindClick("open-workout-flow", openWorkoutFlow);
 bindClick("close-workout-flow", closeWorkoutFlow);
 bindClick("add-draft-item", openDraftFormForCreate);
 bindClick("confirm-draft-item", saveDraftItem);
 bindClick("save-workout-flow", handleSaveFlowButton);
-bindClick("save-wellbeing-note", () => void saveHomeComment());
 
-navButtons.forEach((button) => {
-  button.addEventListener("click", () => switchTab(button.dataset.tab || "home"));
-});
+deleteWorkoutDayBtn?.addEventListener("click", handleDeleteWorkoutDay);
+addRecordBtn?.addEventListener("click", promptAddRecord);
+removeRecordBtn?.addEventListener("click", toggleRecordsDeleteMode);
+preventTapFocusShift(document.getElementById("open-workout-flow"));
 
 dateInput.addEventListener("change", (event) => {
-  const target = event.target;
-  if (!(target instanceof HTMLInputElement)) return;
-  if (target.value) state.workoutFlow.date = target.value;
+  if (!event.target.value) {
+    return;
+  }
+  state.workoutFlow.date = event.target.value;
 });
 
 document.querySelectorAll(".counter-btn").forEach((button) => {
+  preventTapFocusShift(button);
   button.addEventListener("click", () => {
-    const key = button.dataset.counter === "sets" ? "sets" : "reps";
-    const direction = Number(button.dataset.direction || 0);
-    state.workoutFlow.draft[key] = Math.max(1, Number(state.workoutFlow.draft[key]) + direction);
+    const counter = button.dataset.counter;
+    const direction = Number(button.dataset.direction);
+    const key = counter === "sets" ? "sets" : "reps";
+    const next = Math.max(1, Number(state.workoutFlow.draft[key] || 1) + direction);
+    state.workoutFlow.draft[key] = next;
     renderDraftCounters();
   });
+});
+
+navButtons.forEach((button) => {
+  button.addEventListener("click", () => switchTab(button.dataset.tab));
+});
+
+faqSearch.addEventListener("input", (event) => {
+  state.faqQuery = event.target.value.trim().toLowerCase();
+  renderFaq();
+});
+
+wellbeingNoteInput?.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" || event.shiftKey || event.isComposing) {
+    return;
+  }
+  event.preventDefault();
+  if (state.workoutFlow.open) {
+    if (!state.workoutFlow.items.length) {
+      showToast("Сначала добавь хотя бы одно упражнение");
+      return;
+    }
+    void submitWorkoutFlow();
+    return;
+  }
+  void submitWellbeingNoteFromHome();
 });
 
 bootstrap().catch((error) => {
@@ -68,33 +262,44 @@ async function bootstrap() {
     return;
   }
   state.userId = userId;
-  await refreshAppData();
-}
 
-async function refreshAppData() {
-  const response = await fetch(`/api/app-data?user_id=${encodeURIComponent(state.userId)}`);
+  const response = await fetch(`/api/app-data?user_id=${encodeURIComponent(userId)}`);
   const payload = await response.json();
   state.payload = payload;
 
   if (!payload.ready) {
-    renderEmptyProfile(payload.message || "Пользователь не найден");
+    document.getElementById("profile-name").textContent = "Нет данных";
+    document.getElementById("weight-value").textContent = "—";
+    document.getElementById("height-value").textContent = "—";
+    document.getElementById("experience-value").textContent = "—";
+    document.getElementById("workouts-value").textContent = "0";
+    document.getElementById("history-list").innerHTML = emptyCard(payload.message || "Сначала открой бота и заполни профиль.");
+    document.getElementById("records-list").innerHTML = emptyCard("Рекорды появятся после первых тренировок.");
     switchTab("profile");
     return;
   }
 
-  renderProfile(payload.user);
-  renderHistory(payload.history || []);
-  renderRecords(payload.records || []);
+  renderApp(payload);
 }
 
-function renderEmptyProfile(message) {
-  document.getElementById("profile-name").textContent = "Нет данных";
-  document.getElementById("weight-value").textContent = "—";
-  document.getElementById("height-value").textContent = "—";
-  document.getElementById("experience-value").textContent = "—";
-  document.getElementById("workouts-value").textContent = "0";
-  document.getElementById("history-list").innerHTML = emptyCard(message);
-  document.getElementById("records-list").innerHTML = emptyCard("Рекордов пока нет");
+function renderApp(payload) {
+  renderProfile(payload.user);
+  renderHistory(payload.history);
+  renderRecords(payload.records);
+  renderFaqTabs(payload.faq);
+  renderFaq();
+  state.workoutFlow.items = convertHistoryToDraft(payload.history[0]);
+  renderWorkoutFlow();
+}
+
+function resolveUserId() {
+  const params = new URLSearchParams(window.location.search);
+  const queryUserId = params.get("user_id");
+  if (queryUserId) {
+    return queryUserId;
+  }
+  const tgUserId = telegram?.initDataUnsafe?.user?.id;
+  return tgUserId ? String(tgUserId) : "";
 }
 
 function renderProfile(user) {
@@ -102,8 +307,8 @@ function renderProfile(user) {
   document.getElementById("weight-value").textContent = user.weight ? `${user.weight} кг` : "—";
   document.getElementById("height-value").textContent = user.height ? `${user.height} см` : "—";
   document.getElementById("experience-value").textContent = user.experience || "—";
-  document.getElementById("workouts-value").textContent = String(user.workout_days || 0);
-  document.getElementById("streak-value").textContent = String(user.workout_days || 0);
+  document.getElementById("workouts-value").textContent = String(user.workout_days ?? 0);
+  document.getElementById("streak-value").textContent = String(user.workout_days ?? 0);
 }
 
 function renderHistory(history) {
@@ -111,17 +316,21 @@ function renderHistory(history) {
   root.innerHTML = "";
 
   if (!history.length) {
-    root.innerHTML = emptyCard("Пока нет тренировок");
+    root.innerHTML = emptyCard("Пока нет тренировок. Добавь первую через кнопку на главной.");
     return;
   }
 
   history.forEach((day, index) => {
+    const title = day.workout_name || trainingDayTitle(index);
+    const noteBlock = day.note
+      ? `<div class="history-note" data-date="${escapeHtml(day.date)}">${escapeHtml(day.note)}</div>`
+      : "";
     const rows = day.exercises
       .map(
         (item) => `
           <div class="exercise-row">
             <span>${escapeHtml(item.exercise)}</span>
-            <span>${item.weight} кг · ${item.sets}×${item.reps}</span>
+            <span>${item.weight} кг · ${item.sets || 1}×${item.reps}</span>
           </div>
         `
       )
@@ -132,117 +341,184 @@ function renderHistory(history) {
       `
         <article class="history-card" data-date="${escapeHtml(day.date)}">
           <div class="history-head">
-            <div class="history-main" data-role="title">${escapeHtml(day.workout_name || trainingDayTitle(index))}</div>
-            <div class="history-date">${formatDate(day.date)}</div>
+            <div class="history-main">${title}</div>
+            <div class="history-head-right">
+              <div class="history-date">${formatDate(day.date)}</div>
+              <button class="history-edit-btn" data-date="${escapeHtml(day.date)}" type="button">Изменить</button>
+            </div>
           </div>
           <div class="exercise-list">${rows}</div>
-          <div class="history-note" data-role="note">${escapeHtml(day.note || "Без комментария")}</div>
+          ${noteBlock}
         </article>
       `
     );
   });
 
-  root.querySelectorAll(".history-card").forEach((card) => {
-    const date = card.dataset.date || "";
-    card.addEventListener("click", () => openEditWorkoutFlow(date));
-
-    const titleNode = card.querySelector('[data-role="title"]');
-    const noteNode = card.querySelector('[data-role="note"]');
-
-    if (titleNode) {
-      setupLongPress(titleNode, 200, async () => {
-        if (navigator.vibrate) navigator.vibrate(10);
-        card.classList.add("focus-editing");
-        const current = titleNode.textContent || "";
-        const next = window.prompt("Новое название тренировки", current);
-        card.classList.remove("focus-editing");
-        if (next === null) return;
-        const value = next.trim();
-        if (!value) return;
-        await updateWorkoutMeta(date, { workout_name: value });
-      });
-    }
-
-    if (noteNode) {
-      setupLongPress(noteNode, 100, async () => {
-        const current = noteNode.textContent === "Без комментария" ? "" : noteNode.textContent || "";
-        const next = window.prompt("Измени комментарий", current);
-        if (next === null) return;
-        await updateWorkoutMeta(date, { wellbeing_note: next.trim() });
-      });
-    }
+  root.querySelectorAll(".history-edit-btn").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      openEditWorkoutFlow(button.dataset.date || "");
+    });
   });
+  root.querySelectorAll(".history-note[data-date]").forEach((noteNode) => {
+    noteNode.addEventListener("dblclick", () => {
+      void promptEditWorkoutComment(noteNode.dataset.date || "");
+    });
+  });
+  animateCollection(root, ".history-card");
+  animateExerciseRows(root);
 }
 
 function renderRecords(records) {
   const root = document.getElementById("records-list");
+  removeRecordBtn?.classList.toggle("active-tool", state.recordsDeleteMode);
   root.innerHTML = "";
+
   if (!records.length) {
-    root.innerHTML = emptyCard("Рекордов пока нет");
+    state.recordsDeleteMode = false;
+    removeRecordBtn?.classList.remove("active-tool");
+    root.innerHTML = emptyCard("Рекордов пока нет.");
     return;
   }
 
-  records.forEach((record) => {
+  records.forEach((record, index) => {
     root.insertAdjacentHTML(
       "beforeend",
-      `<article class="record-card"><strong>${escapeHtml(record.exercise)}</strong><span>${record.best_weight} кг</span></article>`
+      `
+        <article class="record-card${index === 0 ? " highlight" : ""}${state.recordsDeleteMode ? " delete-mode" : ""}" data-exercise="${escapeHtml(record.exercise)}">
+          <div class="record-main">
+            <div>
+              <div class="record-title">${escapeHtml(record.exercise)}</div>
+              <div class="record-date">${record.date ? formatDate(record.date) : "последний лучший результат"}</div>
+            </div>
+            <div class="record-weight">${record.best_weight} кг${state.recordsDeleteMode ? " <i class='bx bx-trash'></i>" : ""}</div>
+          </div>
+        </article>
+      `
     );
+  });
+
+  root.querySelectorAll(".record-card").forEach((card) => {
+    card.addEventListener("click", () => {
+      if (!state.recordsDeleteMode) {
+        return;
+      }
+      const exercise = card.dataset.exercise || "";
+      if (!exercise) {
+        return;
+      }
+      void deleteRecord(exercise);
+    });
+  });
+  animateCollection(root, ".record-card");
+}
+
+function renderFaqTabs(faqData) {
+  faqTabs.innerHTML = "";
+  Object.keys(faqData).forEach((key) => {
+    const button = document.createElement("button");
+    button.className = `chip${key === state.faqCategory ? " active" : ""}`;
+    button.type = "button";
+    button.textContent = faqTitle(key);
+    button.addEventListener("click", () => {
+      state.faqCategory = key;
+      renderFaqTabs(faqData);
+      renderFaq();
+    });
+    faqTabs.appendChild(button);
   });
 }
 
+function renderFaq() {
+  const faqData = state.payload?.faq || {};
+  const items = faqData[state.faqCategory] || [];
+  const filtered = items.filter((item) => {
+    if (!state.faqQuery) {
+      return true;
+    }
+    const fullText = `${item.question} ${item.answer}`.toLowerCase();
+    return fullText.includes(state.faqQuery);
+  });
+
+  faqList.innerHTML = "";
+  if (!filtered.length) {
+    faqList.innerHTML = emptyCard("Ничего не найдено.");
+    return;
+  }
+
+  filtered.forEach((item, index) => {
+    faqList.insertAdjacentHTML(
+      "beforeend",
+      `
+        <details class="faq-card"${index === 0 ? " open" : ""}>
+          <summary>${escapeHtml(item.question)}</summary>
+          <p>${escapeHtml(item.answer)}</p>
+        </details>
+      `
+    );
+  });
+  animateCollection(faqList, ".faq-card");
+}
+
 function switchTab(tab) {
+  if (!tab || state.activeTab === tab) {
+    return;
+  }
   state.activeTab = tab;
   navButtons.forEach((button) => button.classList.toggle("active", button.dataset.tab === tab));
   panels.forEach((panel) => panel.classList.toggle("active", panel.dataset.panel === tab));
-  document.getElementById("screen-title").textContent = tab === "profile" ? "Профиль" : tab === "records" ? "Рекорды" : "Главная";
+  document.getElementById("screen-title").textContent = titleForTab(tab);
+  animatePanelEnter(tab);
 }
+
+function titleForTab(tab) {
+  if (tab === "profile") return "Профиль";
+  if (tab === "records") return "Рекорды";
+  if (tab === "faq") return "Вопросы";
+  return "Главная";
+}
+
+
+
 
 function openWorkoutFlow() {
   state.workoutFlow.open = true;
-  state.workoutFlow.mode = "create";
-  state.workoutFlow.sourceDate = "";
-  state.workoutFlow.step = "list";
-  state.workoutFlow.items = [];
-  state.workoutFlow.editingIndex = null;
-  state.workoutFlow.draft = { sets: 1, reps: 8 };
-  state.workoutFlow.date = todayValue();
-  state.workoutFlow.saving = false;
-
-  workoutNameInput.value = "";
-  document.getElementById("exercise-name-input").value = "";
-  document.getElementById("exercise-weight-input").value = "";
+  resetWorkoutFlowForNewEntry();
+  setBodyScrollLock(true);
   overlay.hidden = false;
+  animateModalOpen();
   renderWorkoutFlow();
 }
 
-function openEditWorkoutFlow(sourceDate) {
-  const day = (state.payload?.history || []).find((entry) => entry.date === sourceDate);
-  if (!day) return;
-
-  state.workoutFlow.open = true;
-  state.workoutFlow.mode = "edit";
-  state.workoutFlow.sourceDate = sourceDate;
-  state.workoutFlow.step = "list";
-  state.workoutFlow.items = day.exercises.map((item) => ({
-    id: item.id,
-    exercise: item.exercise,
-    weight: item.weight,
-    sets: item.sets,
-    reps: item.reps,
-  }));
-  state.workoutFlow.editingIndex = null;
-  state.workoutFlow.draft = { sets: 1, reps: 8 };
-  state.workoutFlow.date = sourceDate;
-  state.workoutFlow.saving = false;
-
-  workoutNameInput.value = day.workout_name || "";
-  overlay.hidden = false;
-  renderWorkoutFlow();
-}
-
-function closeWorkoutFlow() {
+async function closeWorkoutFlow() {
+  if (!state.workoutFlow.open) {
+    return;
+  }
   state.workoutFlow.open = false;
+  lastWorkoutStep = "";
+  const overlayAnimation = runMotion(
+    overlay,
+    { opacity: [1, 0] },
+    { duration: 0.16, easing: "ease-out" }
+  );
+  const modalAnimation = runMotion(
+    workoutModal,
+    {
+      opacity: [1, 0.6],
+      transform: ["translateY(0px) scale(1)", "translateY(18px) scale(0.98)"],
+    },
+    { duration: 0.18, easing: "ease-in" }
+  );
+  if (overlayAnimation?.finished || modalAnimation?.finished) {
+    await Promise.all([overlayAnimation?.finished, modalAnimation?.finished].filter(Boolean)).catch(() => null);
+  }
   overlay.hidden = true;
+  setBodyScrollLock(false);
+}
+
+function setWorkoutStep(step) {
+  state.workoutFlow.step = step;
+  renderWorkoutFlow();
 }
 
 function openDraftFormForCreate() {
@@ -250,45 +526,93 @@ function openDraftFormForCreate() {
   state.workoutFlow.draft = { sets: 1, reps: 8 };
   document.getElementById("exercise-name-input").value = "";
   document.getElementById("exercise-weight-input").value = "";
-  state.workoutFlow.step = "form";
+  setWorkoutStep("form");
+}
+
+function openEditWorkoutFlow(sourceDate) {
+  const history = state.payload?.history || [];
+  const day = history.find((entry) => entry.date === sourceDate);
+  if (!day) {
+    showToast("Не удалось открыть тренировку для редактирования");
+    return;
+  }
+
+  state.workoutFlow.open = true;
+  state.workoutFlow.mode = "edit";
+  state.workoutFlow.sourceDate = sourceDate;
+  state.workoutFlow.editingIndex = null;
+  state.workoutFlow.step = "list";
+  state.workoutFlow.items = convertHistoryToDraft(day);
+  state.workoutFlow.draft = { sets: 1, reps: 8 };
+  state.workoutFlow.date = sourceDate;
+  state.workoutFlow.saving = false;
+  document.getElementById("wellbeing-note").value = day.note || "";
+  if (workoutNoteInput) {
+    workoutNoteInput.value = day.note || "";
+  }
+  workoutNameInput.value = day.workout_name || "";
+  setBodyScrollLock(true);
+  overlay.hidden = false;
+  animateModalOpen();
   renderWorkoutFlow();
 }
 
+function resetWorkoutFlowForNewEntry() {
+  state.workoutFlow.mode = "create";
+  state.workoutFlow.sourceDate = "";
+  state.workoutFlow.editingIndex = null;
+  state.workoutFlow.items = [];
+  state.workoutFlow.draft = { sets: 1, reps: 8 };
+  state.workoutFlow.step = "list";
+  state.workoutFlow.date = todayValue();
+  state.workoutFlow.saving = false;
+  lastWorkoutStep = "";
+
+  document.getElementById("exercise-name-input").value = "";
+  document.getElementById("exercise-weight-input").value = "";
+  document.getElementById("wellbeing-note").value = "";
+  if (workoutNoteInput) {
+    workoutNoteInput.value = "";
+  }
+  workoutNameInput.value = "";
+}
+
 function saveDraftItem() {
-  const name = document.getElementById("exercise-name-input").value.trim();
-  const weightValue = Number(document.getElementById("exercise-weight-input").value);
-  const weight = Number.isFinite(weightValue) && weightValue > 0 ? weightValue.toFixed(1) : "0.0";
+  const nameInput = document.getElementById("exercise-name-input");
+  const weightInput = document.getElementById("exercise-weight-input");
+  const name = nameInput.value.trim();
+  const weight = Number(weightInput.value);
 
   if (!name) {
     showToast("Введи название упражнения");
     return;
   }
 
-  const item = {
+  const nextItem = {
     exercise: name,
-    weight,
+    weight: Number.isFinite(weight) && weight > 0 ? weight.toFixed(1) : "0.0",
     sets: state.workoutFlow.draft.sets,
     reps: state.workoutFlow.draft.reps,
   };
 
   if (state.workoutFlow.editingIndex === null) {
-    state.workoutFlow.items.push(item);
-  } else {
-    state.workoutFlow.items[state.workoutFlow.editingIndex] = item;
+    state.workoutFlow.items.push(nextItem);
+  } else if (state.workoutFlow.items[state.workoutFlow.editingIndex]) {
+    state.workoutFlow.items[state.workoutFlow.editingIndex] = nextItem;
   }
 
+  nameInput.value = "";
+  weightInput.value = "";
   state.workoutFlow.editingIndex = null;
-  state.workoutFlow.step = "list";
   state.workoutFlow.draft = { sets: 1, reps: 8 };
-  document.getElementById("exercise-name-input").value = "";
-  document.getElementById("exercise-weight-input").value = "";
+  state.workoutFlow.step = "list";
   renderWorkoutFlow();
 }
 
 function handleSaveFlowButton() {
   if (state.workoutFlow.step === "list") {
     if (!state.workoutFlow.items.length) {
-      showToast("Добавь минимум одно упражнение");
+      showToast("Сначала добавь хотя бы одно упражнение");
       return;
     }
     state.workoutFlow.step = "date";
@@ -297,28 +621,47 @@ function handleSaveFlowButton() {
   }
 
   if (state.workoutFlow.step === "date") {
-    void submitWorkoutFlow();
+    submitWorkoutFlow();
+    return;
+  }
+
+  if (state.workoutFlow.step === "done") {
+    closeWorkoutFlow();
   }
 }
 
 function renderWorkoutFlow() {
-  if (!state.workoutFlow.open) return;
+  if (!state.workoutFlow.open) {
+    return;
+  }
 
   const step = state.workoutFlow.step;
   modalSteps.forEach((node) => node.classList.toggle("active", node.dataset.step === step));
-  modalTitle.textContent = step === "form" ? "Упражнение" : step === "date" ? "Дата" : "Добавить упражнения";
+  if (lastWorkoutStep !== step) {
+    animateWorkoutStep(step);
+    lastWorkoutStep = step;
+  }
+  modalTitle.textContent = workoutTitle(step);
 
-  const saveBtn = document.getElementById("save-workout-flow");
-  saveBtn.hidden = step === "form";
-  saveBtn.textContent = step === "date" ? (state.workoutFlow.saving ? "..." : "Сохранить") : "Далее";
-  saveBtn.disabled = state.workoutFlow.saving;
-
+  const saveButton = document.getElementById("save-workout-flow");
+  saveButton.hidden = step === "form";
+  saveButton.innerHTML = saveButtonLabel(step, state.workoutFlow.saving);
+  saveButton.disabled = state.workoutFlow.saving;
+  deleteWorkoutDayBtn.hidden = !(state.workoutFlow.mode === "edit" && step === "list");
+  deleteWorkoutDayBtn.disabled = state.workoutFlow.saving;
+  if (step === "list") {
+    renderDraftList();
+  }
+  renderDraftCounters();
   if (dateInput.value !== state.workoutFlow.date) {
     dateInput.value = state.workoutFlow.date;
   }
-
-  renderDraftList();
-  renderDraftCounters();
+  const datePreview = document.getElementById("date-preview");
+  if (datePreview) {
+    datePreview.textContent = formatDate(state.workoutFlow.date).replaceAll(".", " ");
+  }
+  document.getElementById("saved-summary").textContent =
+    `Сохранено упражнений: ${state.workoutFlow.items.length}. Дата: ${formatDate(state.workoutFlow.date)}.`;
 }
 
 function renderDraftCounters() {
@@ -330,8 +673,9 @@ function renderDraftList() {
   const root = document.getElementById("draft-list");
   root.innerHTML = "";
 
+
   if (!state.workoutFlow.items.length) {
-    root.innerHTML = '<div class="draft-empty">Упражнений пока нет</div>';
+
     return;
   }
 
@@ -339,116 +683,158 @@ function renderDraftList() {
     root.insertAdjacentHTML(
       "beforeend",
       `
-      <div class="draft-item" data-index="${index}">
-        <div class="draft-main">
-          <div class="draft-title">${escapeHtml(item.exercise)}</div>
-          <div class="draft-sub">${item.weight} кг · ${item.sets}×${item.reps}</div>
+        <div class="draft-item" data-index="${index}" role="button" tabindex="0">
+          <div>
+            <div class="draft-title">${escapeHtml(item.exercise)}</div>
+            <div class="draft-subtitle">${item.weight} кг • ${item.sets} подх. • ${item.reps} повт.</div>
+          </div>
+          <div class="draft-actions">
+            <button class="draft-action-btn" type="button" data-action="edit" data-index="${index}" aria-label="Изменить">
+              <i class='bx bx-edit'></i>
+            </button>
+            <button class="draft-action-btn danger" type="button" data-action="delete" data-index="${index}" aria-label="Удалить">
+              <i class='bx bx-trash'></i>
+            </button>
+          </div>
         </div>
-        <div class="draft-actions">
-          <button type="button" data-action="edit">Изм.</button>
-          <button type="button" data-action="delete" class="danger">Удалить</button>
-        </div>
-      </div>
       `
     );
   });
 
-  root.querySelectorAll(".draft-item").forEach((node) => {
-    const index = Number(node.dataset.index);
-    if (!Number.isInteger(index)) return;
-
-    setupSwipeActions(node);
-
-    node.querySelectorAll(".draft-actions button").forEach((button) => {
-      button.addEventListener("click", (event) => {
-        event.stopPropagation();
-        const action = button.dataset.action;
-        if (action === "delete") {
-          removeDraftItem(index);
-          return;
-        }
-
-        const item = state.workoutFlow.items[index];
-        if (!item) return;
-        state.workoutFlow.editingIndex = index;
-        state.workoutFlow.draft = { sets: item.sets, reps: item.reps };
-        document.getElementById("exercise-name-input").value = item.exercise;
-        document.getElementById("exercise-weight-input").value = item.weight;
-        state.workoutFlow.step = "form";
-        renderWorkoutFlow();
-      });
+  root.querySelectorAll(".draft-action-btn").forEach((actionBtn) => {
+    actionBtn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const index = Number(actionBtn.dataset.index);
+      const action = actionBtn.dataset.action;
+      if (!Number.isInteger(index) || !state.workoutFlow.items[index] || !action) {
+        return;
+      }
+      if (action === "delete") {
+        removeDraftItem(index);
+        return;
+      }
+      const item = state.workoutFlow.items[index];
+      state.workoutFlow.editingIndex = index;
+      state.workoutFlow.draft = {
+        sets: Number(item.sets) || 1,
+        reps: Number(item.reps) || 1,
+      };
+      document.getElementById("exercise-name-input").value = item.exercise || "";
+      document.getElementById("exercise-weight-input").value = item.weight || "";
+      setWorkoutStep("form");
     });
   });
-}
-
-function setupSwipeActions(node) {
-  let startX = 0;
-  let dragging = false;
-
-  node.addEventListener("pointerdown", (event) => {
-    startX = event.clientX;
-    dragging = true;
-  });
-
-  node.addEventListener("pointermove", (event) => {
-    if (!dragging) return;
-    const diff = event.clientX - startX;
-    if (diff < -25) {
-      node.classList.add("swiped");
+  runMotion(
+    root.querySelectorAll(".draft-item"),
+    {
+      opacity: [0, 1],
+      transform: ["translateY(12px)", "translateY(0px)"],
+    },
+    {
+      duration: 0.24,
+      delay: motionStagger ? motionStagger(0.05) : 0,
+      easing: [0.22, 1, 0.36, 1],
     }
-    if (diff > 10) {
-      node.classList.remove("swiped");
-    }
-  });
-
-  node.addEventListener("pointerup", () => {
-    dragging = false;
-  });
-
-  node.addEventListener("pointercancel", () => {
-    dragging = false;
-  });
+  );
 }
 
 function removeDraftItem(index) {
+  if (!state.workoutFlow.items[index]) {
+    return;
+  }
   state.workoutFlow.items.splice(index, 1);
-  state.workoutFlow.editingIndex = null;
+  if (state.workoutFlow.editingIndex === index) {
+    state.workoutFlow.editingIndex = null;
+  } else if (state.workoutFlow.editingIndex !== null && state.workoutFlow.editingIndex > index) {
+    state.workoutFlow.editingIndex -= 1;
+  }
   renderWorkoutFlow();
 }
 
+function workoutTitle(step) {
+  if (step === "form") {
+    return state.workoutFlow.editingIndex === null ? "Параметры упражнения" : "Изменить упражнение";
+  }
+  if (step === "date") return "Дата";
+  if (step === "done") return "Сохранено";
+  if (state.workoutFlow.mode === "edit") return "Изменить тренировку";
+  return "Добавить упражнения";
+}
+
+function convertHistoryToDraft(day) {
+  if (!day) {
+    return [];
+  }
+  return day.exercises.map((item) => ({
+    exercise: item.exercise,
+    weight: item.weight,
+    sets: item.sets || 1,
+    reps: item.reps,
+  }));
+}
+
+function saveButtonLabel(step, saving) {
+  if (saving) {
+    return "<i class='bx bxs-right-arrow'></i>";
+  }
+  if (step === "list") {
+    return "<i class='bx bxs-right-arrow'></i>";
+  }
+  if (step === "date") {
+    return "<i class='bx bxs-right-arrow'></i>";
+  }
+  return "<i class='bx bxs-right-arrow'></i>";
+}
+
 async function submitWorkoutFlow() {
-  if (state.workoutFlow.saving) return;
+  if (state.workoutFlow.saving) {
+    return;
+  }
+
   state.workoutFlow.saving = true;
   renderWorkoutFlow();
 
   try {
-    const isEdit = state.workoutFlow.mode === "edit";
+    const isEditMode = state.workoutFlow.mode === "edit" && Boolean(state.workoutFlow.sourceDate);
+    const wellbeingNote = (workoutNoteInput?.value || document.getElementById("wellbeing-note").value).trim();
+    const workoutName = workoutNameInput.value.trim();
+    const payload = {
+      user_id: Number(state.userId),
+      workout_date: state.workoutFlow.date,
+      exercises: state.workoutFlow.items.map((item) => ({
+        exercise: item.exercise,
+        weight: Number(item.weight),
+        sets: item.sets,
+        reps: item.reps,
+      })),
+    };
+    if (wellbeingNote) {
+      payload.wellbeing_note = wellbeingNote;
+    }
+    if (workoutName) {
+      payload.workout_name = workoutName;
+    }
+    if (isEditMode) {
+      payload.source_workout_date = state.workoutFlow.sourceDate;
+    }
+
     const response = await fetch("/api/workouts", {
-      method: isEdit ? "PUT" : "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        user_id: Number(state.userId),
-        source_workout_date: state.workoutFlow.sourceDate || undefined,
-        workout_date: state.workoutFlow.date,
-        workout_name: workoutNameInput.value.trim(),
-        wellbeing_note: "",
-        exercises: state.workoutFlow.items.map((item) => ({
-          exercise: item.exercise,
-          weight: Number(item.weight),
-          sets: Number(item.sets),
-          reps: Number(item.reps),
-        })),
-      }),
+      method: isEditMode ? "PUT" : "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
     });
 
     const result = await response.json();
-    if (!response.ok || !result.ok) throw new Error(result.error || "save failed");
+    if (!response.ok || !result.ok) {
+      throw new Error(result.error || "save failed");
+    }
 
-    // Сброс блока добавления после сохранения.
-    resetWorkoutFlowState();
-    closeWorkoutFlow();
-    showSavedOverlay();
     await refreshAppData();
+    resetWorkoutFlowForNewEntry();
+    showToast("Тренировка сохранена. Можно добавить новую");
+    renderWorkoutFlow();
   } catch (error) {
     console.error(error);
     showToast("Не удалось сохранить тренировку");
@@ -458,126 +844,280 @@ async function submitWorkoutFlow() {
   }
 }
 
-function resetWorkoutFlowState() {
-  state.workoutFlow.mode = "create";
-  state.workoutFlow.sourceDate = "";
-  state.workoutFlow.step = "list";
-  state.workoutFlow.items = [];
-  state.workoutFlow.editingIndex = null;
-  state.workoutFlow.draft = { sets: 1, reps: 8 };
-  state.workoutFlow.date = todayValue();
-  workoutNameInput.value = "";
-  document.getElementById("exercise-name-input").value = "";
-  document.getElementById("exercise-weight-input").value = "";
-}
+async function submitWellbeingNoteFromHome() {
+  if (wellbeingNoteSaving) {
+    return;
+  }
+  if (!state.userId) {
+    showToast("Сначала открой профиль в боте");
+    return;
+  }
 
-async function saveHomeComment() {
-  const note = wellbeingNoteInput.value.trim();
-  if (!note) {
+  const wellbeingNote = (wellbeingNoteInput?.value || "").trim();
+  if (!wellbeingNote) {
     showToast("Введи комментарий");
     return;
   }
 
-  const date = todayValue();
-  const day = (state.payload?.history || []).find((entry) => entry.date === date);
-  if (!day) {
-    showToast("На сегодня нет тренировки");
+  const commentDate = todayValue();
+  const workoutForCommentDate = (state.payload?.history || []).find((day) => day.date === commentDate);
+  if (!workoutForCommentDate || !Array.isArray(workoutForCommentDate.exercises) || !workoutForCommentDate.exercises.length) {
+    showToast("Нет тренировки на эту дату");
     return;
   }
 
-  await updateWorkoutMeta(date, { wellbeing_note: note });
-  wellbeingNoteInput.value = "";
-}
-
-async function updateWorkoutMeta(date, patch) {
+  wellbeingNoteSaving = true;
   try {
     const response = await fetch("/api/workouts", {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({
         user_id: Number(state.userId),
-        source_workout_date: date,
-        workout_date: date,
-        ...patch,
+        source_workout_date: workoutForCommentDate.date,
+        workout_date: workoutForCommentDate.date,
+        workout_name: workoutForCommentDate.workout_name || "",
+        wellbeing_note: wellbeingNote,
+        exercises: workoutForCommentDate.exercises.map((item) => ({
+          exercise: item.exercise,
+          weight: Number(item.weight),
+          sets: item.sets,
+          reps: item.reps,
+        })),
+      }),
+    });
+
+    const result = await response.json();
+    if (!response.ok || !result.ok) {
+      throw new Error(result.error || "failed to save wellbeing note");
+    }
+
+    showToast("Комментарий сохранен");
+    await refreshAppDataStable();
+  } catch (error) {
+    console.error(error);
+    showToast("Не удалось сохранить комментарий");
+  } finally {
+    wellbeingNoteSaving = false;
+  }
+}
+
+async function promptEditWorkoutComment(sourceDate) {
+  if (wellbeingNoteSaving) {
+    return;
+  }
+  if (!state.userId || !sourceDate) {
+    return;
+  }
+
+  const workoutDay = (state.payload?.history || []).find((day) => day.date === sourceDate);
+  if (!workoutDay || !Array.isArray(workoutDay.exercises) || !workoutDay.exercises.length) {
+    showToast("Тренировка не найдена");
+    return;
+  }
+
+  const currentNote = String(workoutDay.note || "");
+  const nextNoteRaw = window.prompt("Измени комментарий:", currentNote);
+  if (nextNoteRaw === null) {
+    return;
+  }
+  const nextNote = nextNoteRaw.trim();
+  if (nextNote === currentNote.trim()) {
+    return;
+  }
+
+  wellbeingNoteSaving = true;
+  try {
+    const response = await fetch("/api/workouts", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        user_id: Number(state.userId),
+        source_workout_date: workoutDay.date,
+        workout_date: workoutDay.date,
+        workout_name: workoutDay.workout_name || "",
+        wellbeing_note: nextNote,
+        exercises: workoutDay.exercises.map((item) => ({
+          exercise: item.exercise,
+          weight: Number(item.weight),
+          sets: item.sets,
+          reps: item.reps,
+        })),
+      }),
+    });
+
+    const result = await response.json();
+    if (!response.ok || !result.ok) {
+      throw new Error(result.error || "failed to update comment");
+    }
+
+    showToast("Комментарий обновлен");
+    await refreshAppDataStable();
+  } catch (error) {
+    console.error(error);
+    showToast("Не удалось обновить комментарий");
+  } finally {
+    wellbeingNoteSaving = false;
+  }
+}
+
+async function refreshAppData() {
+  if (!state.userId) {
+    return;
+  }
+  const response = await fetch(`/api/app-data?user_id=${encodeURIComponent(state.userId)}`);
+  const payload = await response.json();
+  if (!payload.ready) {
+    return;
+  }
+  state.payload = payload;
+  renderApp(payload);
+}
+
+async function handleDeleteWorkoutDay() {
+  if (state.workoutFlow.mode !== "edit" || !state.workoutFlow.sourceDate) {
+    return;
+  }
+  if (state.workoutFlow.saving) {
+    return;
+  }
+  const confirmed = window.confirm(`Удалить тренировку за ${formatDate(state.workoutFlow.sourceDate)}?`);
+  if (!confirmed) {
+    return;
+  }
+
+  state.workoutFlow.saving = true;
+  renderWorkoutFlow();
+  try {
+    const response = await fetch("/api/workouts", {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        user_id: Number(state.userId),
+        workout_date: state.workoutFlow.sourceDate,
       }),
     });
     const result = await response.json();
-    if (!response.ok || !result.ok) throw new Error(result.error || "meta failed");
-    await refreshAppData();
-    showToast("Сохранено");
+    if (!response.ok || !result.ok) {
+      throw new Error(result.error || "delete failed");
+    }
+    showToast("Тренировка удалена");
+    await refreshAppDataStable();
+    closeWorkoutFlow();
   } catch (error) {
     console.error(error);
-    showToast("Не удалось сохранить");
+    showToast("Не удалось удалить тренировку");
+  } finally {
+    state.workoutFlow.saving = false;
+    renderWorkoutFlow();
   }
 }
 
-function showSavedOverlay() {
-  if (saveOverlayTimer) {
-    clearTimeout(saveOverlayTimer);
-    saveOverlayTimer = null;
+async function refreshAppDataStable() {
+  const contentNode = document.querySelector(".content");
+  const contentScrollTop = contentNode ? contentNode.scrollTop : 0;
+  const activeTab = state.activeTab;
+  await refreshAppData();
+  if (state.activeTab !== activeTab) {
+    switchTab(activeTab);
   }
-  saveOverlay.hidden = false;
-  saveOverlayTimer = setTimeout(() => {
-    hideSavedOverlay();
-  }, 1500);
-}
-
-function hideSavedOverlay() {
-  if (saveOverlayTimer) {
-    clearTimeout(saveOverlayTimer);
-    saveOverlayTimer = null;
-  }
-  saveOverlay.hidden = true;
-}
-
-saveOverlay?.addEventListener("click", hideSavedOverlay);
-window.addEventListener("keydown", (event) => {
-  if (event.key === "Escape" && !saveOverlay.hidden) {
-    hideSavedOverlay();
-  }
-});
-
-function setupLongPress(node, delayMs, handler) {
-  let timer = null;
-  let started = false;
-
-  const cancel = () => {
-    if (timer) clearTimeout(timer);
-    timer = null;
-    started = false;
-  };
-
-  node.addEventListener("pointerdown", (event) => {
-    event.stopPropagation();
-    started = true;
-    timer = setTimeout(() => {
-      if (!started) return;
-      handler();
-      cancel();
-    }, delayMs);
-  });
-
-  ["pointerup", "pointerleave", "pointercancel"].forEach((type) => {
-    node.addEventListener(type, cancel);
-  });
-
-  node.addEventListener("click", (event) => {
-    event.stopPropagation();
+  requestAnimationFrame(() => {
+    if (contentNode) {
+      contentNode.scrollTop = contentScrollTop;
+    }
   });
 }
 
-function bindClick(id, handler) {
-  const node = document.getElementById(id);
-  if (!node) return;
-  node.addEventListener("click", handler);
+async function promptAddRecord() {
+  if (!state.userId) {
+    showToast("Сначала открой профиль в боте");
+    return;
+  }
+
+  const exerciseRaw = window.prompt("Название упражнения для рекорда:");
+  if (exerciseRaw === null) {
+    return;
+  }
+  const exercise = exerciseRaw.trim();
+  if (!exercise) {
+    showToast("Введите название упражнения");
+    return;
+  }
+
+  const weightRaw = window.prompt("Вес рекорда (кг):");
+  if (weightRaw === null) {
+    return;
+  }
+  const bestWeight = Number(String(weightRaw).replace(",", "."));
+  if (!Number.isFinite(bestWeight) || bestWeight <= 0) {
+    showToast("Введите корректный вес");
+    return;
+  }
+
+  try {
+    const response = await fetch("/api/records", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        user_id: Number(state.userId),
+        exercise,
+        best_weight: bestWeight,
+      }),
+    });
+    const result = await response.json();
+    if (!response.ok || !result.ok) {
+      throw new Error(result.error || "failed to save record");
+    }
+    showToast("Рекорд добавлен");
+    await refreshAppDataStable();
+  } catch (error) {
+    console.error(error);
+    showToast("Не удалось добавить рекорд");
+  }
 }
 
-function resolveUserId() {
-  const params = new URLSearchParams(window.location.search);
-  const queryUserId = params.get("user_id");
-  if (queryUserId) return queryUserId;
-  const tgUserId = telegram?.initDataUnsafe?.user?.id;
-  return tgUserId ? String(tgUserId) : "";
+function toggleRecordsDeleteMode() {
+  state.recordsDeleteMode = !state.recordsDeleteMode;
+  renderRecords(state.payload?.records || []);
+}
+
+async function deleteRecord(exercise) {
+  if (!state.userId) {
+    showToast("Сначала открой профиль в боте");
+    return;
+  }
+
+  try {
+    const response = await fetch("/api/records", {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        user_id: Number(state.userId),
+        exercise,
+      }),
+    });
+    const result = await response.json();
+    if (!response.ok || !result.ok) {
+      throw new Error(result.error || "failed to delete record");
+    }
+    showToast(`Рекорд "${exercise}" удален`);
+    await refreshAppDataStable();
+    if (!(state.payload?.records || []).length) {
+      state.recordsDeleteMode = false;
+    }
+  } catch (error) {
+    console.error(error);
+    showToast("Не удалось удалить рекорд");
+  }
 }
 
 function trainingDayTitle(index) {
@@ -585,10 +1125,21 @@ function trainingDayTitle(index) {
   return names[index % names.length];
 }
 
+function faqTitle(key) {
+  if (key === "nutrition") return "Питание";
+  if (key === "programs") return "Программы";
+  if (key === "recovery") return "Восстановление";
+  return "Техника";
+}
+
 function formatDate(value) {
-  if (!value) return "сегодня";
+  if (!value) {
+    return "сегодня";
+  }
   const parts = value.split("-");
-  if (parts.length !== 3) return value;
+  if (parts.length !== 3) {
+    return value;
+  }
   return `${parts[2]}.${parts[1]}.${parts[0].slice(-2)}`;
 }
 
@@ -597,7 +1148,7 @@ function todayValue() {
 }
 
 function emptyCard(text) {
-  return `<article class="history-card"><div class="history-main">${escapeHtml(text)}</div></article>`;
+  return `<div class="history-card"><div class="history-main">${escapeHtml(text)}</div></div>`;
 }
 
 function showToast(message) {
@@ -605,7 +1156,15 @@ function showToast(message) {
   toast.className = "toast";
   toast.textContent = message;
   document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), 2000);
+  runMotion(
+    toast,
+    {
+      opacity: [0, 1],
+      transform: ["translate(-50%, -8px)", "translate(-50%, 0px)"],
+    },
+    { duration: 0.2, easing: "ease-out" }
+  );
+  setTimeout(() => toast.remove(), 2200);
 }
 
 function escapeHtml(value) {

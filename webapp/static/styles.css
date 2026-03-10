@@ -383,6 +383,13 @@ transform: translateY(15%);
   margin-top: 20px;
 }
 
+.history-card.focus-edit .exercise-list,
+.history-card.focus-edit .history-note {
+  filter: blur(2px);
+  opacity: 0.5;
+  transition: filter 0.2s ease, opacity 0.2s ease;
+}
+
 .exercise-row {
   justify-content: space-between;
   gap: 14px;

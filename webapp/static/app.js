@@ -350,7 +350,7 @@ function renderHistory(history) {
       `
         <article class="history-card" data-date="${escapeHtml(day.date)}">
           <div class="history-head">
-            <div class="history-main">${title}</div>
+            <div class="history-main" data-date="${escapeHtml(day.date)}">${escapeHtml(title)}</div>
             <div class="history-head-right">
               <div class="history-date">${formatDate(day.date)}</div>
               <button class="history-edit-btn" data-date="${escapeHtml(day.date)}" type="button">Изменить</button>
@@ -370,8 +370,24 @@ function renderHistory(history) {
     });
   });
   root.querySelectorAll(".history-note[data-date]").forEach((noteNode) => {
-    noteNode.addEventListener("dblclick", () => {
+    attachLongPress(noteNode, 100, () => {
       void promptEditWorkoutComment(noteNode.dataset.date || "");
+    });
+  });
+  root.querySelectorAll(".history-main[data-date]").forEach((titleNode) => {
+    const card = titleNode.closest(".history-card");
+    attachLongPress(titleNode, 200, () => {
+      if (navigator.vibrate) {
+        navigator.vibrate(10);
+      }
+      if (card) {
+        card.classList.add("focus-edit");
+      }
+      promptEditWorkoutTitle(titleNode.dataset.date || "").finally(() => {
+        if (card) {
+          card.classList.remove("focus-edit");
+        }
+      });
     });
   });
   animateCollection(root, ".history-card");
@@ -973,6 +989,67 @@ async function promptEditWorkoutComment(sourceDate) {
   }
 }
 
+async function promptEditWorkoutTitle(sourceDate) {
+  if (wellbeingNoteSaving) {
+    return;
+  }
+  if (!state.userId || !sourceDate) {
+    return;
+  }
+
+  const workoutDay = (state.payload?.history || []).find((day) => day.date === sourceDate);
+  if (!workoutDay || !Array.isArray(workoutDay.exercises) || !workoutDay.exercises.length) {
+    showToast("Тренировка не найдена");
+    return;
+  }
+
+  const currentName = String(workoutDay.workout_name || "");
+  const nextNameRaw = window.prompt("Измени название тренировки:", currentName);
+  if (nextNameRaw === null) {
+    return;
+  }
+  const nextName = nextNameRaw.trim();
+  if (nextName === currentName.trim()) {
+    return;
+  }
+
+  wellbeingNoteSaving = true;
+  try {
+    const response = await fetch("/api/workouts", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        user_id: Number(state.userId),
+        source_workout_date: workoutDay.date,
+        workout_date: workoutDay.date,
+        workout_name: nextName,
+        wellbeing_note: workoutDay.note || "",
+        exercises: workoutDay.exercises.map((item) => ({
+          exercise: item.exercise,
+          weight: Number(item.weight),
+          sets: item.sets,
+          reps: item.reps,
+        })),
+      }),
+    });
+
+    const result = await response.json();
+    if (!response.ok || !result.ok) {
+      throw new Error(result.error || "failed to update workout name");
+    }
+
+    showToast("Название обновлено");
+    await refreshAppDataStable();
+  } catch (error) {
+    console.error(error);
+    showToast("Не удалось обновить название");
+  } finally {
+    wellbeingNoteSaving = false;
+  }
+}
+
 async function refreshAppData() {
   if (!state.userId) {
     return;
@@ -1174,6 +1251,51 @@ function showToast(message) {
     { duration: 0.2, easing: "ease-out" }
   );
   setTimeout(() => toast.remove(), 2200);
+}
+
+function attachLongPress(node, durationMs, onLongPress) {
+  let timerId = null;
+  let startX = 0;
+  let startY = 0;
+  let longPressed = false;
+
+  const clear = () => {
+    if (timerId) {
+      clearTimeout(timerId);
+      timerId = null;
+    }
+  };
+
+  node.addEventListener("pointerdown", (event) => {
+    startX = event.clientX;
+    startY = event.clientY;
+    longPressed = false;
+    clear();
+    timerId = setTimeout(() => {
+      longPressed = true;
+      onLongPress();
+    }, durationMs);
+  });
+
+  node.addEventListener("pointermove", (event) => {
+    const dx = Math.abs(event.clientX - startX);
+    const dy = Math.abs(event.clientY - startY);
+    if (dx > 8 || dy > 8) {
+      clear();
+    }
+  });
+
+  node.addEventListener("pointerup", clear);
+  node.addEventListener("pointercancel", clear);
+  node.addEventListener("pointerleave", clear);
+
+  node.addEventListener("click", (event) => {
+    if (longPressed) {
+      event.preventDefault();
+      event.stopPropagation();
+      longPressed = false;
+    }
+  });
 }
 
 function escapeHtml(value) {

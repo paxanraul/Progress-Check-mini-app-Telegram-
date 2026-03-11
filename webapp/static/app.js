@@ -1229,7 +1229,7 @@ async function deleteRecord(exercise) {
         exercise,
       }),
     });
-    const result = await response.json();
+    const result = await response.json().catch(() => ({}));
     if (!response.ok || !result.ok) {
       throw new Error(result.error || "failed to delete record");
     }
@@ -1240,7 +1240,7 @@ async function deleteRecord(exercise) {
     }
   } catch (error) {
     console.error(error);
-    showToast("Не удалось удалить рекорд");
+    showToast(`Не удалось удалить рекорд: ${error.message || "unknown error"}`);
   }
 }
 

@@ -1,17 +1,16 @@
 from pathlib import Path
+from datetime import date
 
 from aiohttp import web
 
 from bot.db import (
     add_workout,
-    delete_workout_day,
+    get_connection,
     get_records,
     get_started_user,
     get_total_workout_days,
     get_user,
     get_workout_days,
-    replace_workout_day,
-    update_workout_meta,
 )
 
 
@@ -81,6 +80,31 @@ async def app_data(request: web.Request) -> web.Response:
             }
         )
 
+    history_payload = []
+    for row in get_workout_days(user_id, limit=8):
+        exercises = []
+        raw = row["exercises"] or ""
+        for chunk in raw.split("||"):
+            if not chunk:
+                continue
+            exercise, weight, sets, reps = chunk.split("|")
+            exercises.append(
+                {
+                    "exercise": exercise,
+                    "weight": f"{float(weight):.1f}",
+                    "sets": int(sets),
+                    "reps": int(reps),
+                }
+            )
+        history_payload.append(
+            {
+                "date": row["workout_date"],
+                "workout_name": row["workout_name"] or "",
+                "note": row["wellbeing_note"] or "",
+                "exercises": exercises,
+            }
+        )
+
     records_payload = [
         {"exercise": row["exercise"], "best_weight": f"{float(row['best_weight']):.1f}"}
         for row in get_records(user_id)
@@ -95,7 +119,7 @@ async def app_data(request: web.Request) -> web.Response:
             "experience": profile["experience"] if profile else "Не заполнено",
             "workout_days": get_total_workout_days(user_id),
         },
-        "history": get_workout_days(user_id, limit=12),
+        "history": history_payload,
         "records": records_payload,
         "faq": FAQ_DATA,
     }
@@ -106,16 +130,17 @@ async def faq_data(request: web.Request) -> web.Response:
     return web.json_response({"faq": FAQ_DATA})
 
 
-async def create_workout(request: web.Request) -> web.Response:
-    payload, error = await parse_json(request)
-    if error:
-        return error
+async def save_workout(request: web.Request) -> web.Response:
+    try:
+        payload = await request.json()
+    except Exception:
+        return web.json_response({"error": "invalid json"}, status=400)
 
     user_id = payload.get("user_id")
     workout_date = str(payload.get("workout_date", "")).strip()
-    exercises = payload.get("exercises", [])
     workout_name = str(payload.get("workout_name", "")).strip()
-    note = str(payload.get("wellbeing_note", "")).strip()
+    wellbeing_note = str(payload.get("wellbeing_note", "")).strip()
+    exercises = payload.get("exercises", [])
 
     if not isinstance(user_id, int):
         return web.json_response({"error": "user_id must be int"}, status=400)
@@ -123,6 +148,7 @@ async def create_workout(request: web.Request) -> web.Response:
         return web.json_response({"error": "workout_date is required"}, status=400)
     if not isinstance(exercises, list) or not exercises:
         return web.json_response({"error": "exercises must be a non-empty list"}, status=400)
+
     if not get_started_user(user_id):
         return web.json_response({"error": "user not found"}, status=404)
 
@@ -146,65 +172,109 @@ async def create_workout(request: web.Request) -> web.Response:
             weight=weight,
             sets=sets,
             reps=reps,
+            is_record=False,
+            workout_name=workout_name or None,
+            wellbeing_note=wellbeing_note or None,
         )
         saved += 1
 
     if saved == 0:
         return web.json_response({"error": "no valid exercises to save"}, status=400)
 
-    if workout_name or note:
-        update_workout_meta(user_id=user_id, workout_date=workout_date, workout_name=workout_name, note=note)
-
     return web.json_response({"ok": True, "saved": saved})
 
 
 async def update_workout(request: web.Request) -> web.Response:
-    payload, error = await parse_json(request)
-    if error:
-        return error
+    try:
+        payload = await request.json()
+    except Exception:
+        return web.json_response({"error": "invalid json"}, status=400)
 
     user_id = payload.get("user_id")
-    source_date = str(payload.get("source_workout_date", "")).strip()
-    workout_date = str(payload.get("workout_date", "")).strip() or source_date
-    workout_name = payload.get("workout_name")
-    note = payload.get("wellbeing_note")
-    exercises = payload.get("exercises")
+    source_workout_date = str(payload.get("source_workout_date", "")).strip()
+    workout_date = str(payload.get("workout_date", "")).strip()
+    workout_name = str(payload.get("workout_name", "")).strip()
+    wellbeing_note = str(payload.get("wellbeing_note", "")).strip()
+    exercises = payload.get("exercises", [])
 
     if not isinstance(user_id, int):
         return web.json_response({"error": "user_id must be int"}, status=400)
-    if not source_date and not workout_date:
-        return web.json_response({"error": "workout date is required"}, status=400)
+    if not source_workout_date:
+        return web.json_response({"error": "source_workout_date is required"}, status=400)
+    if not workout_date:
+        return web.json_response({"error": "workout_date is required"}, status=400)
+    if not isinstance(exercises, list) or not exercises:
+        return web.json_response({"error": "exercises must be a non-empty list"}, status=400)
 
-    target_date = workout_date or source_date
+    if not get_started_user(user_id):
+        return web.json_response({"error": "user not found"}, status=404)
 
-    if isinstance(exercises, list):
-        saved = replace_workout_day(
-            user_id=user_id,
-            workout_date=target_date,
-            exercises=exercises,
-            workout_name=str(workout_name or ""),
-            note=str(note or ""),
-            source_workout_date=source_date or target_date,
+    valid_exercises: list[dict[str, float | int | str]] = []
+    for item in exercises:
+        exercise_name = str(item.get("exercise", "")).strip()
+        if not exercise_name:
+            continue
+        try:
+            weight = float(item.get("weight", 0))
+            sets = max(1, int(item.get("sets", 1)))
+            reps = max(1, int(item.get("reps", 1)))
+        except (TypeError, ValueError):
+            continue
+        valid_exercises.append(
+            {
+                "exercise": exercise_name,
+                "weight": weight,
+                "sets": sets,
+                "reps": reps,
+            }
         )
-        if saved == 0:
-            return web.json_response({"error": "no valid exercises to save"}, status=400)
-        return web.json_response({"ok": True, "saved": saved})
 
-    updated = update_workout_meta(
-        user_id=user_id,
-        workout_date=target_date,
-        workout_name=None if workout_name is None else str(workout_name),
-        note=None if note is None else str(note),
-    )
-    if not updated:
-        return web.json_response({"error": "workout day not found"}, status=404)
-    return web.json_response({"ok": True})
+    if not valid_exercises:
+        return web.json_response({"error": "no valid exercises to save"}, status=400)
+
+    with get_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute(
+            """
+            DELETE FROM workouts
+            WHERE user_id = ? AND workout_date = ? AND is_record = 0
+            """,
+            (user_id, source_workout_date),
+        )
+        deleted = cursor.rowcount
+        if deleted == 0:
+            connection.rollback()
+            return web.json_response({"error": "source workout not found"}, status=404)
+
+        for item in valid_exercises:
+            cursor.execute(
+                """
+                INSERT INTO workouts (
+                    user_id, workout_date, exercise, weight, sets, reps, is_record, workout_name, wellbeing_note
+                )
+                VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)
+                """,
+                (
+                    user_id,
+                    workout_date,
+                    item["exercise"],
+                    float(item["weight"]),
+                    int(item["sets"]),
+                    int(item["reps"]),
+                    workout_name or None,
+                    wellbeing_note or None,
+                ),
+            )
+        connection.commit()
+
+    return web.json_response({"ok": True, "saved": len(valid_exercises)})
 
 
-async def remove_workout(request: web.Request) -> web.Response:
-    payload, error = await parse_json(request)
-    if error:
-        return error
+async def delete_workout(request: web.Request) -> web.Response:
+    try:
+        payload = await request.json()
+    except Exception:
+        return web.json_response({"error": "invalid json"}, status=400)
 
     user_id = payload.get("user_id")
     workout_date = str(payload.get("workout_date", "")).strip()
@@ -214,19 +284,104 @@ async def remove_workout(request: web.Request) -> web.Response:
     if not workout_date:
         return web.json_response({"error": "workout_date is required"}, status=400)
 
-    deleted = delete_workout_day(user_id=user_id, workout_date=workout_date)
-    return web.json_response({"ok": deleted})
+    if not get_started_user(user_id):
+        return web.json_response({"error": "user not found"}, status=404)
+
+    with get_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute(
+            """
+            DELETE FROM workouts
+            WHERE user_id = ? AND workout_date = ? AND is_record = 0
+            """,
+            (user_id, workout_date),
+        )
+        deleted = cursor.rowcount
+        connection.commit()
+
+    if deleted == 0:
+        return web.json_response({"error": "workout not found"}, status=404)
+
+    return web.json_response({"ok": True, "deleted": int(deleted)})
 
 
-async def parse_json(request: web.Request) -> tuple[dict, web.Response | None]:
+async def save_record(request: web.Request) -> web.Response:
     try:
         payload = await request.json()
     except Exception:
-        return {}, web.json_response({"error": "invalid json"}, status=400)
+        return web.json_response({"error": "invalid json"}, status=400)
 
-    if not isinstance(payload, dict):
-        return {}, web.json_response({"error": "invalid payload"}, status=400)
-    return payload, None
+    user_id = payload.get("user_id")
+    exercise = str(payload.get("exercise", "")).strip()
+    best_weight = payload.get("best_weight")
+
+    if not isinstance(user_id, int):
+        return web.json_response({"error": "user_id must be int"}, status=400)
+    if not exercise:
+        return web.json_response({"error": "exercise is required"}, status=400)
+    try:
+        weight = float(best_weight)
+    except (TypeError, ValueError):
+        return web.json_response({"error": "best_weight must be number"}, status=400)
+    if weight <= 0:
+        return web.json_response({"error": "best_weight must be > 0"}, status=400)
+
+    if not get_started_user(user_id):
+        return web.json_response({"error": "user not found"}, status=404)
+
+    # Save records as dedicated rows so regular workouts do not appear in the Records screen.
+    add_workout(
+        user_id=user_id,
+        workout_date=date.today().isoformat(),
+        exercise=exercise,
+        weight=weight,
+        sets=1,
+        reps=1,
+        is_record=True,
+    )
+    return web.json_response({"ok": True})
+
+
+async def delete_record(request: web.Request) -> web.Response:
+    try:
+        payload = await request.json()
+    except Exception:
+        payload = {}
+
+    user_id = payload.get("user_id")
+    if user_id is None:
+        query_user_id = request.query.get("user_id", "").strip()
+        if query_user_id.isdigit():
+            user_id = int(query_user_id)
+
+    exercise = str(payload.get("exercise", "")).strip()
+    if not exercise:
+        exercise = request.query.get("exercise", "").strip()
+
+    if not isinstance(user_id, int):
+        return web.json_response({"error": "user_id must be int"}, status=400)
+    if not exercise:
+        return web.json_response({"error": "exercise is required"}, status=400)
+
+    if not get_started_user(user_id):
+        return web.json_response({"error": "user not found"}, status=404)
+
+    with get_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute(
+            """
+            DELETE FROM workouts
+            WHERE user_id = ? AND TRIM(exercise) = TRIM(?) COLLATE NOCASE AND is_record = 1
+            """,
+            (user_id, exercise),
+        )
+        deleted = cursor.rowcount
+        connection.commit()
+
+    if deleted == 0:
+        return web.json_response({"error": "record not found"}, status=404)
+
+    return web.json_response({"ok": True, "deleted": int(deleted)})
 
 
 def create_web_app() -> web.Application:
@@ -235,9 +390,11 @@ def create_web_app() -> web.Application:
     app.router.add_get("/app", index)
     app.router.add_get("/api/app-data", app_data)
     app.router.add_get("/api/faq", faq_data)
-    app.router.add_post("/api/workouts", create_workout)
+    app.router.add_post("/api/workouts", save_workout)
     app.router.add_put("/api/workouts", update_workout)
-    app.router.add_delete("/api/workouts", remove_workout)
+    app.router.add_delete("/api/workouts", delete_workout)
+    app.router.add_post("/api/records", save_record)
+    app.router.add_delete("/api/records", delete_record)
     app.router.add_static("/static/", STATIC_DIR, show_index=False)
     return app
 

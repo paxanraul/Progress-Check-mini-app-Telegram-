@@ -95,24 +95,41 @@ async def app_data(request: web.Request) -> web.Response:
             ) or ""
 
             exercises = []
-            for chunk in raw.split("||"):
-                if not chunk:
-                    continue
-                parts = chunk.split("|")
-                if len(parts) != 4:
-                    continue
-                exercise, weight, sets, reps = parts
-                try:
-                    exercises.append(
-                        {
-                            "exercise": exercise,
-                            "weight": f"{float(weight):.1f}",
-                            "sets": int(sets),
-                            "reps": int(reps),
-                        }
-                    )
-                except (TypeError, ValueError):
-                    continue
+            if isinstance(raw, list):
+                for item in raw:
+                    if not isinstance(item, dict):
+                        continue
+                    try:
+                        exercises.append(
+                            {
+                                "exercise": str(item.get("exercise", "")).strip(),
+                                "weight": f"{float(item.get('weight', 0)):.1f}",
+                                "sets": int(item.get("sets", 1)),
+                                "reps": int(item.get("reps", 1)),
+                            }
+                        )
+                    except (TypeError, ValueError):
+                        continue
+            else:
+                raw_text = str(raw)
+                for chunk in raw_text.split("||"):
+                    if not chunk:
+                        continue
+                    parts = chunk.split("|")
+                    if len(parts) != 4:
+                        continue
+                    exercise, weight, sets, reps = parts
+                    try:
+                        exercises.append(
+                            {
+                                "exercise": exercise,
+                                "weight": f"{float(weight):.1f}",
+                                "sets": int(sets),
+                                "reps": int(reps),
+                            }
+                        )
+                    except (TypeError, ValueError):
+                        continue
 
             history_payload.append(
                 {

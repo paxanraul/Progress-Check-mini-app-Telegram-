@@ -437,7 +437,7 @@ function renderRecords(records) {
       if (!state.recordsDeleteMode) {
         return;
       }
-      const exercise = card.dataset.exercise || "";
+      const exercise = decodeHtml(card.dataset.exercise || "");
       if (!exercise) {
         return;
       }
@@ -1343,4 +1343,10 @@ function escapeHtml(value) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
+}
+
+function decodeHtml(value) {
+  const textarea = document.createElement("textarea");
+  textarea.innerHTML = value;
+  return textarea.value;
 }

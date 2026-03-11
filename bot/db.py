@@ -79,6 +79,12 @@ def init_db() -> None:
             column_name="wellbeing_note",
             definition="TEXT",
         )
+        ensure_column(
+            cursor=cursor,
+            table_name="workouts",
+            column_name="session_key",
+            definition="TEXT",
+        )
         connection.commit()
 
 
@@ -160,15 +166,16 @@ def add_workout(
     is_record: bool = False,
     workout_name: str | None = None,
     wellbeing_note: str | None = None,
+    session_key: str | None = None,
 ) -> None:
     with closing(get_connection()) as connection:
         cursor = connection.cursor()
         cursor.execute(
             """
             INSERT INTO workouts (
-                user_id, workout_date, exercise, weight, sets, reps, is_record, workout_name, wellbeing_note
+                user_id, workout_date, exercise, weight, sets, reps, is_record, workout_name, wellbeing_note, session_key
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 user_id,
@@ -180,6 +187,7 @@ def add_workout(
                 int(is_record),
                 workout_name,
                 wellbeing_note,
+                session_key,
             ),
         )
         connection.commit()
@@ -292,7 +300,9 @@ def get_workout_days(user_id: int, limit: int = 10) -> list[sqlite3.Row]:
         cursor.execute(
             """
             SELECT
+                COALESCE(NULLIF(TRIM(session_key), ''), 'legacy:' || workout_date) AS session_key,
                 workout_date,
+                MAX(id) AS last_id,
                 MAX(NULLIF(TRIM(workout_name), '')) AS workout_name,
                 MAX(NULLIF(TRIM(wellbeing_note), '')) AS wellbeing_note,
                 GROUP_CONCAT(
@@ -301,8 +311,8 @@ def get_workout_days(user_id: int, limit: int = 10) -> list[sqlite3.Row]:
                 ) AS exercises
             FROM workouts
             WHERE user_id = ? AND is_record = 0
-            GROUP BY workout_date
-            ORDER BY workout_date DESC
+            GROUP BY COALESCE(NULLIF(TRIM(session_key), ''), 'legacy:' || workout_date), workout_date
+            ORDER BY workout_date DESC, last_id DESC
             LIMIT ?
             """,
             (user_id, limit),
@@ -315,7 +325,9 @@ def get_total_workout_days(user_id: int) -> int:
         cursor = connection.cursor()
         cursor.execute(
             """
-            SELECT COUNT(DISTINCT workout_date) AS total
+            SELECT COUNT(
+                DISTINCT COALESCE(NULLIF(TRIM(session_key), ''), 'legacy:' || workout_date)
+            ) AS total
             FROM workouts
             WHERE user_id = ? AND is_record = 0
             """,

@@ -1,5 +1,6 @@
 from pathlib import Path
 from datetime import date
+from uuid import uuid4
 
 from aiohttp import web
 
@@ -133,6 +134,7 @@ async def app_data(request: web.Request) -> web.Response:
 
             history_payload.append(
                 {
+                    "session_key": (row["session_key"] if "session_key" in row_keys else "") or "",
                     "date": workout_date,
                     "workout_name": workout_name,
                     "note": wellbeing_note,
@@ -196,6 +198,7 @@ async def save_workout(request: web.Request) -> web.Response:
     if not get_started_user(user_id):
         return web.json_response({"error": "user not found"}, status=404)
 
+    session_key = uuid4().hex
     saved = 0
     for item in exercises:
         exercise_name = str(item.get("exercise", "")).strip()
@@ -219,6 +222,7 @@ async def save_workout(request: web.Request) -> web.Response:
             is_record=False,
             workout_name=workout_name or None,
             wellbeing_note=wellbeing_note or None,
+            session_key=session_key,
         )
         saved += 1
 
@@ -236,15 +240,17 @@ async def update_workout(request: web.Request) -> web.Response:
 
     user_id = payload.get("user_id")
     source_workout_date = str(payload.get("source_workout_date", "")).strip()
+    source_session_key = str(payload.get("source_session_key", "")).strip()
     workout_date = str(payload.get("workout_date", "")).strip()
+    session_key = str(payload.get("session_key", "")).strip()
     workout_name = str(payload.get("workout_name", "")).strip()
     wellbeing_note = str(payload.get("wellbeing_note", "")).strip()
     exercises = payload.get("exercises", [])
 
     if not isinstance(user_id, int):
         return web.json_response({"error": "user_id must be int"}, status=400)
-    if not source_workout_date:
-        return web.json_response({"error": "source_workout_date is required"}, status=400)
+    if not source_workout_date and not source_session_key:
+        return web.json_response({"error": "source_workout_date or source_session_key is required"}, status=400)
     if not workout_date:
         return web.json_response({"error": "workout_date is required"}, status=400)
     if not isinstance(exercises, list) or not exercises:
@@ -276,15 +282,34 @@ async def update_workout(request: web.Request) -> web.Response:
     if not valid_exercises:
         return web.json_response({"error": "no valid exercises to save"}, status=400)
 
+    target_session_key = session_key or source_session_key or uuid4().hex
+
     with get_connection() as connection:
         cursor = connection.cursor()
-        cursor.execute(
-            """
-            DELETE FROM workouts
-            WHERE user_id = ? AND workout_date = ? AND is_record = 0
-            """,
-            (user_id, source_workout_date),
-        )
+        if source_session_key:
+            cursor.execute(
+                """
+                DELETE FROM workouts
+                WHERE user_id = ? AND session_key = ? AND is_record = 0
+                """,
+                (user_id, source_session_key),
+            )
+            if cursor.rowcount == 0 and source_workout_date:
+                cursor.execute(
+                    """
+                    DELETE FROM workouts
+                    WHERE user_id = ? AND workout_date = ? AND is_record = 0
+                    """,
+                    (user_id, source_workout_date),
+                )
+        else:
+            cursor.execute(
+                """
+                DELETE FROM workouts
+                WHERE user_id = ? AND workout_date = ? AND is_record = 0
+                """,
+                (user_id, source_workout_date),
+            )
         deleted = cursor.rowcount
         if deleted == 0:
             connection.rollback()
@@ -294,9 +319,9 @@ async def update_workout(request: web.Request) -> web.Response:
             cursor.execute(
                 """
                 INSERT INTO workouts (
-                    user_id, workout_date, exercise, weight, sets, reps, is_record, workout_name, wellbeing_note
+                    user_id, workout_date, exercise, weight, sets, reps, is_record, workout_name, wellbeing_note, session_key
                 )
-                VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?)
                 """,
                 (
                     user_id,
@@ -307,6 +332,7 @@ async def update_workout(request: web.Request) -> web.Response:
                     int(item["reps"]),
                     workout_name or None,
                     wellbeing_note or None,
+                    target_session_key,
                 ),
             )
         connection.commit()
@@ -322,24 +348,42 @@ async def delete_workout(request: web.Request) -> web.Response:
 
     user_id = payload.get("user_id")
     workout_date = str(payload.get("workout_date", "")).strip()
+    session_key = str(payload.get("session_key", "")).strip()
 
     if not isinstance(user_id, int):
         return web.json_response({"error": "user_id must be int"}, status=400)
-    if not workout_date:
-        return web.json_response({"error": "workout_date is required"}, status=400)
+    if not workout_date and not session_key:
+        return web.json_response({"error": "workout_date or session_key is required"}, status=400)
 
     if not get_started_user(user_id):
         return web.json_response({"error": "user not found"}, status=404)
 
     with get_connection() as connection:
         cursor = connection.cursor()
-        cursor.execute(
-            """
-            DELETE FROM workouts
-            WHERE user_id = ? AND workout_date = ? AND is_record = 0
-            """,
-            (user_id, workout_date),
-        )
+        if session_key:
+            cursor.execute(
+                """
+                DELETE FROM workouts
+                WHERE user_id = ? AND session_key = ? AND is_record = 0
+                """,
+                (user_id, session_key),
+            )
+            if cursor.rowcount == 0 and workout_date:
+                cursor.execute(
+                    """
+                    DELETE FROM workouts
+                    WHERE user_id = ? AND workout_date = ? AND is_record = 0
+                    """,
+                    (user_id, workout_date),
+                )
+        else:
+            cursor.execute(
+                """
+                DELETE FROM workouts
+                WHERE user_id = ? AND workout_date = ? AND is_record = 0
+                """,
+                (user_id, workout_date),
+            )
         deleted = cursor.rowcount
         connection.commit()
 

@@ -14,6 +14,7 @@ const state = {
     open: false,
     mode: "create",
     sourceDate: "",
+    sourceSessionKey: "",
     editingIndex: null,
     step: "list",
     items: [],
@@ -356,8 +357,9 @@ function renderHistory(history) {
 
   history.forEach((day, index) => {
     const title = day.workout_name || trainingDayTitle(index);
+    const sessionKey = day.session_key || `legacy:${day.date}`;
     const noteBlock = day.note
-      ? `<div class="history-note" data-date="${escapeHtml(day.date)}">${escapeHtml(day.note)}</div>`
+      ? `<div class="history-note" data-date="${escapeHtml(day.date)}" data-session-key="${escapeHtml(sessionKey)}">${escapeHtml(day.note)}</div>`
       : "";
     const rows = day.exercises
       .map(
@@ -373,12 +375,12 @@ function renderHistory(history) {
     root.insertAdjacentHTML(
       "beforeend",
       `
-        <article class="history-card" data-date="${escapeHtml(day.date)}">
+        <article class="history-card" data-date="${escapeHtml(day.date)}" data-session-key="${escapeHtml(sessionKey)}">
           <div class="history-head">
-            <div class="history-main" data-date="${escapeHtml(day.date)}">${escapeHtml(title)}</div>
+            <div class="history-main" data-date="${escapeHtml(day.date)}" data-session-key="${escapeHtml(sessionKey)}">${escapeHtml(title)}</div>
             <div class="history-head-right">
               <div class="history-date">${formatDate(day.date)}</div>
-              <button class="history-edit-btn" data-date="${escapeHtml(day.date)}" type="button">Изменить</button>
+              <button class="history-edit-btn" data-date="${escapeHtml(day.date)}" data-session-key="${escapeHtml(sessionKey)}" type="button">Изменить</button>
             </div>
           </div>
           <div class="exercise-list">${rows}</div>
@@ -391,15 +393,15 @@ function renderHistory(history) {
   root.querySelectorAll(".history-edit-btn").forEach((button) => {
     button.addEventListener("click", (event) => {
       event.stopPropagation();
-      openEditWorkoutFlow(button.dataset.date || "");
+      openEditWorkoutFlow(button.dataset.sessionKey || "", button.dataset.date || "");
     });
   });
-  root.querySelectorAll(".history-note[data-date]").forEach((noteNode) => {
+  root.querySelectorAll(".history-note[data-date][data-session-key]").forEach((noteNode) => {
     attachLongPress(noteNode, 100, () => {
-      void promptEditWorkoutComment(noteNode.dataset.date || "");
+      void promptEditWorkoutComment(noteNode.dataset.sessionKey || "", noteNode.dataset.date || "");
     });
   });
-  root.querySelectorAll(".history-main[data-date]").forEach((titleNode) => {
+  root.querySelectorAll(".history-main[data-date][data-session-key]").forEach((titleNode) => {
     const card = titleNode.closest(".history-card");
     attachLongPress(titleNode, 200, () => {
       if (navigator.vibrate) {
@@ -408,7 +410,7 @@ function renderHistory(history) {
       if (card) {
         card.classList.add("focus-edit");
       }
-      promptEditWorkoutTitle(titleNode.dataset.date || "").finally(() => {
+      promptEditWorkoutTitle(titleNode.dataset.sessionKey || "", titleNode.dataset.date || "").finally(() => {
         if (card) {
           card.classList.remove("focus-edit");
         }
@@ -608,9 +610,8 @@ function openDraftFormForCreate() {
   setWorkoutStep("form");
 }
 
-function openEditWorkoutFlow(sourceDate) {
-  const history = state.payload?.history || [];
-  const day = history.find((entry) => entry.date === sourceDate);
+function openEditWorkoutFlow(sourceSessionKey, sourceDate = "") {
+  const day = findWorkoutEntry(sourceSessionKey, sourceDate);
   if (!day) {
     showToast("Не удалось открыть тренировку для редактирования");
     return;
@@ -618,12 +619,13 @@ function openEditWorkoutFlow(sourceDate) {
 
   state.workoutFlow.open = true;
   state.workoutFlow.mode = "edit";
-  state.workoutFlow.sourceDate = sourceDate;
+  state.workoutFlow.sourceDate = day.date || sourceDate;
+  state.workoutFlow.sourceSessionKey = day.session_key || sourceSessionKey;
   state.workoutFlow.editingIndex = null;
   state.workoutFlow.step = "list";
   state.workoutFlow.items = convertHistoryToDraft(day);
   state.workoutFlow.draft = { sets: 1, reps: 8 };
-  state.workoutFlow.date = sourceDate;
+  state.workoutFlow.date = day.date || sourceDate;
   state.workoutFlow.saving = false;
   document.getElementById("wellbeing-note").value = day.note || "";
   if (workoutNoteInput) {
@@ -639,6 +641,7 @@ function openEditWorkoutFlow(sourceDate) {
 function resetWorkoutFlowForNewEntry() {
   state.workoutFlow.mode = "create";
   state.workoutFlow.sourceDate = "";
+  state.workoutFlow.sourceSessionKey = "";
   state.workoutFlow.editingIndex = null;
   state.workoutFlow.items = [];
   state.workoutFlow.draft = { sets: 1, reps: 8 };
@@ -852,6 +855,20 @@ function convertHistoryToDraft(day) {
   }));
 }
 
+function findWorkoutEntry(sessionKey, date = "") {
+  const history = state.payload?.history || [];
+  if (sessionKey) {
+    const bySession = history.find((entry) => (entry.session_key || "") === sessionKey);
+    if (bySession) {
+      return bySession;
+    }
+  }
+  if (date) {
+    return history.find((entry) => entry.date === date) || null;
+  }
+  return null;
+}
+
 function saveButtonLabel(step, saving) {
   if (saving) {
     return "<i class='bx bxs-right-arrow'></i>";
@@ -874,7 +891,9 @@ async function submitWorkoutFlow() {
   renderWorkoutFlow();
 
   try {
-    const isEditMode = state.workoutFlow.mode === "edit" && Boolean(state.workoutFlow.sourceDate);
+    const isEditMode =
+      state.workoutFlow.mode === "edit" &&
+      Boolean(state.workoutFlow.sourceSessionKey || state.workoutFlow.sourceDate);
     const wellbeingNote = (workoutNoteInput?.value || document.getElementById("wellbeing-note").value).trim();
     const workoutName = workoutNameInput.value.trim();
     const payload = {
@@ -895,6 +914,8 @@ async function submitWorkoutFlow() {
     }
     if (isEditMode) {
       payload.source_workout_date = state.workoutFlow.sourceDate;
+      payload.source_session_key = state.workoutFlow.sourceSessionKey;
+      payload.session_key = state.workoutFlow.sourceSessionKey;
     }
 
     const response = await fetch("/api/workouts", {
@@ -954,7 +975,9 @@ async function submitWellbeingNoteFromHome() {
       },
       body: JSON.stringify({
         user_id: Number(state.userId),
+        source_session_key: workoutForCommentDate.session_key || "",
         source_workout_date: workoutForCommentDate.date,
+        session_key: workoutForCommentDate.session_key || "",
         workout_date: workoutForCommentDate.date,
         workout_name: workoutForCommentDate.workout_name || "",
         wellbeing_note: wellbeingNote,
@@ -982,15 +1005,15 @@ async function submitWellbeingNoteFromHome() {
   }
 }
 
-async function promptEditWorkoutComment(sourceDate) {
+async function promptEditWorkoutComment(sourceSessionKey, sourceDate = "") {
   if (wellbeingNoteSaving) {
     return;
   }
-  if (!state.userId || !sourceDate) {
+  if (!state.userId || (!sourceSessionKey && !sourceDate)) {
     return;
   }
 
-  const workoutDay = (state.payload?.history || []).find((day) => day.date === sourceDate);
+  const workoutDay = findWorkoutEntry(sourceSessionKey, sourceDate);
   if (!workoutDay || !Array.isArray(workoutDay.exercises) || !workoutDay.exercises.length) {
     showToast("Тренировка не найдена");
     return;
@@ -1015,7 +1038,9 @@ async function promptEditWorkoutComment(sourceDate) {
       },
       body: JSON.stringify({
         user_id: Number(state.userId),
+        source_session_key: workoutDay.session_key || sourceSessionKey || "",
         source_workout_date: workoutDay.date,
+        session_key: workoutDay.session_key || sourceSessionKey || "",
         workout_date: workoutDay.date,
         workout_name: workoutDay.workout_name || "",
         wellbeing_note: nextNote,
@@ -1043,15 +1068,15 @@ async function promptEditWorkoutComment(sourceDate) {
   }
 }
 
-async function promptEditWorkoutTitle(sourceDate) {
+async function promptEditWorkoutTitle(sourceSessionKey, sourceDate = "") {
   if (wellbeingNoteSaving) {
     return;
   }
-  if (!state.userId || !sourceDate) {
+  if (!state.userId || (!sourceSessionKey && !sourceDate)) {
     return;
   }
 
-  const workoutDay = (state.payload?.history || []).find((day) => day.date === sourceDate);
+  const workoutDay = findWorkoutEntry(sourceSessionKey, sourceDate);
   if (!workoutDay || !Array.isArray(workoutDay.exercises) || !workoutDay.exercises.length) {
     showToast("Тренировка не найдена");
     return;
@@ -1076,7 +1101,9 @@ async function promptEditWorkoutTitle(sourceDate) {
       },
       body: JSON.stringify({
         user_id: Number(state.userId),
+        source_session_key: workoutDay.session_key || sourceSessionKey || "",
         source_workout_date: workoutDay.date,
+        session_key: workoutDay.session_key || sourceSessionKey || "",
         workout_date: workoutDay.date,
         workout_name: nextName,
         wellbeing_note: workoutDay.note || "",
@@ -1118,7 +1145,10 @@ async function refreshAppData() {
 }
 
 async function handleDeleteWorkoutDay() {
-  if (state.workoutFlow.mode !== "edit" || !state.workoutFlow.sourceDate) {
+  if (
+    state.workoutFlow.mode !== "edit" ||
+    (!state.workoutFlow.sourceDate && !state.workoutFlow.sourceSessionKey)
+  ) {
     return;
   }
   if (state.workoutFlow.saving) {
@@ -1140,6 +1170,7 @@ async function handleDeleteWorkoutDay() {
       body: JSON.stringify({
         user_id: Number(state.userId),
         workout_date: state.workoutFlow.sourceDate,
+        session_key: state.workoutFlow.sourceSessionKey,
       }),
     });
     const result = await response.json();

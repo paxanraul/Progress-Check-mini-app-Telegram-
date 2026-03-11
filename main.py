@@ -1,5 +1,6 @@
 import asyncio
 import os
+from pathlib import Path
 from aiogram import Bot, Dispatcher
 from dotenv import load_dotenv
 from aiohttp import web
@@ -10,7 +11,8 @@ from webapp.server import create_web_app
 
 
 async def main():
-    load_dotenv()
+    env_path = Path(__file__).resolve().with_name(".env")
+    load_dotenv(env_path)
     token = os.getenv("BOT_TOKEN")
     if not token:
         raise RuntimeError("Set BOT_TOKEN environment variable before running the bot.")
@@ -36,4 +38,7 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("Бот остановлен")

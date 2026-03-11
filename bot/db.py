@@ -49,20 +49,9 @@ def init_db() -> None:
                 exercise TEXT NOT NULL,
                 weight REAL NOT NULL,
                 sets INTEGER NOT NULL DEFAULT 1,
+                is_record INTEGER NOT NULL DEFAULT 0,
                 reps INTEGER NOT NULL,
                 FOREIGN KEY(user_id) REFERENCES users(user_id)
-            )
-            """
-        )
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS workout_meta (
-                user_id INTEGER NOT NULL,
-                workout_date TEXT NOT NULL,
-                workout_name TEXT NOT NULL DEFAULT '',
-                note TEXT NOT NULL DEFAULT '',
-                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                PRIMARY KEY (user_id, workout_date)
             )
             """
         )
@@ -71,6 +60,24 @@ def init_db() -> None:
             table_name="workouts",
             column_name="sets",
             definition="INTEGER NOT NULL DEFAULT 1",
+        )
+        ensure_column(
+            cursor=cursor,
+            table_name="workouts",
+            column_name="is_record",
+            definition="INTEGER NOT NULL DEFAULT 0",
+        )
+        ensure_column(
+            cursor=cursor,
+            table_name="workouts",
+            column_name="workout_name",
+            definition="TEXT",
+        )
+        ensure_column(
+            cursor=cursor,
+            table_name="workouts",
+            column_name="wellbeing_note",
+            definition="TEXT",
         )
         connection.commit()
 
@@ -150,141 +157,32 @@ def add_workout(
     weight: float,
     reps: int,
     sets: int = 1,
+    is_record: bool = False,
+    workout_name: str | None = None,
+    wellbeing_note: str | None = None,
 ) -> None:
     with closing(get_connection()) as connection:
         cursor = connection.cursor()
         cursor.execute(
             """
-            INSERT INTO workouts (user_id, workout_date, exercise, weight, sets, reps)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO workouts (
+                user_id, workout_date, exercise, weight, sets, reps, is_record, workout_name, wellbeing_note
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (user_id, workout_date, exercise, weight, sets, reps),
+            (
+                user_id,
+                workout_date,
+                exercise,
+                weight,
+                sets,
+                reps,
+                int(is_record),
+                workout_name,
+                wellbeing_note,
+            ),
         )
         connection.commit()
-
-
-def replace_workout_day(
-    user_id: int,
-    workout_date: str,
-    exercises: list[dict],
-    workout_name: str = "",
-    note: str = "",
-    source_workout_date: str | None = None,
-) -> int:
-    source_date = source_workout_date or workout_date
-    with closing(get_connection()) as connection:
-        cursor = connection.cursor()
-        cursor.execute(
-            "DELETE FROM workouts WHERE user_id = ? AND workout_date = ?",
-            (user_id, source_date),
-        )
-
-        saved = 0
-        for item in exercises:
-            exercise_name = str(item.get("exercise", "")).strip()
-            if not exercise_name:
-                continue
-            try:
-                weight = float(item.get("weight", 0))
-                sets = max(1, int(item.get("sets", 1)))
-                reps = max(1, int(item.get("reps", 1)))
-            except (TypeError, ValueError):
-                continue
-
-            cursor.execute(
-                """
-                INSERT INTO workouts (user_id, workout_date, exercise, weight, sets, reps)
-                VALUES (?, ?, ?, ?, ?, ?)
-                """,
-                (user_id, workout_date, exercise_name, weight, sets, reps),
-            )
-            saved += 1
-
-        if source_date != workout_date:
-            cursor.execute(
-                "DELETE FROM workout_meta WHERE user_id = ? AND workout_date = ?",
-                (user_id, source_date),
-            )
-
-        if saved > 0:
-            cursor.execute(
-                """
-                INSERT INTO workout_meta (user_id, workout_date, workout_name, note, updated_at)
-                VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
-                ON CONFLICT(user_id, workout_date) DO UPDATE SET
-                    workout_name = excluded.workout_name,
-                    note = excluded.note,
-                    updated_at = CURRENT_TIMESTAMP
-                """,
-                (user_id, workout_date, workout_name.strip(), note.strip()),
-            )
-        else:
-            cursor.execute(
-                "DELETE FROM workout_meta WHERE user_id = ? AND workout_date = ?",
-                (user_id, workout_date),
-            )
-
-        connection.commit()
-        return saved
-
-
-def update_workout_meta(
-    user_id: int,
-    workout_date: str,
-    workout_name: str | None = None,
-    note: str | None = None,
-) -> bool:
-    with closing(get_connection()) as connection:
-        cursor = connection.cursor()
-
-        cursor.execute(
-            "SELECT 1 FROM workouts WHERE user_id = ? AND workout_date = ? LIMIT 1",
-            (user_id, workout_date),
-        )
-        if cursor.fetchone() is None:
-            return False
-
-        cursor.execute(
-            "SELECT workout_name, note FROM workout_meta WHERE user_id = ? AND workout_date = ?",
-            (user_id, workout_date),
-        )
-        current = cursor.fetchone()
-
-        current_name = current["workout_name"] if current else ""
-        current_note = current["note"] if current else ""
-
-        next_name = current_name if workout_name is None else workout_name.strip()
-        next_note = current_note if note is None else note.strip()
-
-        cursor.execute(
-            """
-            INSERT INTO workout_meta (user_id, workout_date, workout_name, note, updated_at)
-            VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
-            ON CONFLICT(user_id, workout_date) DO UPDATE SET
-                workout_name = excluded.workout_name,
-                note = excluded.note,
-                updated_at = CURRENT_TIMESTAMP
-            """,
-            (user_id, workout_date, next_name, next_note),
-        )
-        connection.commit()
-        return True
-
-
-def delete_workout_day(user_id: int, workout_date: str) -> bool:
-    with closing(get_connection()) as connection:
-        cursor = connection.cursor()
-        cursor.execute(
-            "DELETE FROM workouts WHERE user_id = ? AND workout_date = ?",
-            (user_id, workout_date),
-        )
-        deleted = cursor.rowcount > 0
-        cursor.execute(
-            "DELETE FROM workout_meta WHERE user_id = ? AND workout_date = ?",
-            (user_id, workout_date),
-        )
-        connection.commit()
-        return deleted
 
 
 def get_recent_workouts(user_id: int, limit: int = 5) -> list[sqlite3.Row]:
@@ -294,7 +192,7 @@ def get_recent_workouts(user_id: int, limit: int = 5) -> list[sqlite3.Row]:
             """
             SELECT workout_date, exercise, weight, sets, reps
             FROM workouts
-            WHERE user_id = ?
+            WHERE user_id = ? AND is_record = 0
             ORDER BY workout_date DESC, id DESC
             LIMIT ?
             """,
@@ -306,7 +204,7 @@ def get_recent_workouts(user_id: int, limit: int = 5) -> list[sqlite3.Row]:
 def get_workouts_count(user_id: int) -> int:
     with closing(get_connection()) as connection:
         cursor = connection.cursor()
-        cursor.execute("SELECT COUNT(*) AS total FROM workouts WHERE user_id = ?", (user_id,))
+        cursor.execute("SELECT COUNT(*) AS total FROM workouts WHERE user_id = ? AND is_record = 0", (user_id,))
         row = cursor.fetchone()
         return int(row["total"]) if row else 0
 
@@ -318,7 +216,7 @@ def get_records(user_id: int) -> list[sqlite3.Row]:
             """
             SELECT exercise, MAX(weight) AS best_weight
             FROM workouts
-            WHERE user_id = ?
+            WHERE user_id = ? AND is_record = 1
             GROUP BY exercise
             ORDER BY best_weight DESC, exercise ASC
             """,
@@ -388,56 +286,28 @@ def get_started_user(user_id: int) -> sqlite3.Row | None:
         return cursor.fetchone()
 
 
-def get_workout_days(user_id: int, limit: int = 10) -> list[dict]:
+def get_workout_days(user_id: int, limit: int = 10) -> list[sqlite3.Row]:
     with closing(get_connection()) as connection:
         cursor = connection.cursor()
         cursor.execute(
             """
             SELECT
-                w.id,
-                w.workout_date,
-                w.exercise,
-                w.weight,
-                w.sets,
-                w.reps,
-                COALESCE(m.workout_name, '') AS workout_name,
-                COALESCE(m.note, '') AS note
-            FROM workouts w
-            LEFT JOIN workout_meta m
-                ON m.user_id = w.user_id AND m.workout_date = w.workout_date
-            WHERE w.user_id = ?
-            ORDER BY w.workout_date DESC, w.id DESC
+                workout_date,
+                MAX(NULLIF(TRIM(workout_name), '')) AS workout_name,
+                MAX(NULLIF(TRIM(wellbeing_note), '')) AS wellbeing_note,
+                GROUP_CONCAT(
+                    exercise || '|' || printf('%.1f', weight) || '|' || sets || '|' || reps,
+                    '||'
+                ) AS exercises
+            FROM workouts
+            WHERE user_id = ? AND is_record = 0
+            GROUP BY workout_date
+            ORDER BY workout_date DESC
+            LIMIT ?
             """,
-            (user_id,),
+            (user_id, limit),
         )
-        rows = cursor.fetchall()
-
-    grouped: dict[str, dict] = {}
-    ordered_dates: list[str] = []
-
-    for row in rows:
-        date = row["workout_date"]
-        if date not in grouped:
-            grouped[date] = {
-                "date": date,
-                "workout_name": row["workout_name"] or "",
-                "note": row["note"] or "",
-                "exercises": [],
-            }
-            ordered_dates.append(date)
-
-        grouped[date]["exercises"].append(
-            {
-                "id": int(row["id"]),
-                "exercise": row["exercise"],
-                "weight": f"{float(row['weight']):.1f}",
-                "sets": int(row["sets"]),
-                "reps": int(row["reps"]),
-            }
-        )
-
-    result = [grouped[date] for date in ordered_dates]
-    return result[:limit]
+        return cursor.fetchall()
 
 
 def get_total_workout_days(user_id: int) -> int:
@@ -447,7 +317,7 @@ def get_total_workout_days(user_id: int) -> int:
             """
             SELECT COUNT(DISTINCT workout_date) AS total
             FROM workouts
-            WHERE user_id = ?
+            WHERE user_id = ? AND is_record = 0
             """,
             (user_id,),
         )

@@ -4,3 +4,5 @@ __pycache__/
 *.pyc
 gym_bot.db
 .DS_Store
+test.py
+

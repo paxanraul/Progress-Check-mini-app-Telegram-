@@ -87,15 +87,21 @@ async def app_data(request: web.Request) -> web.Response:
         for chunk in raw.split("||"):
             if not chunk:
                 continue
-            exercise, weight, sets, reps = chunk.split("|")
-            exercises.append(
-                {
-                    "exercise": exercise,
-                    "weight": f"{float(weight):.1f}",
-                    "sets": int(sets),
-                    "reps": int(reps),
-                }
-            )
+            parts = chunk.split("|")
+            if len(parts) != 4:
+                continue
+            exercise, weight, sets, reps = parts
+            try:
+                exercises.append(
+                    {
+                        "exercise": exercise,
+                        "weight": f"{float(weight):.1f}",
+                        "sets": int(sets),
+                        "reps": int(reps),
+                    }
+                )
+            except (TypeError, ValueError):
+                continue
         history_payload.append(
             {
                 "date": row["workout_date"],

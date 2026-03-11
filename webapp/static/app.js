@@ -266,7 +266,7 @@ wellbeingNoteInput?.addEventListener("keydown", (event) => {
 
 bootstrap().catch((error) => {
   console.error(error);
-  showToast("Не удалось загрузить Mini App");
+  showToast(`Не удалось загрузить Mini App: ${error.message || "unknown error"}`);
 });
 
 async function bootstrap() {
@@ -282,7 +282,16 @@ async function bootstrap() {
   state.userId = userId;
 
   const response = await fetch(`/api/app-data?user_id=${encodeURIComponent(userId)}`);
-  const payload = await response.json();
+  if (!response.ok) {
+    throw new Error(`api/app-data ${response.status}`);
+  }
+
+  let payload = {};
+  try {
+    payload = await response.json();
+  } catch (error) {
+    throw new Error("invalid app-data json");
+  }
   state.payload = payload;
 
   if (!payload.ready) {

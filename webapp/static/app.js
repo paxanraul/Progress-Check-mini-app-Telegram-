@@ -283,7 +283,14 @@ async function bootstrap() {
 
   const response = await fetch(`/api/app-data?user_id=${encodeURIComponent(userId)}`);
   if (!response.ok) {
-    throw new Error(`api/app-data ${response.status}`);
+    let message = "";
+    try {
+      const errorPayload = await response.json();
+      message = errorPayload?.error ? `: ${errorPayload.error}` : "";
+    } catch (error) {
+      message = "";
+    }
+    throw new Error(`api/app-data ${response.status}${message}`);
   }
 
   let payload = {};

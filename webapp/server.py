@@ -66,70 +66,91 @@ async def index(request: web.Request) -> web.Response:
 
 
 async def app_data(request: web.Request) -> web.Response:
-    user_id = parse_user_id(request)
-    if user_id is None:
-        return web.json_response({"error": "user_id is required"}, status=400)
+    try:
+        user_id = parse_user_id(request)
+        if user_id is None:
+            return web.json_response({"error": "user_id is required"}, status=400)
 
-    profile = get_user(user_id)
-    started_user = get_started_user(user_id)
-    if not profile and not started_user:
-        return web.json_response(
-            {
-                "ready": False,
-                "message": "Пользователь не найден. Сначала открой бота и нажми /start.",
-            }
-        )
+        profile = get_user(user_id)
+        started_user = get_started_user(user_id)
+        if not profile and not started_user:
+            return web.json_response(
+                {
+                    "ready": False,
+                    "message": "Пользователь не найден. Сначала открой бота и нажми /start.",
+                }
+            )
 
-    history_payload = []
-    for row in get_workout_days(user_id, limit=8):
-        exercises = []
-        raw = row["exercises"] or ""
-        for chunk in raw.split("||"):
-            if not chunk:
-                continue
-            parts = chunk.split("|")
-            if len(parts) != 4:
-                continue
-            exercise, weight, sets, reps = parts
+        history_payload = []
+        for row in get_workout_days(user_id, limit=8):
+            row_keys = set(row.keys()) if hasattr(row, "keys") else set()
+
+            raw = (row["exercises"] if "exercises" in row_keys else "") or ""
+            workout_date = (row["workout_date"] if "workout_date" in row_keys else "") or ""
+            workout_name = (row["workout_name"] if "workout_name" in row_keys else "") or ""
+            wellbeing_note = (
+                row["wellbeing_note"]
+                if "wellbeing_note" in row_keys
+                else (row["note"] if "note" in row_keys else "")
+            ) or ""
+
+            exercises = []
+            for chunk in raw.split("||"):
+                if not chunk:
+                    continue
+                parts = chunk.split("|")
+                if len(parts) != 4:
+                    continue
+                exercise, weight, sets, reps = parts
+                try:
+                    exercises.append(
+                        {
+                            "exercise": exercise,
+                            "weight": f"{float(weight):.1f}",
+                            "sets": int(sets),
+                            "reps": int(reps),
+                        }
+                    )
+                except (TypeError, ValueError):
+                    continue
+
+            history_payload.append(
+                {
+                    "date": workout_date,
+                    "workout_name": workout_name,
+                    "note": wellbeing_note,
+                    "exercises": exercises,
+                }
+            )
+
+        records_payload = []
+        for row in get_records(user_id):
             try:
-                exercises.append(
+                records_payload.append(
                     {
-                        "exercise": exercise,
-                        "weight": f"{float(weight):.1f}",
-                        "sets": int(sets),
-                        "reps": int(reps),
+                        "exercise": row["exercise"],
+                        "best_weight": f"{float(row['best_weight']):.1f}",
                     }
                 )
-            except (TypeError, ValueError):
+            except (KeyError, TypeError, ValueError):
                 continue
-        history_payload.append(
-            {
-                "date": row["workout_date"],
-                "workout_name": row["workout_name"] or "",
-                "note": row["wellbeing_note"] or "",
-                "exercises": exercises,
-            }
-        )
 
-    records_payload = [
-        {"exercise": row["exercise"], "best_weight": f"{float(row['best_weight']):.1f}"}
-        for row in get_records(user_id)
-    ]
-
-    payload = {
-        "ready": True,
-        "user": {
-            "name": profile["name"] if profile else (started_user["full_name"] if started_user else "Пользователь"),
-            "weight": f"{float(profile['weight']):.1f}" if profile else None,
-            "height": f"{float(profile['height']):.1f}" if profile else None,
-            "experience": profile["experience"] if profile else "Не заполнено",
-            "workout_days": get_total_workout_days(user_id),
-        },
-        "history": history_payload,
-        "records": records_payload,
-        "faq": FAQ_DATA,
-    }
-    return web.json_response(payload)
+        payload = {
+            "ready": True,
+            "user": {
+                "name": profile["name"] if profile else (started_user["full_name"] if started_user else "Пользователь"),
+                "weight": f"{float(profile['weight']):.1f}" if profile else None,
+                "height": f"{float(profile['height']):.1f}" if profile else None,
+                "experience": profile["experience"] if profile else "Не заполнено",
+                "workout_days": get_total_workout_days(user_id),
+            },
+            "history": history_payload,
+            "records": records_payload,
+            "faq": FAQ_DATA,
+        }
+        return web.json_response(payload)
+    except Exception as error:
+        return web.json_response({"error": f"app_data failed: {error}"}, status=500)
 
 
 async def faq_data(request: web.Request) -> web.Response:

@@ -39,6 +39,7 @@ const faqTabs = document.getElementById("faq-tabs");
 const faqList = document.getElementById("faq-list");
 const faqSearch = document.getElementById("faq-search");
 const overlay = document.getElementById("workout-overlay");
+const recordOverlay = document.getElementById("record-overlay");
 const modalSteps = [...document.querySelectorAll(".modal-step")];
 const modalTitle = document.getElementById("modal-title");
 const dateInput = document.getElementById("workout-date-input");
@@ -49,6 +50,9 @@ const deleteWorkoutDayBtn = document.getElementById("delete-workout-day");
 const removeRecordBtn = document.getElementById("delete-btn");
 const addRecordBtn = document.getElementById("move-btn");
 const workoutModal = document.querySelector(".workout-modal");
+const recordModal = document.querySelector(".record-modal");
+const recordExerciseInput = document.getElementById("record-exercise-input");
+const recordWeightInput = document.getElementById("record-weight-input");
 const historyManageToggle = document.getElementById("history-manage-toggle");
 const historyBulkActions = document.getElementById("history-bulk-actions");
 const historyDeleteSelectedBtn = document.getElementById("history-delete-selected");
@@ -300,11 +304,35 @@ bindClick("history-manage-toggle", toggleHistoryManageMode);
 bindClick("history-manage-cancel", disableHistoryManageMode);
 bindClick("history-delete-selected", deleteSelectedHistoryWorkouts);
 bindClick("history-delete-all", deleteAllHistoryWorkouts);
+bindClick("close-record-flow", closeRecordFlow);
+bindClick("save-record-flow", submitRecordFlow);
 
 deleteWorkoutDayBtn?.addEventListener("click", handleDeleteWorkoutDay);
-addRecordBtn?.addEventListener("click", promptAddRecord);
+addRecordBtn?.addEventListener("click", openRecordFlow);
 removeRecordBtn?.addEventListener("click", toggleRecordsDeleteMode);
 preventTapFocusShift(document.getElementById("open-workout-flow"));
+
+recordOverlay?.addEventListener("click", (event) => {
+  if (event.target === recordOverlay) {
+    closeRecordFlow();
+  }
+});
+
+recordExerciseInput?.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" || event.shiftKey || event.isComposing) {
+    return;
+  }
+  event.preventDefault();
+  recordWeightInput?.focus();
+});
+
+recordWeightInput?.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" || event.shiftKey || event.isComposing) {
+    return;
+  }
+  event.preventDefault();
+  void submitRecordFlow();
+});
 
 dateInput.addEventListener("change", (event) => {
   if (!event.target.value) {
@@ -1558,29 +1586,63 @@ async function refreshAppDataStable() {
   });
 }
 
-async function promptAddRecord() {
+function openRecordFlow() {
   if (!state.userId) {
     showToast("Сначала открой профиль в боте");
     return;
   }
+  recordExerciseInput.value = "";
+  recordWeightInput.value = "";
+  setBodyScrollLock(true);
+  recordOverlay.hidden = false;
+  runMotion(recordOverlay, { opacity: [0, 1] }, { duration: 0.18, easing: "ease-out" });
+  runMotion(
+    recordModal,
+    { opacity: [0.6, 1], transform: ["translateY(18px) scale(0.985)", "translateY(0px) scale(1)"] },
+    { duration: 0.24, easing: [0.22, 1, 0.36, 1] }
+  );
+  requestAnimationFrame(() => {
+    recordExerciseInput?.focus();
+  });
+}
 
-  const exerciseRaw = window.prompt("Название упражнения для рекорда:");
-  if (exerciseRaw === null) {
+function closeRecordFlow() {
+  if (!recordOverlay || recordOverlay.hidden) {
     return;
   }
-  const exercise = exerciseRaw.trim();
+  const overlayAnimation = runMotion(recordOverlay, { opacity: [1, 0] }, { duration: 0.14, easing: "ease-out" });
+  const modalAnimation = runMotion(
+    recordModal,
+    { opacity: [1, 0.75], transform: ["translateY(0px) scale(1)", "translateY(12px) scale(0.99)"] },
+    { duration: 0.16, easing: "ease-in" }
+  );
+  if (overlayAnimation?.finished) {
+    overlayAnimation.finished.catch(() => undefined);
+  }
+  if (modalAnimation?.finished) {
+    modalAnimation.finished.catch(() => undefined);
+  }
+  setTimeout(() => {
+    recordOverlay.hidden = true;
+    setBodyScrollLock(false);
+  }, 170);
+}
+
+async function submitRecordFlow() {
+  if (!state.userId) {
+    showToast("Сначала открой профиль в боте");
+    return;
+  }
+  const exercise = String(recordExerciseInput?.value || "").trim();
   if (!exercise) {
     showToast("Введите название упражнения");
+    recordExerciseInput?.focus();
     return;
   }
-
-  const weightRaw = window.prompt("Вес рекорда (кг):");
-  if (weightRaw === null) {
-    return;
-  }
-  const bestWeight = Number(String(weightRaw).replace(",", "."));
+  const bestWeight = Number(String(recordWeightInput?.value || "").replace(",", "."));
   if (!Number.isFinite(bestWeight) || bestWeight <= 0) {
     showToast("Введите корректный вес");
+    recordWeightInput?.focus();
     return;
   }
 
@@ -1596,10 +1658,11 @@ async function promptAddRecord() {
         best_weight: bestWeight,
       }),
     });
-    const result = await response.json();
+    const result = await response.json().catch(() => ({}));
     if (!response.ok || !result.ok) {
       throw new Error(result.error || "failed to save record");
     }
+    closeRecordFlow();
     showToast("Рекорд добавлен");
     await refreshAppDataStable();
   } catch (error) {

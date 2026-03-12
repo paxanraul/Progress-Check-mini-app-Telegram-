@@ -319,6 +319,7 @@ async function bootstrap() {
 
 function renderApp(payload) {
   renderProfile(payload.user);
+  renderDailyFireState(payload.history || []);
   renderHistory(payload.history);
   renderRecords(payload.records);
   renderFaqTabs(payload.faq);
@@ -344,6 +345,20 @@ function renderProfile(user) {
   document.getElementById("experience-value").textContent = user.experience || "—";
   document.getElementById("workouts-value").textContent = String(user.workout_days ?? 0);
   document.getElementById("streak-value").textContent = String(user.workout_days ?? 0);
+}
+
+function renderDailyFireState(history) {
+  const fireNode = document.querySelector(".fire");
+  const streakNode = document.querySelector(".streak-badge");
+  if (!fireNode || !streakNode) {
+    return;
+  }
+
+  const today = todayValue();
+  const hasTodayWorkout = Array.isArray(history) && history.some((day) => day?.date === today);
+
+  fireNode.classList.toggle("fire-inactive", !hasTodayWorkout);
+  streakNode.classList.toggle("streak-inactive", !hasTodayWorkout);
 }
 
 function renderHistory(history) {

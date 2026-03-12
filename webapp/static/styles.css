@@ -191,6 +191,15 @@ h2 {
   font-size: 43px !important;
 }
 
+.fire.fire-inactive {
+  filter: grayscale(1);
+  opacity: 0.45;
+}
+
+.streak-badge.streak-inactive {
+  color: #8a8f98;
+}
+
 .action-card,
 .profile-card,
 .note-card,

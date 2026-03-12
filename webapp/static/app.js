@@ -8,6 +8,8 @@ const state = {
   faqCategory: "technique",
   faqQuery: "",
   recordsDeleteMode: false,
+  historyEditMode: false,
+  selectedWorkoutSessions: new Set(),
   payload: null,
   userId: "",
   workoutFlow: {
@@ -42,6 +44,11 @@ const deleteWorkoutDayBtn = document.getElementById("delete-workout-day");
 const removeRecordBtn = document.getElementById("delete-btn");
 const addRecordBtn = document.getElementById("move-btn");
 const workoutModal = document.querySelector(".workout-modal");
+const historyManageToggle = document.getElementById("history-manage-toggle");
+const historyBulkActions = document.getElementById("history-bulk-actions");
+const historyDeleteSelectedBtn = document.getElementById("history-delete-selected");
+const historyDeleteAllBtn = document.getElementById("history-delete-all");
+const historyManageCancelBtn = document.getElementById("history-manage-cancel");
 
 const motionApi = window.Motion;
 const motionAnimate = typeof motionApi?.animate === "function" ? motionApi.animate : null;
@@ -268,6 +275,10 @@ bindClick("close-workout-flow", closeWorkoutFlow);
 bindClick("add-draft-item", openDraftFormForCreate);
 bindClick("confirm-draft-item", saveDraftItem);
 bindClick("save-workout-flow", handleSaveFlowButton);
+bindClick("history-manage-toggle", toggleHistoryManageMode);
+bindClick("history-manage-cancel", disableHistoryManageMode);
+bindClick("history-delete-selected", deleteSelectedHistoryWorkouts);
+bindClick("history-delete-all", deleteAllHistoryWorkouts);
 
 deleteWorkoutDayBtn?.addEventListener("click", handleDeleteWorkoutDay);
 addRecordBtn?.addEventListener("click", promptAddRecord);
@@ -478,8 +489,12 @@ function shiftIsoDate(isoDate, deltaDays) {
 function renderHistory(history) {
   const root = document.getElementById("history-list");
   root.innerHTML = "";
+  updateHistoryManageControls();
 
   if (!history.length) {
+    state.selectedWorkoutSessions.clear();
+    disableHistoryManageMode(true);
+    updateHistoryManageControls();
     root.innerHTML = emptyCard("Пока нет тренировок. Добавь первую через кнопку на главной.");
     return;
   }
@@ -487,6 +502,7 @@ function renderHistory(history) {
   history.forEach((day, index) => {
     const title = day.workout_name || trainingDayTitle(index);
     const sessionKey = day.session_key || `legacy:${day.date}`;
+    const isSelected = state.selectedWorkoutSessions.has(sessionKey);
     const noteBlock = day.note
       ? `<div class="history-note" data-date="${escapeHtml(day.date)}" data-session-key="${escapeHtml(sessionKey)}">${escapeHtml(day.note)}</div>`
       : "";
@@ -504,12 +520,15 @@ function renderHistory(history) {
     root.insertAdjacentHTML(
       "beforeend",
       `
-        <article class="history-card" data-date="${escapeHtml(day.date)}" data-session-key="${escapeHtml(sessionKey)}">
+        <article class="history-card${state.historyEditMode && isSelected ? " selected" : ""}" data-date="${escapeHtml(day.date)}" data-session-key="${escapeHtml(sessionKey)}">
           <div class="history-head">
-            <div class="history-main" data-date="${escapeHtml(day.date)}" data-session-key="${escapeHtml(sessionKey)}">${escapeHtml(title)}</div>
+            <div class="history-main" data-date="${escapeHtml(day.date)}" data-session-key="${escapeHtml(sessionKey)}">
+              ${state.historyEditMode ? `<span class="history-select-indicator">${isSelected ? "✓" : ""}</span>` : ""}
+              ${escapeHtml(title)}
+            </div>
             <div class="history-head-right">
               <div class="history-date">${formatDate(day.date)}</div>
-              <button class="history-edit-btn" data-date="${escapeHtml(day.date)}" data-session-key="${escapeHtml(sessionKey)}" type="button">Изменить</button>
+              <button class="history-edit-btn" data-date="${escapeHtml(day.date)}" data-session-key="${escapeHtml(sessionKey)}" type="button"${state.historyEditMode ? " hidden" : ""}>Изменить</button>
             </div>
           </div>
           <div class="exercise-list">${rows}</div>
@@ -522,30 +541,153 @@ function renderHistory(history) {
   root.querySelectorAll(".history-edit-btn").forEach((button) => {
     button.addEventListener("click", (event) => {
       event.stopPropagation();
+      if (state.historyEditMode) {
+        return;
+      }
       openEditWorkoutFlow(button.dataset.sessionKey || "", button.dataset.date || "");
     });
   });
-  root.querySelectorAll(".history-note[data-date][data-session-key]").forEach((noteNode) => {
-    attachLongPress(noteNode, 100, () => {
-      void promptEditWorkoutComment(noteNode.dataset.sessionKey || "", noteNode.dataset.date || "");
+  root.querySelectorAll(".history-card[data-session-key]").forEach((card) => {
+    card.addEventListener("click", () => {
+      if (!state.historyEditMode) {
+        return;
+      }
+      const key = card.dataset.sessionKey || "";
+      if (!key) {
+        return;
+      }
+      toggleHistoryWorkoutSelection(key);
     });
   });
-  root.querySelectorAll(".history-main[data-date][data-session-key]").forEach((titleNode) => {
-    const card = titleNode.closest(".history-card");
-    attachLongPress(titleNode, 200, () => {
-      triggerHaptic("selection");
-      if (card) {
-        card.classList.add("focus-edit");
-      }
-      promptEditWorkoutTitle(titleNode.dataset.sessionKey || "", titleNode.dataset.date || "").finally(() => {
-        if (card) {
-          card.classList.remove("focus-edit");
-        }
+  if (!state.historyEditMode) {
+    root.querySelectorAll(".history-note[data-date][data-session-key]").forEach((noteNode) => {
+      attachLongPress(noteNode, 100, () => {
+        void promptEditWorkoutComment(noteNode.dataset.sessionKey || "", noteNode.dataset.date || "");
       });
     });
-  });
+    root.querySelectorAll(".history-main[data-date][data-session-key]").forEach((titleNode) => {
+      const card = titleNode.closest(".history-card");
+      attachLongPress(titleNode, 200, () => {
+        triggerHaptic("selection");
+        if (card) {
+          card.classList.add("focus-edit");
+        }
+        promptEditWorkoutTitle(titleNode.dataset.sessionKey || "", titleNode.dataset.date || "").finally(() => {
+          if (card) {
+            card.classList.remove("focus-edit");
+          }
+        });
+      });
+    });
+  }
   animateCollection(root, ".history-card");
   animateExerciseRows(root);
+}
+
+function toggleHistoryManageMode() {
+  state.historyEditMode = !state.historyEditMode;
+  if (!state.historyEditMode) {
+    state.selectedWorkoutSessions.clear();
+  }
+  renderHistory(state.payload?.history || []);
+}
+
+function disableHistoryManageMode(silent = false) {
+  state.historyEditMode = false;
+  state.selectedWorkoutSessions.clear();
+  if (!silent) {
+    renderHistory(state.payload?.history || []);
+  }
+}
+
+function toggleHistoryWorkoutSelection(sessionKey) {
+  if (state.selectedWorkoutSessions.has(sessionKey)) {
+    state.selectedWorkoutSessions.delete(sessionKey);
+  } else {
+    state.selectedWorkoutSessions.add(sessionKey);
+  }
+  renderHistory(state.payload?.history || []);
+}
+
+function updateHistoryManageControls() {
+  if (!historyManageToggle || !historyBulkActions) {
+    return;
+  }
+  historyManageToggle.textContent = state.historyEditMode ? "Готово" : "Изменить";
+  historyBulkActions.hidden = !state.historyEditMode;
+
+  if (historyDeleteSelectedBtn) {
+    historyDeleteSelectedBtn.disabled = state.selectedWorkoutSessions.size === 0;
+  }
+}
+
+async function deleteSelectedHistoryWorkouts() {
+  if (!state.historyEditMode || state.selectedWorkoutSessions.size === 0) {
+    return;
+  }
+  const confirmed = window.confirm(`Удалить выбранные тренировки: ${state.selectedWorkoutSessions.size} шт.?`);
+  if (!confirmed) {
+    return;
+  }
+
+  const keys = [...state.selectedWorkoutSessions];
+  let deleted = 0;
+  for (const key of keys) {
+    try {
+      const response = await fetch("/api/workouts", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: Number(state.userId),
+          session_key: key,
+        }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (response.ok && result.ok) {
+        deleted += 1;
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  await refreshAppDataStable();
+  disableHistoryManageMode(true);
+  renderHistory(state.payload?.history || []);
+  showToast(deleted > 0 ? `Удалено тренировок: ${deleted}` : "Не удалось удалить выбранные тренировки");
+}
+
+async function deleteAllHistoryWorkouts() {
+  if (!state.historyEditMode) {
+    return;
+  }
+  const count = (state.payload?.history || []).length;
+  const confirmed = window.confirm(`Удалить все тренировки (${count})?`);
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    const response = await fetch("/api/workouts/all", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        user_id: Number(state.userId),
+      }),
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || !result.ok) {
+      throw new Error(result.error || "failed to delete all workouts");
+    }
+
+    await refreshAppDataStable();
+    disableHistoryManageMode(true);
+    renderHistory(state.payload?.history || []);
+    showToast("Все тренировки удалены");
+  } catch (error) {
+    console.error(error);
+    showToast("Не удалось удалить все тренировки");
+  }
 }
 
 function renderRecords(records) {
@@ -642,6 +784,9 @@ function renderFaq() {
 function switchTab(tab) {
   if (!tab || state.activeTab === tab) {
     return;
+  }
+  if (state.activeTab === "profile" && tab !== "profile" && state.historyEditMode) {
+    disableHistoryManageMode(true);
   }
   state.activeTab = tab;
   navButtons.forEach((button) => button.classList.toggle("active", button.dataset.tab === tab));

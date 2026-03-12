@@ -50,6 +50,12 @@
           <section class="section-block">
             <div class="section-title">
               <h2>История тренировок</h2>
+              <button class="history-manage-btn" id="history-manage-toggle" type="button">Изменить</button>
+            </div>
+            <div class="history-bulk-actions" id="history-bulk-actions" hidden>
+              <button class="history-bulk-btn" id="history-delete-selected" type="button">Удалить выбранные</button>
+              <button class="history-bulk-btn danger" id="history-delete-all" type="button">Удалить все</button>
+              <button class="history-bulk-btn subtle" id="history-manage-cancel" type="button">Отмена</button>
             </div>
             <div id="history-list" class="list-stack"></div>
           </section>

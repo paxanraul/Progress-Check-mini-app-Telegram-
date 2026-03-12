@@ -343,8 +343,52 @@ transform: translateY(15%);
   margin-bottom: 10px;
 }
 
+.history-manage-btn {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  font-size: 12px;
+  padding: 6px 10px;
+}
+
+.history-bulk-actions {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 10px;
+  flex-wrap: wrap;
+}
+
+.history-bulk-btn {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  font-size: 12px;
+  padding: 6px 10px;
+}
+
+.history-bulk-btn:disabled {
+  opacity: 0.45;
+}
+
+.history-bulk-btn.danger {
+  border-color: rgba(255, 120, 120, 0.45);
+  background: rgba(255, 80, 80, 0.16);
+  color: #ffd7d7;
+}
+
+.history-bulk-btn.subtle {
+  background: rgba(255, 255, 255, 0.03);
+}
+
 .history-card {
   padding: 12px 14px;
+}
+
+.history-card.selected {
+  border-color: rgba(82, 167, 255, 0.8);
+  box-shadow: inset 0 0 0 1px rgba(82, 167, 255, 0.6);
 }
 
 .history-head {
@@ -357,6 +401,22 @@ transform: translateY(15%);
 .history-main {
   font-size: 20px;
   font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.history-select-indicator {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid rgba(82, 167, 255, 0.75);
+  background: rgba(82, 167, 255, 0.2);
+  color: #d8ecff;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  line-height: 1;
 }
 
 .history-date {

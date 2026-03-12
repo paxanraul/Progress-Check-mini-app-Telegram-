@@ -52,6 +52,32 @@ let wellbeingNoteSaving = false;
 let lastWorkoutStep = "";
 let bodyScrollTop = 0;
 
+function triggerHaptic(type = "selection") {
+  try {
+    const haptic = telegram?.HapticFeedback;
+    if (haptic) {
+      if (type === "selection" && typeof haptic.selectionChanged === "function") {
+        haptic.selectionChanged();
+        return;
+      }
+      if (type === "success" && typeof haptic.notificationOccurred === "function") {
+        haptic.notificationOccurred("success");
+        return;
+      }
+      if (typeof haptic.impactOccurred === "function") {
+        haptic.impactOccurred("light");
+        return;
+      }
+    }
+  } catch (error) {
+    console.warn("haptic failed", error);
+  }
+
+  if (navigator.vibrate) {
+    navigator.vibrate(10);
+  }
+}
+
 function syncViewportHeight(force = false) {
   const next = Math.round(window.innerHeight || document.documentElement.clientHeight || 0);
   if (!next) {
@@ -419,9 +445,7 @@ function renderHistory(history) {
   root.querySelectorAll(".history-main[data-date][data-session-key]").forEach((titleNode) => {
     const card = titleNode.closest(".history-card");
     attachLongPress(titleNode, 200, () => {
-      if (navigator.vibrate) {
-        navigator.vibrate(10);
-      }
+      triggerHaptic("selection");
       if (card) {
         card.classList.add("focus-edit");
       }
@@ -1027,9 +1051,7 @@ async function promptEditWorkoutComment(sourceSessionKey, sourceDate = "") {
   if (!state.userId || (!sourceSessionKey && !sourceDate)) {
     return;
   }
-  if (navigator.vibrate) {
-    navigator.vibrate(10);
-  }
+  triggerHaptic("selection");
 
   const workoutDay = findWorkoutEntry(sourceSessionKey, sourceDate);
   if (!workoutDay || !Array.isArray(workoutDay.exercises) || !workoutDay.exercises.length) {
@@ -1093,9 +1115,7 @@ async function promptEditWorkoutTitle(sourceSessionKey, sourceDate = "") {
   if (!state.userId || (!sourceSessionKey && !sourceDate)) {
     return;
   }
-  if (navigator.vibrate) {
-    navigator.vibrate(10);
-  }
+  triggerHaptic("selection");
 
   const workoutDay = findWorkoutEntry(sourceSessionKey, sourceDate);
   if (!workoutDay || !Array.isArray(workoutDay.exercises) || !workoutDay.exercises.length) {

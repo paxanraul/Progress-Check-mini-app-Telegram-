@@ -1027,6 +1027,9 @@ async function promptEditWorkoutComment(sourceSessionKey, sourceDate = "") {
   if (!state.userId || (!sourceSessionKey && !sourceDate)) {
     return;
   }
+  if (navigator.vibrate) {
+    navigator.vibrate(10);
+  }
 
   const workoutDay = findWorkoutEntry(sourceSessionKey, sourceDate);
   if (!workoutDay || !Array.isArray(workoutDay.exercises) || !workoutDay.exercises.length) {
@@ -1089,6 +1092,9 @@ async function promptEditWorkoutTitle(sourceSessionKey, sourceDate = "") {
   }
   if (!state.userId || (!sourceSessionKey && !sourceDate)) {
     return;
+  }
+  if (navigator.vibrate) {
+    navigator.vibrate(10);
   }
 
   const workoutDay = findWorkoutEntry(sourceSessionKey, sourceDate);

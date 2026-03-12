@@ -397,21 +397,82 @@ function renderProfile(user) {
   document.getElementById("height-value").textContent = user.height ? `${user.height} см` : "—";
   document.getElementById("experience-value").textContent = user.experience || "—";
   document.getElementById("workouts-value").textContent = String(user.workout_days ?? 0);
-  document.getElementById("streak-value").textContent = String(user.workout_days ?? 0);
 }
 
 function renderDailyFireState(history) {
   const fireNode = document.querySelector(".fire");
   const streakNode = document.querySelector(".streak-badge");
+  const streakValueNode = document.getElementById("streak-value");
   if (!fireNode || !streakNode) {
     return;
   }
+  if (!streakValueNode) {
+    return;
+  }
+
+  const { value, active } = computeFireStreak(history);
+  streakValueNode.textContent = String(value);
+  fireNode.classList.toggle("fire-inactive", !active);
+  streakNode.classList.toggle("streak-inactive", !active);
+}
+
+function computeFireStreak(history) {
+  const dates = new Set();
+  if (Array.isArray(history)) {
+    history.forEach((day) => {
+      if (day?.date && typeof day.date === "string") {
+        dates.add(day.date);
+      }
+    });
+  }
+
+  if (!dates.size) {
+    return { value: 0, active: false };
+  }
 
   const today = todayValue();
-  const hasTodayWorkout = Array.isArray(history) && history.some((day) => day?.date === today);
+  if (dates.has(today)) {
+    return { value: countBackConsecutiveDays(dates, today), active: true };
+  }
 
-  fireNode.classList.toggle("fire-inactive", !hasTodayWorkout);
-  streakNode.classList.toggle("streak-inactive", !hasTodayWorkout);
+  const yesterday = shiftIsoDate(today, -1);
+  if (dates.has(yesterday)) {
+    return { value: countBackConsecutiveDays(dates, yesterday), active: false };
+  }
+
+  return { value: 0, active: false };
+}
+
+function countBackConsecutiveDays(dateSet, startIsoDate) {
+  let count = 0;
+  let current = startIsoDate;
+  while (dateSet.has(current)) {
+    count += 1;
+    current = shiftIsoDate(current, -1);
+  }
+  return count;
+}
+
+function shiftIsoDate(isoDate, deltaDays) {
+  const parts = String(isoDate).split("-");
+  if (parts.length !== 3) {
+    return isoDate;
+  }
+
+  const year = Number(parts[0]);
+  const month = Number(parts[1]);
+  const day = Number(parts[2]);
+  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) {
+    return isoDate;
+  }
+
+  const dateObj = new Date(year, month - 1, day);
+  dateObj.setDate(dateObj.getDate() + deltaDays);
+
+  const y = String(dateObj.getFullYear());
+  const m = String(dateObj.getMonth() + 1).padStart(2, "0");
+  const d = String(dateObj.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
 }
 
 function renderHistory(history) {

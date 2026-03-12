@@ -639,20 +639,62 @@ body.modal-open .content {
 }
 
 .draft-item {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  align-items: center;
+  position: relative;
   min-height: 52px;
-  padding: 0 14px;
+  padding: 0;
   border-radius: 10px;
-  background: var(--card-soft);
+  background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.07);
+  overflow: hidden;
+  touch-action: pan-y;
 }
 
 .draft-item.empty {
   justify-content: center;
   color: var(--muted);
+}
+
+.draft-item-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  min-height: 52px;
+  padding: 0 14px;
+  background: var(--card-soft);
+  will-change: transform;
+}
+
+.draft-actions {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 1;
+  opacity: 0.92;
+}
+
+.draft-action-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text);
+  display: grid;
+  place-items: center;
+}
+
+.draft-action-btn.danger {
+  border-color: rgba(255, 122, 122, 0.4);
+  background: rgba(255, 80, 80, 0.2);
+  color: #ffd1d1;
 }
 
 .draft-title {

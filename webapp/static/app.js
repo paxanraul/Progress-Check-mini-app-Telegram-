@@ -1,6 +1,11 @@
 ﻿const telegram = window.Telegram?.WebApp;
 if (telegram) {
   telegram.ready();
+  try {
+    telegram.expand();
+  } catch (error) {
+    console.warn("telegram expand failed", error);
+  }
 }
 
 const state = {
@@ -96,13 +101,24 @@ function triggerLightTapHaptic() {
 }
 
 function syncViewportHeight(force = false) {
-  const next = Math.round(window.innerHeight || document.documentElement.clientHeight || 0);
+  const next = Math.round(window.visualViewport?.height || window.innerHeight || document.documentElement.clientHeight || 0);
   if (!next) {
     return;
   }
-  // Keep viewport height stable to prevent jumps in Telegram WebView when keyboard appears.
+  const active = document.activeElement;
+  const keyboardLikelyOpen =
+    !!active &&
+    (active.tagName === "INPUT" || active.tagName === "TEXTAREA" || active.isContentEditable);
+
+  // Keep viewport height stable while keyboard is open, but allow corrections after Telegram recalculates viewport.
   if (!force && stableViewportHeight) {
-    return;
+    const delta = Math.abs(next - stableViewportHeight);
+    if (keyboardLikelyOpen) {
+      return;
+    }
+    if (delta < 32) {
+      return;
+    }
   }
   stableViewportHeight = next;
   document.documentElement.style.setProperty("--app-vh", `${stableViewportHeight}px`);
@@ -234,6 +250,11 @@ window.addEventListener("orientationchange", () => {
   window.setTimeout(() => syncViewportHeight(true), 120);
 }, { passive: true });
 window.addEventListener("resize", () => {
+  syncViewportHeight(false);
+  syncNavPillPosition(state.activeTab, true);
+}, { passive: true });
+window.visualViewport?.addEventListener("resize", () => {
+  syncViewportHeight(false);
   syncNavPillPosition(state.activeTab, true);
 }, { passive: true });
 document.addEventListener(
@@ -336,8 +357,11 @@ bootstrap().catch((error) => {
 
 async function bootstrap() {
   requestAnimationFrame(() => {
+    syncViewportHeight(true);
     syncNavPillPosition(state.activeTab, true);
   });
+  setTimeout(() => syncViewportHeight(true), 150);
+  setTimeout(() => syncViewportHeight(true), 500);
 
   const userId = resolveUserId();
   if (!userId) {
@@ -421,10 +445,51 @@ function renderDailyFireState(history) {
     return;
   }
 
-  const { value, active } = computeFireStreak(history);
+  const { value, active } = computeFireStreakStableForDay(history);
   streakValueNode.textContent = String(value);
   fireNode.classList.toggle("fire-inactive", !active);
   streakNode.classList.toggle("streak-inactive", !active);
+}
+
+function computeFireStreakStableForDay(history) {
+  const raw = computeFireStreak(history);
+  const today = todayValue();
+  const cacheKey = `fire_state:${state.userId || "unknown"}`;
+
+  let cached = null;
+  try {
+    const rawCached = localStorage.getItem(cacheKey);
+    if (rawCached) {
+      cached = JSON.parse(rawCached);
+    }
+  } catch (error) {
+    cached = null;
+  }
+
+  if (!cached || cached.day !== today) {
+    try {
+      localStorage.setItem(cacheKey, JSON.stringify({ day: today, value: raw.value, active: raw.active }));
+    } catch (error) {
+      // ignore storage errors
+    }
+    return raw;
+  }
+
+  const cachedValue = Number(cached.value || 0);
+  const cachedActive = Boolean(cached.active);
+
+  // Do not decrease streak or switch to inactive within the same day
+  // just because a workout entry was edited/deleted.
+  if ((cachedActive && !raw.active) || raw.value < cachedValue) {
+    return { value: cachedValue, active: cachedActive };
+  }
+
+  try {
+    localStorage.setItem(cacheKey, JSON.stringify({ day: today, value: raw.value, active: raw.active }));
+  } catch (error) {
+    // ignore storage errors
+  }
+  return raw;
 }
 
 function computeFireStreak(history) {

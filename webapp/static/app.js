@@ -601,12 +601,27 @@ function disableHistoryManageMode(silent = false) {
 }
 
 function toggleHistoryWorkoutSelection(sessionKey) {
-  if (state.selectedWorkoutSessions.has(sessionKey)) {
+  if (!sessionKey) {
+    return;
+  }
+
+  const wasSelected = state.selectedWorkoutSessions.has(sessionKey);
+  if (wasSelected) {
     state.selectedWorkoutSessions.delete(sessionKey);
   } else {
     state.selectedWorkoutSessions.add(sessionKey);
   }
-  renderHistory(state.payload?.history || []);
+
+  const cards = document.querySelectorAll(`.history-card[data-session-key="${sessionKey}"]`);
+  cards.forEach((card) => {
+    card.classList.toggle("selected", !wasSelected);
+    const indicator = card.querySelector(".history-select-indicator");
+    if (indicator) {
+      indicator.textContent = !wasSelected ? "✓" : "";
+    }
+  });
+
+  updateHistoryManageControls();
 }
 
 function updateHistoryManageControls() {

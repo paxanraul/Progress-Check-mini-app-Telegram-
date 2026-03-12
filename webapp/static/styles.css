@@ -1261,7 +1261,8 @@ body {
 /* Records toolbar buttons */
 .records-toolbar {
   gap: 10px;
-  justify-content: flex-end;
+  justify-content: space-between;
+  width: 100%;
 }
 
 #delete-btn.records-tool-btn,
@@ -1294,6 +1295,61 @@ body {
   box-shadow: inset 0 1px 0 rgba(255, 220, 220, 0.25);
 }
 
+.records-bulk-actions {
+  margin: 0 0 10px;
+}
+
+.record-card.selected {
+  border-color: rgba(96, 185, 255, 0.75);
+  box-shadow: inset 0 0 0 1px rgba(72, 168, 255, 0.42);
+}
+
+.record-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.record-title-row .history-select-indicator {
+  margin-right: 0;
+  min-width: 18px;
+}
+
 .record-modal .modal-step {
   display: block;
+  padding-top: 4px;
+}
+
+.record-modal .record-field {
+  margin-bottom: 12px;
+}
+
+.record-modal .record-metrics {
+  padding: 14px;
+}
+
+.record-modal .metric-big {
+  gap: 10px;
+}
+
+.record-modal .field-label {
+  transform: none;
+  margin-bottom: 6px;
+}
+
+.record-modal #record-exercise-input,
+.record-modal #record-weight-input {
+  transform: none;
+  margin: 0;
+  min-height: 44px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.record-modal #record-weight-input {
+  font-size: 22px;
+  font-weight: 600;
 }

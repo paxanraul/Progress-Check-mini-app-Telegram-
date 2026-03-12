@@ -63,8 +63,13 @@
 
         <section class="panel" data-panel="records">
           <div class="records-toolbar">
-            <button class="records-tool-btn danger" type="button" id="delete-btn" aria-label="Режим удаления рекордов">Удалить</button>
+            <button class="records-tool-btn" type="button" id="delete-btn" aria-label="Режим редактирования рекордов">Изменить</button>
             <button class="records-tool-btn add" type="button" id="move-btn" aria-label="Добавить рекорд">+Рекорд</button>
+          </div>
+          <div class="history-bulk-actions records-bulk-actions" id="records-bulk-actions" hidden>
+            <button class="history-bulk-btn" id="records-delete-selected" type="button">Удалить выбранные</button>
+            <button class="history-bulk-btn danger" id="records-delete-all" type="button">Удалить все</button>
+            <button class="history-bulk-btn subtle" id="records-manage-cancel" type="button">Отмена</button>
           </div>
           <div id="records-list" class="list-stack"></div>
         </section>
@@ -177,10 +182,10 @@
         <button class="icon-btn subtle" id="save-record-flow" type="button" aria-label="Сохранить">✓</button>
       </div>
       <section class="modal-step active">
-        <label class="field-card">
+        <label class="field-card record-field">
           <input type="text" id="record-exercise-input" placeholder="Название упражнения">
         </label>
-        <div class="metrics-card">
+        <div class="metrics-card record-metrics">
           <div class="metric-big">
             <span class="field-label">Вес (кг)</span>
             <input type="number" id="record-weight-input" min="0" step="0.5" placeholder="100">
@@ -192,6 +197,6 @@
 
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://unpkg.com/motion@11.11.13/dist/motion.js"></script>
-<script src="/static/app.js?v=20"></script>
+<script src="/static/app.js?v=21"></script>
 </body>
 </html>

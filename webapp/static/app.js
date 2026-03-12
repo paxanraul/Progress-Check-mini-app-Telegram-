@@ -12,7 +12,8 @@ const state = {
   activeTab: "home",
   faqCategory: "technique",
   faqQuery: "",
-  recordsDeleteMode: false,
+  recordsEditMode: false,
+  selectedRecordExercises: new Set(),
   historyEditMode: false,
   selectedWorkoutSessions: new Set(),
   payload: null,
@@ -58,6 +59,10 @@ const historyBulkActions = document.getElementById("history-bulk-actions");
 const historyDeleteSelectedBtn = document.getElementById("history-delete-selected");
 const historyDeleteAllBtn = document.getElementById("history-delete-all");
 const historyManageCancelBtn = document.getElementById("history-manage-cancel");
+const recordsBulkActions = document.getElementById("records-bulk-actions");
+const recordsDeleteSelectedBtn = document.getElementById("records-delete-selected");
+const recordsDeleteAllBtn = document.getElementById("records-delete-all");
+const recordsManageCancelBtn = document.getElementById("records-manage-cancel");
 
 const motionApi = window.Motion;
 const motionAnimate = typeof motionApi?.animate === "function" ? motionApi.animate : null;
@@ -306,10 +311,13 @@ bindClick("history-delete-selected", deleteSelectedHistoryWorkouts);
 bindClick("history-delete-all", deleteAllHistoryWorkouts);
 bindClick("close-record-flow", closeRecordFlow);
 bindClick("save-record-flow", submitRecordFlow);
+bindClick("records-delete-selected", deleteSelectedRecords);
+bindClick("records-delete-all", deleteAllRecords);
+bindClick("records-manage-cancel", disableRecordsManageMode);
 
 deleteWorkoutDayBtn?.addEventListener("click", handleDeleteWorkoutDay);
 addRecordBtn?.addEventListener("click", openRecordFlow);
-removeRecordBtn?.addEventListener("click", toggleRecordsDeleteMode);
+removeRecordBtn?.addEventListener("click", toggleRecordsManageMode);
 preventTapFocusShift(document.getElementById("open-workout-flow"));
 
 recordOverlay?.addEventListener("click", (event) => {
@@ -800,27 +808,33 @@ async function deleteAllHistoryWorkouts() {
 
 function renderRecords(records) {
   const root = document.getElementById("records-list");
-  removeRecordBtn?.classList.toggle("active-tool", state.recordsDeleteMode);
+  updateRecordsManageControls();
   root.innerHTML = "";
 
   if (!records.length) {
-    state.recordsDeleteMode = false;
-    removeRecordBtn?.classList.remove("active-tool");
+    state.recordsEditMode = false;
+    state.selectedRecordExercises.clear();
+    updateRecordsManageControls();
     root.innerHTML = emptyCard("Рекордов пока нет.");
     return;
   }
 
   records.forEach((record, index) => {
+    const exerciseKey = String(record.exercise || "");
+    const isSelected = state.selectedRecordExercises.has(exerciseKey);
     root.insertAdjacentHTML(
       "beforeend",
       `
-        <article class="record-card${index === 0 ? " highlight" : ""}${state.recordsDeleteMode ? " delete-mode" : ""}" data-exercise="${escapeHtml(record.exercise)}">
+        <article class="record-card${index === 0 ? " highlight" : ""}${state.recordsEditMode && isSelected ? " selected" : ""}" data-exercise="${escapeHtml(exerciseKey)}">
           <div class="record-main">
             <div>
-              <div class="record-title">${escapeHtml(record.exercise)}</div>
+              <div class="record-title-row">
+                ${state.recordsEditMode ? `<span class="history-select-indicator">${isSelected ? "✓" : ""}</span>` : ""}
+                <div class="record-title">${escapeHtml(record.exercise)}</div>
+              </div>
               <div class="record-date">${record.date ? formatDate(record.date) : "последний лучший результат"}</div>
             </div>
-            <div class="record-weight">${record.best_weight} кг${state.recordsDeleteMode ? " <i class='bx bx-trash'></i>" : ""}</div>
+            <div class="record-weight">${record.best_weight} кг</div>
           </div>
         </article>
       `
@@ -829,17 +843,56 @@ function renderRecords(records) {
 
   root.querySelectorAll(".record-card").forEach((card) => {
     card.addEventListener("click", () => {
-      if (!state.recordsDeleteMode) {
+      if (!state.recordsEditMode) {
         return;
       }
       const exercise = decodeHtml(card.dataset.exercise || "");
       if (!exercise) {
         return;
       }
-      void deleteRecord(exercise);
+      toggleRecordSelection(exercise);
     });
   });
   animateCollection(root, ".record-card");
+}
+
+function toggleRecordsManageMode() {
+  state.recordsEditMode = !state.recordsEditMode;
+  if (!state.recordsEditMode) {
+    state.selectedRecordExercises.clear();
+  }
+  renderRecords(state.payload?.records || []);
+}
+
+function disableRecordsManageMode() {
+  state.recordsEditMode = false;
+  state.selectedRecordExercises.clear();
+  renderRecords(state.payload?.records || []);
+}
+
+function toggleRecordSelection(exercise) {
+  if (!exercise) {
+    return;
+  }
+  if (state.selectedRecordExercises.has(exercise)) {
+    state.selectedRecordExercises.delete(exercise);
+  } else {
+    state.selectedRecordExercises.add(exercise);
+  }
+  renderRecords(state.payload?.records || []);
+}
+
+function updateRecordsManageControls() {
+  removeRecordBtn?.classList.toggle("active-tool", state.recordsEditMode);
+  if (removeRecordBtn) {
+    removeRecordBtn.textContent = state.recordsEditMode ? "Готово" : "Изменить";
+  }
+  if (recordsBulkActions) {
+    recordsBulkActions.hidden = !state.recordsEditMode;
+  }
+  if (recordsDeleteSelectedBtn) {
+    recordsDeleteSelectedBtn.disabled = state.selectedRecordExercises.size === 0;
+  }
 }
 
 function renderFaqTabs(faqData) {
@@ -896,11 +949,18 @@ function switchTab(tab) {
   if (state.activeTab === "profile" && tab !== "profile" && state.historyEditMode) {
     disableHistoryManageMode(true);
   }
+  if (state.activeTab === "records" && tab !== "records" && state.recordsEditMode) {
+    state.recordsEditMode = false;
+    state.selectedRecordExercises.clear();
+  }
   state.activeTab = tab;
   navButtons.forEach((button) => button.classList.toggle("active", button.dataset.tab === tab));
   syncNavPillPosition(tab, false);
   panels.forEach((panel) => panel.classList.toggle("active", panel.dataset.panel === tab));
   document.getElementById("screen-title").textContent = titleForTab(tab);
+  if (tab === "records") {
+    renderRecords(state.payload?.records || []);
+  }
   animatePanelEnter(tab);
 }
 
@@ -1671,40 +1731,90 @@ async function submitRecordFlow() {
   }
 }
 
-function toggleRecordsDeleteMode() {
-  state.recordsDeleteMode = !state.recordsDeleteMode;
-  renderRecords(state.payload?.records || []);
+async function requestDeleteRecord(exercise) {
+  if (!state.userId || !exercise) {
+    return false;
+  }
+  const response = await fetch("/api/records", {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      user_id: Number(state.userId),
+      exercise,
+    }),
+  });
+  const result = await response.json().catch(() => ({}));
+  return Boolean(response.ok && result.ok);
 }
 
-async function deleteRecord(exercise) {
+async function deleteSelectedRecords() {
+  if (!state.recordsEditMode || state.selectedRecordExercises.size === 0) {
+    return;
+  }
+  const confirmed = window.confirm(`Удалить выбранные рекорды: ${state.selectedRecordExercises.size} шт.?`);
+  if (!confirmed) {
+    return;
+  }
+
+  let deleted = 0;
+  for (const exercise of state.selectedRecordExercises) {
+    try {
+      const ok = await requestDeleteRecord(exercise);
+      if (ok) {
+        deleted += 1;
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  await refreshAppDataStable();
+  state.recordsEditMode = false;
+  state.selectedRecordExercises.clear();
+  renderRecords(state.payload?.records || []);
+  showToast(deleted > 0 ? `Удалено рекордов: ${deleted}` : "Не удалось удалить выбранные рекорды");
+}
+
+async function deleteAllRecords() {
   if (!state.userId) {
     showToast("Сначала открой профиль в боте");
     return;
   }
+  if (!state.recordsEditMode) {
+    return;
+  }
+  const records = state.payload?.records || [];
+  if (!records.length) {
+    return;
+  }
+  const confirmed = window.confirm(`Удалить все рекорды (${records.length})?`);
+  if (!confirmed) {
+    return;
+  }
 
+  let deleted = 0;
   try {
-    const response = await fetch("/api/records", {
-      method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        user_id: Number(state.userId),
-        exercise,
-      }),
-    });
-    const result = await response.json().catch(() => ({}));
-    if (!response.ok || !result.ok) {
-      throw new Error(result.error || "failed to delete record");
+    for (const record of records) {
+      const exercise = String(record.exercise || "").trim();
+      if (!exercise) {
+        continue;
+      }
+      const ok = await requestDeleteRecord(exercise);
+      if (ok) {
+        deleted += 1;
+      }
     }
-    showToast(`Рекорд "${exercise}" удален`);
+
     await refreshAppDataStable();
-    if (!(state.payload?.records || []).length) {
-      state.recordsDeleteMode = false;
-    }
+    state.recordsEditMode = false;
+    state.selectedRecordExercises.clear();
+    renderRecords(state.payload?.records || []);
+    showToast(deleted > 0 ? "Все рекорды удалены" : "Не удалось удалить рекорды");
   } catch (error) {
     console.error(error);
-    showToast(`Не удалось удалить рекорд: ${error.message || "unknown error"}`);
+    showToast(`Не удалось удалить рекорды: ${error.message || "unknown error"}`);
   }
 }
 

@@ -78,6 +78,16 @@ function triggerHaptic(type = "selection") {
   }
 }
 
+let lastHapticAt = 0;
+function triggerLightTapHaptic() {
+  const now = Date.now();
+  if (now - lastHapticAt < 45) {
+    return;
+  }
+  lastHapticAt = now;
+  triggerHaptic("selection");
+}
+
 function syncViewportHeight(force = false) {
   const next = Math.round(window.innerHeight || document.documentElement.clientHeight || 0);
   if (!next) {
@@ -219,6 +229,23 @@ window.addEventListener("orientationchange", () => {
 window.addEventListener("resize", () => {
   syncNavPillPosition(state.activeTab, true);
 }, { passive: true });
+document.addEventListener(
+  "pointerdown",
+  (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) {
+      return;
+    }
+    const tappable = target.closest(
+      "button, [role='button'], .nav-btn, .action-card, .draft-action-btn, .history-edit-btn, .chip"
+    );
+    if (!tappable) {
+      return;
+    }
+    triggerLightTapHaptic();
+  },
+  { capture: true, passive: true }
+);
 
 function bindClick(id, handler) {
   const node = document.getElementById(id);

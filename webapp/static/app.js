@@ -51,7 +51,6 @@ let stableViewportHeight = 0;
 let wellbeingNoteSaving = false;
 let lastWorkoutStep = "";
 let bodyScrollTop = 0;
-let openedDraftSwipeNode = null;
 
 function syncViewportHeight(force = false) {
   const next = Math.round(window.innerHeight || document.documentElement.clientHeight || 0);
@@ -767,11 +766,9 @@ function renderDraftList() {
       "beforeend",
       `
         <div class="draft-item" data-index="${index}" role="button" tabindex="0">
-          <div class="draft-item-content">
-            <div>
+          <div>
             <div class="draft-title">${escapeHtml(item.exercise)}</div>
             <div class="draft-subtitle">${item.weight} кг • ${item.sets} подх. • ${item.reps} повт.</div>
-            </div>
           </div>
           <div class="draft-actions">
             <button class="draft-action-btn" type="button" data-action="edit" data-index="${index}" aria-label="Изменить">
@@ -795,16 +792,8 @@ function renderDraftList() {
         return;
       }
       if (action === "delete") {
-        const row = actionBtn.closest(".draft-item");
-        if (row) {
-          closeDraftSwipe(row, true);
-        }
         removeDraftItem(index);
         return;
-      }
-      const row = actionBtn.closest(".draft-item");
-      if (row) {
-        closeDraftSwipe(row, true);
       }
       const item = state.workoutFlow.items[index];
       state.workoutFlow.editingIndex = index;
@@ -817,7 +806,6 @@ function renderDraftList() {
       setWorkoutStep("form");
     });
   });
-  root.querySelectorAll(".draft-item").forEach((node) => setupDraftSwipe(node));
   runMotion(
     root.querySelectorAll(".draft-item"),
     {
@@ -843,115 +831,6 @@ function removeDraftItem(index) {
     state.workoutFlow.editingIndex -= 1;
   }
   renderWorkoutFlow();
-}
-
-function setupDraftSwipe(node) {
-  const content = node.querySelector(".draft-item-content");
-  if (!content) {
-    return;
-  }
-
-  const maxReveal = 108;
-  const openThreshold = 42;
-  let pointerId = null;
-  let startX = 0;
-  let startY = 0;
-  let startOffset = 0;
-  let currentOffset = node.classList.contains("is-open") ? -maxReveal : 0;
-  let horizontalDrag = false;
-  let cancelled = false;
-
-  const setOffset = (value, animate) => {
-    const clamped = Math.max(-maxReveal, Math.min(0, value));
-    currentOffset = clamped;
-    content.style.transition = animate ? "transform 220ms cubic-bezier(0.22, 1, 0.36, 1)" : "none";
-    content.style.transform = `translateX(${clamped}px)`;
-  };
-
-  node.addEventListener("pointerdown", (event) => {
-    if (event.target.closest(".draft-action-btn")) {
-      return;
-    }
-    pointerId = event.pointerId;
-    startX = event.clientX;
-    startY = event.clientY;
-    startOffset = currentOffset;
-    horizontalDrag = false;
-    cancelled = false;
-    content.style.transition = "none";
-    node.setPointerCapture(pointerId);
-  });
-
-  node.addEventListener("pointermove", (event) => {
-    if (pointerId === null || event.pointerId !== pointerId || cancelled) {
-      return;
-    }
-    const dx = event.clientX - startX;
-    const dy = event.clientY - startY;
-
-    if (!horizontalDrag) {
-      if (Math.abs(dy) > 8 && Math.abs(dy) > Math.abs(dx)) {
-        cancelled = true;
-        node.releasePointerCapture(pointerId);
-        pointerId = null;
-        setOffset(startOffset, true);
-        return;
-      }
-      if (Math.abs(dx) > 8) {
-        horizontalDrag = true;
-      } else {
-        return;
-      }
-    }
-
-    event.preventDefault();
-    if (openedDraftSwipeNode && openedDraftSwipeNode !== node) {
-      closeDraftSwipe(openedDraftSwipeNode, true);
-    }
-    setOffset(startOffset + dx, false);
-  });
-
-  const finish = (event) => {
-    if (pointerId === null || event.pointerId !== pointerId) {
-      return;
-    }
-    if (node.hasPointerCapture(pointerId)) {
-      node.releasePointerCapture(pointerId);
-    }
-    pointerId = null;
-
-    if (!horizontalDrag || cancelled) {
-      return;
-    }
-
-    const shouldOpen = currentOffset <= -openThreshold;
-    if (shouldOpen) {
-      node.classList.add("is-open");
-      setOffset(-maxReveal, true);
-      openedDraftSwipeNode = node;
-    } else {
-      closeDraftSwipe(node, true);
-    }
-  };
-
-  node.addEventListener("pointerup", finish);
-  node.addEventListener("pointercancel", finish);
-}
-
-function closeDraftSwipe(node, animate) {
-  if (!node) {
-    return;
-  }
-  const content = node.querySelector(".draft-item-content");
-  if (!content) {
-    return;
-  }
-  node.classList.remove("is-open");
-  content.style.transition = animate ? "transform 220ms cubic-bezier(0.22, 1, 0.36, 1)" : "none";
-  content.style.transform = "translateX(0px)";
-  if (openedDraftSwipeNode === node) {
-    openedDraftSwipeNode = null;
-  }
 }
 
 function workoutTitle(step) {

@@ -1774,6 +1774,20 @@ summary:focus-visible {
   text-indent: 0;
 }
 
+#workout-name-input,
+#exercise-name-input {
+  width: 100%;
+  min-height: 46px;
+  padding: 12px 14px !important;
+  margin: 0 !important;
+  border-radius: var(--ui-radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.045);
+  color: var(--ui-text-main);
+  line-height: 1.2;
+  box-sizing: border-box;
+}
+
 #workout-name-input::placeholder,
 #exercise-name-input::placeholder,
 #record-exercise-input::placeholder,

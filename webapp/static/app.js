@@ -45,7 +45,6 @@ const modalSteps = [...document.querySelectorAll(".modal-step")];
 const modalTitle = document.getElementById("modal-title");
 const dateInput = document.getElementById("workout-date-input");
 const workoutNameInput = document.getElementById("workout-name-input");
-const workoutNoteInput = document.getElementById("workout-note-input");
 const wellbeingNoteInput = document.getElementById("wellbeing-note");
 const deleteWorkoutDayBtn = document.getElementById("delete-workout-day");
 const removeRecordBtn = document.getElementById("delete-btn");
@@ -371,6 +370,9 @@ faqSearch.addEventListener("input", (event) => {
 });
 
 wellbeingNoteInput?.addEventListener("keydown", (event) => {
+  if (!state.workoutFlow.open || state.workoutFlow.step !== "comment") {
+    return;
+  }
   if (event.key !== "Enter" || event.shiftKey || event.isComposing) {
     return;
   }
@@ -378,15 +380,7 @@ wellbeingNoteInput?.addEventListener("keydown", (event) => {
   if (event.repeat) {
     return;
   }
-  if (state.workoutFlow.open) {
-    if (!state.workoutFlow.items.length) {
-      showToast("Сначала добавь хотя бы одно упражнение");
-      return;
-    }
-    void submitWorkoutFlow();
-    return;
-  }
-  void submitWellbeingNoteFromHome();
+  handleSaveFlowButton();
 });
 
 bootstrap().catch((error) => {
@@ -1070,9 +1064,8 @@ function openEditWorkoutFlow(sourceSessionKey, sourceDate = "") {
   state.workoutFlow.draft = { sets: 1, reps: 8 };
   state.workoutFlow.date = day.date || sourceDate;
   state.workoutFlow.saving = false;
-  document.getElementById("wellbeing-note").value = day.note || "";
-  if (workoutNoteInput) {
-    workoutNoteInput.value = day.note || "";
+  if (wellbeingNoteInput) {
+    wellbeingNoteInput.value = day.note || "";
   }
   workoutNameInput.value = day.workout_name || "";
   setBodyScrollLock(true);
@@ -1095,9 +1088,8 @@ function resetWorkoutFlowForNewEntry() {
 
   document.getElementById("exercise-name-input").value = "";
   document.getElementById("exercise-weight-input").value = "";
-  document.getElementById("wellbeing-note").value = "";
-  if (workoutNoteInput) {
-    workoutNoteInput.value = "";
+  if (wellbeingNoteInput) {
+    wellbeingNoteInput.value = "";
   }
   workoutNameInput.value = "";
 }
@@ -1140,6 +1132,12 @@ function handleSaveFlowButton() {
       showToast("Сначала добавь хотя бы одно упражнение");
       return;
     }
+    state.workoutFlow.step = "comment";
+    renderWorkoutFlow();
+    return;
+  }
+
+  if (state.workoutFlow.step === "comment") {
     state.workoutFlow.step = "date";
     renderWorkoutFlow();
     return;
@@ -1176,6 +1174,11 @@ function renderWorkoutFlow() {
   deleteWorkoutDayBtn.disabled = state.workoutFlow.saving;
   if (step === "list") {
     renderDraftList();
+  }
+  if (step === "comment" && wellbeingNoteInput) {
+    requestAnimationFrame(() => {
+      wellbeingNoteInput.focus();
+    });
   }
   renderDraftCounters();
   if (dateInput.value !== state.workoutFlow.date) {
@@ -1280,6 +1283,7 @@ function workoutTitle(step) {
   if (step === "form") {
     return state.workoutFlow.editingIndex === null ? "Параметры упражнения" : "Изменить упражнение";
   }
+  if (step === "comment") return "Самочувствие";
   if (step === "date") return "Дата";
   if (step === "done") return "Сохранено";
   if (state.workoutFlow.mode === "edit") return "Изменить тренировку";
@@ -1319,6 +1323,9 @@ function saveButtonLabel(step, saving) {
   if (step === "list") {
     return "<i class='bx bxs-right-arrow'></i>";
   }
+  if (step === "comment") {
+    return "<i class='bx bxs-right-arrow'></i>";
+  }
   if (step === "date") {
     return "<i class='bx bxs-right-arrow'></i>";
   }
@@ -1337,7 +1344,7 @@ async function submitWorkoutFlow() {
     const isEditMode =
       state.workoutFlow.mode === "edit" &&
       Boolean(state.workoutFlow.sourceSessionKey || state.workoutFlow.sourceDate);
-    const wellbeingNote = (workoutNoteInput?.value || document.getElementById("wellbeing-note").value).trim();
+    const wellbeingNote = (wellbeingNoteInput?.value || "").trim();
     const workoutName = workoutNameInput.value.trim();
     const payload = {
       user_id: Number(state.userId),
@@ -1384,98 +1391,6 @@ async function submitWorkoutFlow() {
   } finally {
     state.workoutFlow.saving = false;
     renderWorkoutFlow();
-  }
-}
-
-async function submitWellbeingNoteFromHome() {
-  if (wellbeingNoteSaving) {
-    return;
-  }
-  if (!state.userId) {
-    showToast("Сначала открой профиль в боте");
-    return;
-  }
-
-  const wellbeingNote = (wellbeingNoteInput?.value || "").trim();
-  if (!wellbeingNote) {
-    return;
-  }
-
-  const commentDate = todayValue();
-  const workoutForCommentDate = (state.payload?.history || []).find((day) => day.date === commentDate);
-  if (!workoutForCommentDate || !Array.isArray(workoutForCommentDate.exercises) || !workoutForCommentDate.exercises.length) {
-    showToast("Нет тренировки на эту дату");
-    return;
-  }
-
-  wellbeingNoteSaving = true;
-  try {
-    const response = await fetch("/api/workouts", {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        user_id: Number(state.userId),
-        source_session_key: workoutForCommentDate.session_key || "",
-        source_workout_date: workoutForCommentDate.date,
-        session_key: workoutForCommentDate.session_key || "",
-        workout_date: workoutForCommentDate.date,
-        workout_name: workoutForCommentDate.workout_name || "",
-        wellbeing_note: wellbeingNote,
-        exercises: workoutForCommentDate.exercises.map((item) => ({
-          exercise: item.exercise,
-          weight: Number(item.weight),
-          sets: item.sets,
-          reps: item.reps,
-        })),
-      }),
-    });
-
-    const result = await response.json();
-    if (!response.ok || !result.ok) {
-      throw new Error(result.error || "failed to save wellbeing note");
-    }
-
-    applyWorkoutCommentToState(workoutForCommentDate.session_key || "", workoutForCommentDate.date, wellbeingNote);
-    if (wellbeingNoteInput) {
-      wellbeingNoteInput.value = "";
-      wellbeingNoteInput.blur();
-    }
-    showToast("Комментарий сохранен");
-  } catch (error) {
-    console.error(error);
-    showToast("Не удалось сохранить комментарий");
-  } finally {
-    wellbeingNoteSaving = false;
-  }
-}
-
-function applyWorkoutCommentToState(sourceSessionKey, sourceDate, nextNote) {
-  const history = Array.isArray(state.payload?.history) ? state.payload.history : null;
-  if (!history?.length) {
-    return;
-  }
-
-  let updated = false;
-  state.payload = {
-    ...state.payload,
-    history: history.map((day) => {
-      const matchesSession = sourceSessionKey && (day.session_key || "") === sourceSessionKey;
-      const matchesDate = !sourceSessionKey && sourceDate && day.date === sourceDate;
-      if (!matchesSession && !matchesDate) {
-        return day;
-      }
-      updated = true;
-      return {
-        ...day,
-        note: nextNote,
-      };
-    }),
-  };
-
-  if (updated) {
-    renderHistory(state.payload.history || []);
   }
 }
 

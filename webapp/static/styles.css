@@ -701,6 +701,7 @@ body.modal-open .content {
 .modal-step.active .field-card,
 .modal-step.active .metrics-card,
 .modal-step.active .date-card,
+.modal-step.active .note-card,
 .modal-step.active .result-card,
 .modal-step.active .draft-list,
 .modal-step.active .action-card {
@@ -839,6 +840,32 @@ display: block;
   place-items: center;
   text-align: center;
   gap: 8px;
+}
+
+.workout-comment-card {
+  min-height: 0;
+  padding: 18px 16px;
+  display: grid;
+  gap: 10px;
+}
+
+.workout-comment-title {
+  font-size: 24px;
+  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.workout-comment-subtitle {
+  margin: 0;
+  transform: none;
+  color: rgba(224, 229, 239, 0.68);
+}
+
+.workout-comment-card #wellbeing-note {
+  min-height: 176px;
+  font-size: 15px;
+  line-height: 1.5;
 }
 
 .toast {

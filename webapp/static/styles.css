@@ -849,19 +849,13 @@ display: block;
   gap: 10px;
 }
 
-.workout-comment-title {
-  font-size: 24px;
-  line-height: 1.15;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-}
-
 .workout-comment-subtitle {
   margin: 0;
   transform: none;
   font-size: 12px;
   line-height: 1.35;
   color: rgba(224, 229, 239, 0.62);
+  padding-top: 2px;
 }
 
 .workout-comment-card #wellbeing-note {

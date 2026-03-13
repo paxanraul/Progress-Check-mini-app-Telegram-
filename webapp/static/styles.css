@@ -1454,14 +1454,19 @@ body {
 }
 
 body {
+  display: block;
   background:
     radial-gradient(860px 520px at -6% -10%, rgba(106, 194, 255, 0.16), transparent 56%),
     radial-gradient(720px 440px at 108% 0%, rgba(255, 208, 106, 0.12), transparent 58%),
     linear-gradient(180deg, #06090f 0%, #080b12 42%, #06080d 100%);
+  padding: 0;
 }
 
 .device-shell {
   width: min(100%, 402px);
+  height: var(--app-vh);
+  min-height: var(--app-vh);
+  margin: 0 auto;
 }
 
 .screen-glow {
@@ -2057,6 +2062,10 @@ summary:focus-visible {
 }
 
 @media (max-width: 420px) {
+  body {
+    display: block;
+  }
+
   .content {
     padding-inline: 14px;
   }

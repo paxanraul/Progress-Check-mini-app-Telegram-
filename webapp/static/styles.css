@@ -1761,6 +1761,28 @@ summary:focus-visible {
   min-height: 46px;
 }
 
+#workout-name-input,
+#exercise-name-input,
+#record-exercise-input,
+#faq-search,
+#record-weight-input,
+#exercise-weight-input {
+  display: block;
+  transform: none !important;
+  top: auto !important;
+  margin: 0;
+  text-indent: 0;
+}
+
+#workout-name-input::placeholder,
+#exercise-name-input::placeholder,
+#record-exercise-input::placeholder,
+#faq-search::placeholder,
+#record-weight-input::placeholder,
+#exercise-weight-input::placeholder {
+  color: rgba(156, 166, 180, 0.88);
+}
+
 #wellbeing-note {
   min-height: 160px;
   resize: none;

@@ -70,6 +70,7 @@ const motionStagger = typeof motionApi?.stagger === "function" ? motionApi.stagg
 let stableViewportHeight = 0;
 let wellbeingNoteSaving = false;
 let lastWorkoutStep = "";
+let viewportFreezeUntil = 0;
 
 function focusWithoutScroll(node) {
   if (!node || typeof node.focus !== "function") {
@@ -98,6 +99,10 @@ function escapeSelectorValue(value) {
     return window.CSS.escape(String(value));
   }
   return String(value).replace(/["\\]/g, "\\$&");
+}
+
+function freezeViewportFor(ms = 240) {
+  viewportFreezeUntil = Math.max(viewportFreezeUntil, Date.now() + ms);
 }
 
 function triggerHaptic(type = "selection") {
@@ -137,6 +142,10 @@ function triggerLightTapHaptic() {
 }
 
 function syncViewportHeight(force = false) {
+  if (!force && Date.now() < viewportFreezeUntil) {
+    return;
+  }
+
   const next = Math.round(window.visualViewport?.height || window.innerHeight || document.documentElement.clientHeight || 0);
   if (!next) {
     return;
@@ -148,10 +157,18 @@ function syncViewportHeight(force = false) {
 
   // Keep viewport height stable while keyboard is open, but allow corrections after Telegram recalculates viewport.
   if (!force && stableViewportHeight) {
-    const delta = Math.abs(next - stableViewportHeight);
     if (keyboardLikelyOpen) {
+      freezeViewportFor(320);
       return;
     }
+
+    // On mobile WebViews we treat height drops as transient unless force=true.
+    // This prevents the shell from shrinking and bouncing during keyboard / chrome animations.
+    if (next < stableViewportHeight) {
+      return;
+    }
+
+    const delta = next - stableViewportHeight;
     if (delta < 32) {
       return;
     }
@@ -1043,6 +1060,7 @@ function titleForTab(tab) {
 
 function openWorkoutFlow() {
   state.workoutFlow.open = true;
+  freezeViewportFor(280);
   resetWorkoutFlowForNewEntry();
   setBodyScrollLock(true);
   overlay.hidden = false;
@@ -1054,6 +1072,7 @@ async function closeWorkoutFlow() {
   if (!state.workoutFlow.open) {
     return;
   }
+  freezeViewportFor(320);
   state.workoutFlow.open = false;
   lastWorkoutStep = "";
   const overlayAnimation = runMotion(
@@ -1106,6 +1125,7 @@ function openEditWorkoutFlow(sourceSessionKey, sourceDate = "") {
   state.workoutFlow.draft = { sets: 1, reps: 8 };
   state.workoutFlow.date = day.date || sourceDate;
   state.workoutFlow.saving = false;
+  freezeViewportFor(280);
   if (wellbeingNoteInput) {
     wellbeingNoteInput.value = day.note || "";
   }
@@ -1642,6 +1662,7 @@ function openRecordFlow() {
     showToast("Сначала открой профиль в боте");
     return;
   }
+  freezeViewportFor(280);
   recordExerciseInput.value = "";
   recordWeightInput.value = "";
   setBodyScrollLock(true);
@@ -1661,6 +1682,7 @@ function closeRecordFlow() {
   if (!recordOverlay || recordOverlay.hidden) {
     return;
   }
+  freezeViewportFor(320);
   const overlayAnimation = runMotion(recordOverlay, { opacity: [1, 0] }, { duration: 0.14, easing: "ease-out" });
   const modalAnimation = runMotion(
     recordModal,

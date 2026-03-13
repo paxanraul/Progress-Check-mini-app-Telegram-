@@ -1283,7 +1283,7 @@ function workoutTitle(step) {
   if (step === "form") {
     return state.workoutFlow.editingIndex === null ? "Параметры упражнения" : "Изменить упражнение";
   }
-  if (step === "comment") return "Самочувствие";
+  if (step === "comment") return "";
   if (step === "date") return "Дата";
   if (step === "done") return "Сохранено";
   if (state.workoutFlow.mode === "edit") return "Изменить тренировку";

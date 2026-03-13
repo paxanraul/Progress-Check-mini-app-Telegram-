@@ -859,7 +859,9 @@ display: block;
 .workout-comment-subtitle {
   margin: 0;
   transform: none;
-  color: rgba(224, 229, 239, 0.68);
+  font-size: 12px;
+  line-height: 1.35;
+  color: rgba(224, 229, 239, 0.62);
 }
 
 .workout-comment-card #wellbeing-note {

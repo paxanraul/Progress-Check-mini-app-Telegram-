@@ -664,6 +664,7 @@ color: #d3d4da;
   touch-action: pan-y;
 }
 
+html.modal-open,
 body.modal-open {
   overflow: hidden;
   height: var(--app-vh);

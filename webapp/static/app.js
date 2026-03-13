@@ -32,6 +32,16 @@ const state = {
   },
 };
 
+const HOME_QUOTES = [
+  "Stay hard.",
+  "Discipline beats motivation.",
+  "Every workout counts.",
+  "Progress is built daily.",
+  "No excuses, only results.",
+  "Small steps every day.",
+  "Consistency builds strength.",
+];
+
 const navButtons = [...document.querySelectorAll(".nav-btn")];
 const bottomNav = document.getElementById("bottom-nav");
 const navPill = document.getElementById("nav-pill");
@@ -49,6 +59,7 @@ const wellbeingNoteInput = document.getElementById("wellbeing-note");
 const deleteWorkoutDayBtn = document.getElementById("delete-workout-day");
 const removeRecordBtn = document.getElementById("delete-btn");
 const addRecordBtn = document.getElementById("move-btn");
+const quoteTextNode = document.getElementById("quote-text");
 const workoutModal = document.querySelector(".workout-modal");
 const recordModal = document.querySelector(".record-modal");
 const recordExerciseInput = document.getElementById("record-exercise-input");
@@ -71,6 +82,10 @@ let stableViewportHeight = 0;
 let wellbeingNoteSaving = false;
 let lastWorkoutStep = "";
 let viewportFreezeUntil = 0;
+let quoteLoopTimer = 0;
+let quoteIndex = 0;
+let quoteLength = 0;
+let quoteDeleting = false;
 
 function focusWithoutScroll(node) {
   if (!node || typeof node.focus !== "function") {
@@ -103,6 +118,74 @@ function escapeSelectorValue(value) {
 
 function freezeViewportFor(ms = 240) {
   viewportFreezeUntil = Math.max(viewportFreezeUntil, Date.now() + ms);
+}
+
+function clearQuoteLoopTimer() {
+  if (!quoteLoopTimer) {
+    return;
+  }
+  window.clearTimeout(quoteLoopTimer);
+  quoteLoopTimer = 0;
+}
+
+function scheduleQuoteTick(delay) {
+  clearQuoteLoopTimer();
+  quoteLoopTimer = window.setTimeout(runQuoteTick, delay);
+}
+
+function canAnimateQuotes() {
+  return Boolean(quoteTextNode && HOME_QUOTES.length && !document.hidden && state.activeTab === "home");
+}
+
+function renderQuoteText(text) {
+  if (!quoteTextNode) {
+    return;
+  }
+  quoteTextNode.textContent = text;
+}
+
+function runQuoteTick() {
+  quoteLoopTimer = 0;
+  if (!canAnimateQuotes()) {
+    return;
+  }
+
+  const currentQuote = HOME_QUOTES[quoteIndex] || "";
+  if (!quoteDeleting) {
+    if (quoteLength < currentQuote.length) {
+      quoteLength += 1;
+      renderQuoteText(currentQuote.slice(0, quoteLength));
+      scheduleQuoteTick(currentQuote[quoteLength - 1] === " " ? 42 : 68);
+      return;
+    }
+    quoteDeleting = true;
+    scheduleQuoteTick(1700);
+    return;
+  }
+
+  if (quoteLength > 0) {
+    quoteLength -= 1;
+    renderQuoteText(currentQuote.slice(0, quoteLength));
+    scheduleQuoteTick(32);
+    return;
+  }
+
+  quoteDeleting = false;
+  quoteIndex = (quoteIndex + 1) % HOME_QUOTES.length;
+  scheduleQuoteTick(260);
+}
+
+function syncQuoteLoop() {
+  if (!canAnimateQuotes()) {
+    clearQuoteLoopTimer();
+    return;
+  }
+  if (!quoteTextNode?.textContent && quoteLength === 0) {
+    renderQuoteText("");
+  }
+  if (!quoteLoopTimer) {
+    scheduleQuoteTick(280);
+  }
 }
 
 function triggerHaptic(type = "selection") {
@@ -299,6 +382,7 @@ window.visualViewport?.addEventListener("resize", () => {
   syncViewportHeight(false);
   syncNavPillPosition(state.activeTab, true);
 }, { passive: true });
+document.addEventListener("visibilitychange", syncQuoteLoop, { passive: true });
 document.addEventListener(
   "pointerdown",
   (event) => {
@@ -416,6 +500,8 @@ wellbeingNoteInput?.addEventListener("keydown", (event) => {
   }
   handleSaveFlowButton();
 });
+
+syncQuoteLoop();
 
 bootstrap().catch((error) => {
   console.error(error);
@@ -1017,6 +1103,7 @@ function switchTab(tab) {
   if (tab === "records") {
     renderRecords(state.payload?.records || [], { animate: false });
   }
+  syncQuoteLoop();
   animatePanelEnter(tab);
 }
 

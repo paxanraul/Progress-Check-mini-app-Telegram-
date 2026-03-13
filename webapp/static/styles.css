@@ -849,6 +849,16 @@ display: block;
   gap: 10px;
 }
 
+.workout-comment-title {
+  margin: 0;
+  color: #ffffff;
+  font-size: 17px;
+  line-height: 1.3;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  padding-top: 2px;
+}
+
 .workout-comment-subtitle {
   margin: 0;
   transform: none;

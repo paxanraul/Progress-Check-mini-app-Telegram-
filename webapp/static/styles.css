@@ -872,6 +872,7 @@ display: block;
   min-height: 176px;
   font-size: 15px;
   line-height: 1.5;
+  padding: 14px 15px;
 }
 
 .toast {

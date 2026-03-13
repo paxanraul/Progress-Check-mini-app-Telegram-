@@ -72,6 +72,35 @@ let wellbeingNoteSaving = false;
 let lastWorkoutStep = "";
 let bodyScrollTop = 0;
 
+function focusWithoutScroll(node) {
+  if (!node || typeof node.focus !== "function") {
+    return;
+  }
+  try {
+    node.focus({ preventScroll: true });
+  } catch (error) {
+    node.focus();
+  }
+}
+
+function preserveContentScroll(callback) {
+  const contentNode = document.querySelector(".content");
+  const previousScrollTop = contentNode ? contentNode.scrollTop : 0;
+  callback();
+  if (contentNode) {
+    requestAnimationFrame(() => {
+      contentNode.scrollTop = previousScrollTop;
+    });
+  }
+}
+
+function escapeSelectorValue(value) {
+  if (window.CSS?.escape) {
+    return window.CSS.escape(String(value));
+  }
+  return String(value).replace(/["\\]/g, "\\$&");
+}
+
 function triggerHaptic(type = "selection") {
   try {
     const haptic = telegram?.HapticFeedback;
@@ -330,7 +359,7 @@ recordExerciseInput?.addEventListener("keydown", (event) => {
     return;
   }
   event.preventDefault();
-  recordWeightInput?.focus();
+  focusWithoutScroll(recordWeightInput);
 });
 
 recordWeightInput?.addEventListener("keydown", (event) => {
@@ -584,7 +613,8 @@ function shiftIsoDate(isoDate, deltaDays) {
   return `${y}-${m}-${d}`;
 }
 
-function renderHistory(history) {
+function renderHistory(history, options = {}) {
+  const { animate = true } = options;
   const root = document.getElementById("history-list");
   root.innerHTML = "";
   updateHistoryManageControls();
@@ -678,8 +708,10 @@ function renderHistory(history) {
       });
     });
   }
-  animateCollection(root, ".history-card");
-  animateExerciseRows(root);
+  if (animate) {
+    animateCollection(root, ".history-card");
+    animateExerciseRows(root);
+  }
 }
 
 function toggleHistoryManageMode() {
@@ -687,14 +719,18 @@ function toggleHistoryManageMode() {
   if (!state.historyEditMode) {
     state.selectedWorkoutSessions.clear();
   }
-  renderHistory(state.payload?.history || []);
+  preserveContentScroll(() => {
+    renderHistory(state.payload?.history || [], { animate: false });
+  });
 }
 
 function disableHistoryManageMode(silent = false) {
   state.historyEditMode = false;
   state.selectedWorkoutSessions.clear();
   if (!silent) {
-    renderHistory(state.payload?.history || []);
+    preserveContentScroll(() => {
+      renderHistory(state.payload?.history || [], { animate: false });
+    });
   }
 }
 
@@ -710,7 +746,7 @@ function toggleHistoryWorkoutSelection(sessionKey) {
     state.selectedWorkoutSessions.add(sessionKey);
   }
 
-  const cards = document.querySelectorAll(`.history-card[data-session-key="${sessionKey}"]`);
+  const cards = document.querySelectorAll(`.history-card[data-session-key="${escapeSelectorValue(sessionKey)}"]`);
   cards.forEach((card) => {
     card.classList.toggle("selected", !wasSelected);
     const indicator = card.querySelector(".history-select-indicator");
@@ -803,7 +839,8 @@ async function deleteAllHistoryWorkouts() {
   }
 }
 
-function renderRecords(records) {
+function renderRecords(records, options = {}) {
+  const { animate = true } = options;
   const root = document.getElementById("records-list");
   updateRecordsManageControls();
   root.innerHTML = "";
@@ -850,7 +887,9 @@ function renderRecords(records) {
       toggleRecordSelection(exercise);
     });
   });
-  animateCollection(root, ".record-card");
+  if (animate) {
+    animateCollection(root, ".record-card");
+  }
 }
 
 function toggleRecordsManageMode() {
@@ -858,25 +897,40 @@ function toggleRecordsManageMode() {
   if (!state.recordsEditMode) {
     state.selectedRecordExercises.clear();
   }
-  renderRecords(state.payload?.records || []);
+  preserveContentScroll(() => {
+    renderRecords(state.payload?.records || [], { animate: false });
+  });
 }
 
 function disableRecordsManageMode() {
   state.recordsEditMode = false;
   state.selectedRecordExercises.clear();
-  renderRecords(state.payload?.records || []);
+  preserveContentScroll(() => {
+    renderRecords(state.payload?.records || [], { animate: false });
+  });
 }
 
 function toggleRecordSelection(exercise) {
   if (!exercise) {
     return;
   }
-  if (state.selectedRecordExercises.has(exercise)) {
+  const wasSelected = state.selectedRecordExercises.has(exercise);
+  if (wasSelected) {
     state.selectedRecordExercises.delete(exercise);
   } else {
     state.selectedRecordExercises.add(exercise);
   }
-  renderRecords(state.payload?.records || []);
+
+  const cards = document.querySelectorAll(`.record-card[data-exercise="${escapeSelectorValue(exercise)}"]`);
+  cards.forEach((card) => {
+    card.classList.toggle("selected", !wasSelected);
+    const indicator = card.querySelector(".history-select-indicator");
+    if (indicator) {
+      indicator.textContent = !wasSelected ? "✓" : "";
+    }
+  });
+
+  updateRecordsManageControls();
 }
 
 function updateRecordsManageControls() {
@@ -956,7 +1010,7 @@ function switchTab(tab) {
   panels.forEach((panel) => panel.classList.toggle("active", panel.dataset.panel === tab));
   document.getElementById("screen-title").textContent = titleForTab(tab);
   if (tab === "records") {
-    renderRecords(state.payload?.records || []);
+    renderRecords(state.payload?.records || [], { animate: false });
   }
   animatePanelEnter(tab);
 }
@@ -1177,7 +1231,7 @@ function renderWorkoutFlow() {
   }
   if (step === "comment" && wellbeingNoteInput) {
     requestAnimationFrame(() => {
-      wellbeingNoteInput.focus();
+      focusWithoutScroll(wellbeingNoteInput);
     });
   }
   renderDraftCounters();
@@ -1611,7 +1665,7 @@ function openRecordFlow() {
     { duration: 0.24, easing: [0.22, 1, 0.36, 1] }
   );
   requestAnimationFrame(() => {
-    recordExerciseInput?.focus();
+    focusWithoutScroll(recordExerciseInput);
   });
 }
 
@@ -1645,13 +1699,13 @@ async function submitRecordFlow() {
   const exercise = String(recordExerciseInput?.value || "").trim();
   if (!exercise) {
     showToast("Введите название упражнения");
-    recordExerciseInput?.focus();
+    focusWithoutScroll(recordExerciseInput);
     return;
   }
   const bestWeight = Number(String(recordWeightInput?.value || "").replace(",", "."));
   if (!Number.isFinite(bestWeight) || bestWeight <= 0) {
     showToast("Введите корректный вес");
-    recordWeightInput?.focus();
+    focusWithoutScroll(recordWeightInput);
     return;
   }
 

@@ -375,6 +375,9 @@ wellbeingNoteInput?.addEventListener("keydown", (event) => {
     return;
   }
   event.preventDefault();
+  if (event.repeat) {
+    return;
+  }
   if (state.workoutFlow.open) {
     if (!state.workoutFlow.items.length) {
       showToast("Сначала добавь хотя бы одно упражнение");
@@ -1395,7 +1398,6 @@ async function submitWellbeingNoteFromHome() {
 
   const wellbeingNote = (wellbeingNoteInput?.value || "").trim();
   if (!wellbeingNote) {
-    showToast("Введи комментарий");
     return;
   }
 
@@ -1435,13 +1437,45 @@ async function submitWellbeingNoteFromHome() {
       throw new Error(result.error || "failed to save wellbeing note");
     }
 
+    applyWorkoutCommentToState(workoutForCommentDate.session_key || "", workoutForCommentDate.date, wellbeingNote);
+    if (wellbeingNoteInput) {
+      wellbeingNoteInput.value = "";
+      wellbeingNoteInput.blur();
+    }
     showToast("Комментарий сохранен");
-    await refreshAppDataStable();
   } catch (error) {
     console.error(error);
     showToast("Не удалось сохранить комментарий");
   } finally {
     wellbeingNoteSaving = false;
+  }
+}
+
+function applyWorkoutCommentToState(sourceSessionKey, sourceDate, nextNote) {
+  const history = Array.isArray(state.payload?.history) ? state.payload.history : null;
+  if (!history?.length) {
+    return;
+  }
+
+  let updated = false;
+  state.payload = {
+    ...state.payload,
+    history: history.map((day) => {
+      const matchesSession = sourceSessionKey && (day.session_key || "") === sourceSessionKey;
+      const matchesDate = !sourceSessionKey && sourceDate && day.date === sourceDate;
+      if (!matchesSession && !matchesDate) {
+        return day;
+      }
+      updated = true;
+      return {
+        ...day,
+        note: nextNote,
+      };
+    }),
+  };
+
+  if (updated) {
+    renderHistory(state.payload.history || []);
   }
 }
 

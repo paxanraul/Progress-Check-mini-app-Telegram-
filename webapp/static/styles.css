@@ -2082,11 +2082,11 @@ summary:focus-visible {
 
 .quote-card {
   position: relative;
-  min-height: 124px;
-  margin-top: 4px;
-  padding: 18px 16px 20px;
+  min-height: 144px;
+  margin-top: 6px;
+  padding: 20px 18px 22px;
   display: grid;
-  gap: 12px;
+  gap: 14px;
   border-radius: 24px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background:
@@ -2106,14 +2106,17 @@ summary:focus-visible {
 }
 
 .quote-line {
-  min-height: 58px;
-  max-width: 15ch;
+  min-height: 72px;
+  width: 100%;
+  max-width: 100%;
   font-size: 24px;
-  line-height: 1.16;
+  line-height: 1.22;
   font-weight: 650;
   letter-spacing: -0.035em;
   color: #f6fbff;
-  text-wrap: balance;
+  text-wrap: pretty;
+  overflow-wrap: break-word;
+  word-break: normal;
 }
 
 #quote-text {
@@ -2143,12 +2146,14 @@ summary:focus-visible {
 
 @media (max-width: 420px) {
   .quote-card {
-    min-height: 116px;
-    padding: 16px 15px 18px;
+    min-height: 134px;
+    padding: 18px 16px 20px;
     border-radius: 22px;
   }
 
   .quote-line {
+    min-height: 66px;
     font-size: 22px;
+    line-height: 1.2;
   }
 }

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Progress Check</title>
   <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
-  <link rel="stylesheet" href="/static/styles.css?v=31">
+  <link rel="stylesheet" href="/static/styles.css?v=32">
 </head>
 <body>
   <div class="device-shell">
@@ -108,7 +108,7 @@
       <div class="modal-head">
         <button class="icon-btn subtle" id="close-workout-flow" type="button" aria-label="Закрыть"> <i class='bx bxs-left-arrow' ></i> </button>
         <p id="modal-title">Добавить упражнения</p>
-        <button class="icon-btn subtle" id="save-workout-flow" type="button" aria-label="Сохранить">✓</button>
+        <button class="icon-btn subtle" id="save-workout-flow" type="button" aria-label="Сохранить" hidden aria-hidden="true" tabindex="-1">✓</button>
       </div>
       <section class="modal-step active" data-step="list">
         <label class="field-card workout-name-card">
@@ -188,7 +188,7 @@
       <div class="modal-head">
         <button class="icon-btn subtle" id="close-record-flow" type="button" aria-label="Закрыть"><i class='bx bxs-left-arrow'></i></button>
         <p>Добавить рекорд</p>
-        <button class="icon-btn subtle" id="save-record-flow" type="button" aria-label="Сохранить">✓</button>
+        <button class="icon-btn subtle" id="save-record-flow" type="button" aria-label="Сохранить" hidden aria-hidden="true" tabindex="-1">✓</button>
       </div>
       <section class="modal-step active">
         <label class="field-card record-field">
@@ -206,6 +206,6 @@
 
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://unpkg.com/motion@11.11.13/dist/motion.js"></script>
-<script src="/static/app.js?v=36"></script>
+<script src="/static/app.js?v=37"></script>
 </body>
 </html>

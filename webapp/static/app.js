@@ -1514,9 +1514,11 @@ function renderWorkoutFlow() {
   modalTitle.textContent = workoutTitle(step);
 
   const saveButton = document.getElementById("save-workout-flow");
-  saveButton.hidden = step === "form";
-  saveButton.innerHTML = saveButtonLabel(step, state.workoutFlow.saving);
-  saveButton.disabled = state.workoutFlow.saving;
+  if (saveButton) {
+    saveButton.hidden = true;
+    saveButton.innerHTML = saveButtonLabel(step, state.workoutFlow.saving);
+    saveButton.disabled = true;
+  }
   deleteWorkoutDayBtn.hidden = !(state.workoutFlow.mode === "edit" && step === "list");
   deleteWorkoutDayBtn.disabled = state.workoutFlow.saving;
   if (step === "list") {

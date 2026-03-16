@@ -120,6 +120,32 @@ function focusWithoutScroll(node) {
   }
 }
 
+function blurActiveField() {
+  const active = document.activeElement;
+  if (!active || !(active instanceof HTMLElement)) {
+    return;
+  }
+  const isEditable =
+    active.tagName === "INPUT" ||
+    active.tagName === "TEXTAREA" ||
+    active.tagName === "SELECT" ||
+    active.isContentEditable;
+  if (!isEditable || typeof active.blur !== "function") {
+    return;
+  }
+  active.blur();
+  freezeViewportFor(220);
+}
+
+function shouldDismissKeyboard(target) {
+  if (!(target instanceof Element)) {
+    return false;
+  }
+  return !target.closest(
+    "input, textarea, select, button, label, .counter-btn, .draft-action-btn, .action-card, .icon-btn, [role='button']"
+  );
+}
+
 function preserveContentScroll(callback) {
   const contentNode = document.querySelector(".content");
   const previousScrollTop = contentNode ? contentNode.scrollTop : 0;
@@ -557,6 +583,26 @@ recordOverlay?.addEventListener("click", (event) => {
     closeRecordFlow();
   }
 });
+
+overlay?.addEventListener(
+  "pointerdown",
+  (event) => {
+    if (shouldDismissKeyboard(event.target)) {
+      blurActiveField();
+    }
+  },
+  { passive: true }
+);
+
+recordOverlay?.addEventListener(
+  "pointerdown",
+  (event) => {
+    if (shouldDismissKeyboard(event.target)) {
+      blurActiveField();
+    }
+  },
+  { passive: true }
+);
 
 recordExerciseInput?.addEventListener("keydown", (event) => {
   if (event.key !== "Enter" || event.shiftKey || event.isComposing) {
@@ -1394,6 +1440,7 @@ function saveDraftItem() {
 }
 
 function handleSaveFlowButton() {
+  blurActiveField();
   if (state.workoutFlow.step === "list") {
     if (!state.workoutFlow.items.length) {
       showToast("Сначала добавь хотя бы одно упражнение");
@@ -1911,6 +1958,7 @@ function closeRecordFlow() {
 }
 
 async function submitRecordFlow() {
+  blurActiveField();
   if (!state.userId) {
     showToast("Сначала открой профиль в боте");
     return;

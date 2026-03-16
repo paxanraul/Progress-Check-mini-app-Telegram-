@@ -42,6 +42,8 @@ const HOME_QUOTES = [
   "Consistency builds strength.",
 ];
 
+const TELEGRAM_BUTTON_ICON_ID = "5334882760735598374";
+
 const navButtons = [...document.querySelectorAll(".nav-btn")];
 const bottomNav = document.getElementById("bottom-nav");
 const navPill = document.getElementById("nav-pill");
@@ -77,6 +79,10 @@ const recordsManageCancelBtn = document.getElementById("records-manage-cancel");
 const motionApi = window.Motion;
 const motionAnimate = typeof motionApi?.animate === "function" ? motionApi.animate : null;
 const motionStagger = typeof motionApi?.stagger === "function" ? motionApi.stagger : null;
+const telegramMainButton = telegram?.MainButton || null;
+const telegramSecondaryButton = telegram?.SecondaryButton || null;
+const supportsTelegramButtonEmoji =
+  typeof telegram?.isVersionAtLeast === "function" ? telegram.isVersionAtLeast("9.5") : false;
 
 let stableViewportHeight = 0;
 let wellbeingNoteSaving = false;
@@ -86,6 +92,22 @@ let quoteLoopTimer = 0;
 let quoteIndex = 0;
 let quoteLength = 0;
 let quoteDeleting = false;
+
+const handleWorkoutBottomButtonClick = () => {
+  handleSaveFlowButton();
+};
+
+const handleWorkoutSecondaryButtonClick = () => {
+  void closeWorkoutFlow();
+};
+
+const handleRecordBottomButtonClick = () => {
+  void submitRecordFlow();
+};
+
+const handleRecordSecondaryButtonClick = () => {
+  closeRecordFlow();
+};
 
 function focusWithoutScroll(node) {
   if (!node || typeof node.focus !== "function") {
@@ -118,6 +140,99 @@ function escapeSelectorValue(value) {
 
 function freezeViewportFor(ms = 240) {
   viewportFreezeUntil = Math.max(viewportFreezeUntil, Date.now() + ms);
+}
+
+function setBottomButtonParams(button, params) {
+  if (!button || typeof button.setParams !== "function") {
+    return;
+  }
+  const nextParams = { ...params };
+  if (!supportsTelegramButtonEmoji) {
+    delete nextParams.icon_custom_emoji_id;
+  }
+  button.setParams(nextParams);
+}
+
+function hideButtonProgress(button) {
+  if (button && typeof button.hideProgress === "function") {
+    button.hideProgress();
+  }
+}
+
+function showButtonProgress(button) {
+  if (button && typeof button.showProgress === "function") {
+    button.showProgress();
+  }
+}
+
+function hideTelegramBottomButtons() {
+  if (telegramMainButton) {
+    telegramMainButton.offClick(handleWorkoutBottomButtonClick);
+    telegramMainButton.offClick(handleRecordBottomButtonClick);
+    hideButtonProgress(telegramMainButton);
+    telegramMainButton.hide();
+  }
+  if (telegramSecondaryButton) {
+    telegramSecondaryButton.offClick(handleWorkoutSecondaryButtonClick);
+    telegramSecondaryButton.offClick(handleRecordSecondaryButtonClick);
+    hideButtonProgress(telegramSecondaryButton);
+    telegramSecondaryButton.hide();
+  }
+}
+
+function syncTelegramBottomButtons() {
+  if (!telegramMainButton || !telegramSecondaryButton) {
+    return;
+  }
+
+  hideTelegramBottomButtons();
+
+  if (state.workoutFlow.open) {
+    const workoutButtonText = state.workoutFlow.step === "date" ? "Сохранить" : "Далее";
+
+    setBottomButtonParams(telegramMainButton, {
+      text: workoutButtonText,
+      has_shine_effect: !state.workoutFlow.saving,
+      icon_custom_emoji_id: TELEGRAM_BUTTON_ICON_ID,
+    });
+    telegramMainButton.onClick(handleWorkoutBottomButtonClick);
+    if (state.workoutFlow.saving) {
+      telegramMainButton.disable();
+      showButtonProgress(telegramMainButton);
+    } else {
+      hideButtonProgress(telegramMainButton);
+      telegramMainButton.enable();
+    }
+    telegramMainButton.show();
+
+    setBottomButtonParams(telegramSecondaryButton, {
+      text: "Отмена",
+      position: "left",
+    });
+    telegramSecondaryButton.onClick(handleWorkoutSecondaryButtonClick);
+    telegramSecondaryButton.enable();
+    telegramSecondaryButton.show();
+    return;
+  }
+
+  if (recordOverlay && !recordOverlay.hidden) {
+    setBottomButtonParams(telegramMainButton, {
+      text: "Сохранить",
+      has_shine_effect: true,
+      icon_custom_emoji_id: TELEGRAM_BUTTON_ICON_ID,
+    });
+    telegramMainButton.onClick(handleRecordBottomButtonClick);
+    telegramMainButton.enable();
+    telegramMainButton.show();
+
+    setBottomButtonParams(telegramSecondaryButton, {
+      text: "Отмена",
+      position: "left",
+    });
+    telegramSecondaryButton.onClick(handleRecordSecondaryButtonClick);
+    telegramSecondaryButton.enable();
+    telegramSecondaryButton.show();
+  }
 }
 
 function clearQuoteLoopTimer() {
@@ -1153,6 +1268,7 @@ function openWorkoutFlow() {
   overlay.hidden = false;
   animateModalOpen();
   renderWorkoutFlow();
+  syncTelegramBottomButtons();
 }
 
 async function closeWorkoutFlow() {
@@ -1180,6 +1296,7 @@ async function closeWorkoutFlow() {
   }
   overlay.hidden = true;
   setBodyScrollLock(false);
+  syncTelegramBottomButtons();
 }
 
 function setWorkoutStep(step) {
@@ -1221,6 +1338,7 @@ function openEditWorkoutFlow(sourceSessionKey, sourceDate = "") {
   overlay.hidden = false;
   animateModalOpen();
   renderWorkoutFlow();
+  syncTelegramBottomButtons();
 }
 
 function resetWorkoutFlowForNewEntry() {
@@ -1304,6 +1422,7 @@ function handleSaveFlowButton() {
 
 function renderWorkoutFlow() {
   if (!state.workoutFlow.open) {
+    syncTelegramBottomButtons();
     return;
   }
 
@@ -1339,6 +1458,7 @@ function renderWorkoutFlow() {
   }
   document.getElementById("saved-summary").textContent =
     `Сохранено упражнений: ${state.workoutFlow.items.length}. Дата: ${formatDate(state.workoutFlow.date)}.`;
+  syncTelegramBottomButtons();
 }
 
 function renderDraftCounters() {
@@ -1760,6 +1880,7 @@ function openRecordFlow() {
     { opacity: [0.6, 1], transform: ["translateY(18px) scale(0.985)", "translateY(0px) scale(1)"] },
     { duration: 0.24, easing: [0.22, 1, 0.36, 1] }
   );
+  syncTelegramBottomButtons();
   requestAnimationFrame(() => {
     focusWithoutScroll(recordExerciseInput);
   });
@@ -1785,6 +1906,7 @@ function closeRecordFlow() {
   setTimeout(() => {
     recordOverlay.hidden = true;
     setBodyScrollLock(false);
+    syncTelegramBottomButtons();
   }, 170);
 }
 
@@ -1807,6 +1929,7 @@ async function submitRecordFlow() {
   }
 
   try {
+    syncTelegramBottomButtons();
     const response = await fetch("/api/records", {
       method: "POST",
       headers: {
@@ -1828,6 +1951,8 @@ async function submitRecordFlow() {
   } catch (error) {
     console.error(error);
     showToast("Не удалось добавить рекорд");
+  } finally {
+    syncTelegramBottomButtons();
   }
 }
 

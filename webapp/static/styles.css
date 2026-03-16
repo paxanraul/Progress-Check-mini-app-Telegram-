@@ -2874,3 +2874,180 @@ body::after {
     0 0 0 3px rgba(255, 255, 255, 0.08),
     0 10px 24px rgba(12, 18, 32, 0.14);
 }
+
+/* Dark liquid glass correction layer */
+
+:root {
+  --dark-glass-surface: rgba(20, 20, 25, 0.6);
+  --dark-glass-surface-soft: rgba(24, 24, 30, 0.52);
+  --dark-glass-surface-strong: rgba(16, 17, 22, 0.72);
+  --dark-glass-border: 1px solid rgba(255, 255, 255, 0.08);
+  --dark-glass-shadow: 0 18px 36px rgba(0, 0, 0, 0.32);
+  --dark-glass-shadow-soft: 0 10px 24px rgba(0, 0, 0, 0.22);
+}
+
+html,
+body {
+  background:
+    radial-gradient(circle at 18% 0%, rgba(86, 109, 168, 0.18), transparent 24%),
+    radial-gradient(circle at 82% 16%, rgba(71, 96, 155, 0.12), transparent 26%),
+    linear-gradient(180deg, #05070b 0%, #0b0e14 52%, #111723 100%);
+  color: #f4f7fb;
+}
+
+.app-shell {
+  background:
+    linear-gradient(180deg, rgba(9, 11, 16, 0.88), rgba(12, 15, 22, 0.92)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 28px 64px rgba(0, 0, 0, 0.44),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.profile-card,
+.section-block,
+.note-card,
+.history-card,
+.record-card,
+.faq-card,
+.field-card,
+.metrics-card,
+.date-card,
+.result-card,
+.search-shell,
+.quote-card,
+.history-bulk-actions,
+.records-toolbar,
+.draft-item {
+  background: var(--dark-glass-surface);
+  border: var(--dark-glass-border);
+  border-radius: 18px;
+  box-shadow:
+    var(--dark-glass-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(20px) saturate(145%);
+  -webkit-backdrop-filter: blur(20px) saturate(145%);
+}
+
+.workout-modal,
+.record-modal {
+  background:
+    linear-gradient(180deg, rgba(18, 20, 26, 0.78), rgba(14, 16, 22, 0.84)),
+    rgba(20, 20, 25, 0.6);
+  border: var(--dark-glass-border);
+  border-radius: 20px;
+  box-shadow:
+    0 24px 50px rgba(0, 0, 0, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(24px) saturate(150%);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+}
+
+.workout-overlay {
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.06), transparent 24%),
+    rgba(6, 8, 12, 0.58);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.action-card,
+.records-tool-btn,
+.history-manage-btn,
+.history-bulk-btn,
+.counter-btn,
+.draft-action-btn,
+.modal-close-btn,
+.icon-btn.subtle,
+.chip,
+.nav-btn {
+  background: var(--dark-glass-surface-soft);
+  border: var(--dark-glass-border);
+  border-radius: 18px;
+  box-shadow:
+    var(--dark-glass-shadow-soft),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+}
+
+.action-card.primary,
+.records-tool-btn.add,
+.history-manage-btn {
+  background:
+    linear-gradient(180deg, rgba(83, 120, 214, 0.28), rgba(61, 97, 176, 0.14)),
+    rgba(24, 24, 30, 0.52);
+}
+
+.action-card.danger,
+.history-bulk-btn.danger {
+  background:
+    linear-gradient(180deg, rgba(126, 46, 59, 0.38), rgba(91, 33, 43, 0.2)),
+    rgba(24, 24, 30, 0.52);
+}
+
+.field-card input,
+.metrics-card input,
+#workout-date-input,
+#wellbeing-note,
+#faq-search {
+  background: var(--dark-glass-surface-strong);
+  border: var(--dark-glass-border);
+  border-radius: 16px;
+  color: #f7f9fd;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.03),
+    0 6px 18px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(16px) saturate(135%);
+  -webkit-backdrop-filter: blur(16px) saturate(135%);
+}
+
+#workout-name-input::placeholder,
+#exercise-name-input::placeholder,
+#record-exercise-input::placeholder,
+#exercise-weight-input::placeholder,
+#record-weight-input::placeholder,
+#faq-search::placeholder,
+#wellbeing-note::placeholder {
+  color: rgba(229, 235, 244, 0.46);
+}
+
+.field-card input:focus,
+.metrics-card input:focus,
+#workout-date-input:focus,
+#wellbeing-note:focus,
+#faq-search:focus {
+  border-color: rgba(165, 196, 255, 0.18);
+  box-shadow:
+    0 0 0 3px rgba(116, 154, 239, 0.12),
+    0 12px 24px rgba(0, 0, 0, 0.22);
+}
+
+.modal-head,
+.topbar {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0)),
+    linear-gradient(180deg, rgba(8, 10, 14, 0.18), rgba(8, 10, 14, 0));
+}
+
+.bottom-nav {
+  background:
+    linear-gradient(180deg, rgba(24, 26, 34, 0.82), rgba(15, 18, 24, 0.9)),
+    rgba(20, 20, 25, 0.6);
+  border: var(--dark-glass-border);
+  box-shadow:
+    0 20px 36px rgba(0, 0, 0, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(22px) saturate(150%);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+}
+
+.nav-pill {
+  background:
+    linear-gradient(180deg, rgba(88, 120, 199, 0.34), rgba(66, 94, 167, 0.16)),
+    rgba(255, 255, 255, 0.03);
+  box-shadow:
+    0 10px 22px rgba(25, 46, 96, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}

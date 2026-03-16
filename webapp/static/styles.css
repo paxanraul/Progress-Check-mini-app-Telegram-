@@ -1958,17 +1958,17 @@ summary:focus-visible {
   pointer-events: none;
 }
 
-.modal-cancel-btn {
-  min-width: 40px;
+.modal-close-btn {
+  width: 40px;
   height: 40px;
-  padding: 0 10px 0 2px;
+  padding: 0;
   border: 0;
-  background: transparent;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
   color: rgba(246, 251, 255, 0.9);
-  font-size: 15px;
-  font-weight: 600;
-  line-height: 1;
-  text-align: left;
+  display: inline-grid;
+  place-items: center;
+  font-size: 24px;
 }
 
 .modal-step.active {
@@ -2131,9 +2131,8 @@ summary:focus-visible {
     column-gap: 8px;
   }
 
-  .modal-cancel-btn {
-    padding-right: 8px;
-    font-size: 14px;
+  .modal-close-btn {
+    font-size: 22px;
   }
 
   #workout-date-input {

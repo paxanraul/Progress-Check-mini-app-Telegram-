@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Progress Check</title>
   <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
-  <link rel="stylesheet" href="/static/styles.css?v=32">
+  <link rel="stylesheet" href="/static/styles.css?v=33">
 </head>
 <body>
   <div class="device-shell">
@@ -106,7 +106,7 @@
   <div class="workout-overlay" id="workout-overlay" hidden>
     <div class="workout-modal">
       <div class="modal-head">
-        <button class="icon-btn subtle" id="close-workout-flow" type="button" aria-label="Закрыть"> <i class='bx bxs-left-arrow' ></i> </button>
+        <button class="modal-cancel-btn" id="close-workout-flow" type="button" aria-label="Отмена">Отмена</button>
         <p id="modal-title">Добавить упражнения</p>
         <button class="icon-btn subtle" id="save-workout-flow" type="button" aria-label="Сохранить" hidden aria-hidden="true" tabindex="-1">✓</button>
       </div>
@@ -169,8 +169,9 @@
 
       <section class="modal-step" data-step="comment">
         <section class="note-card workout-comment-card">
+          <p class="workout-comment-heading">Состояние</p>
           <p class="workout-comment-title">Опишите своё состояние:</p>
-          <textarea id="wellbeing-note"></textarea>
+          <textarea id="wellbeing-note" placeholder="Как вы себя чувствуете?"></textarea>
         </section>
       </section>
 
@@ -206,6 +207,6 @@
 
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://unpkg.com/motion@11.11.13/dist/motion.js"></script>
-<script src="/static/app.js?v=37"></script>
+<script src="/static/app.js?v=38"></script>
 </body>
 </html>

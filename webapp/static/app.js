@@ -254,7 +254,7 @@ function syncTelegramBottomButtons() {
     telegramMainButton.show();
 
     setBottomButtonParams(telegramSecondaryButton, {
-      text: "Отмена",
+      text: "Назад",
       position: "left",
     });
     telegramSecondaryButton.onClick(handleWorkoutSecondaryButtonClick);

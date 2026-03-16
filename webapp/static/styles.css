@@ -3431,9 +3431,13 @@ body {
 .nav-btn {
   position: relative;
   z-index: 1;
+  width: calc(100% - 4px);
+  justify-self: center;
+  align-self: center;
   min-height: 52px;
   border-radius: 14px;
   gap: 2px;
+  padding: 4px 2px 3px;
   background: transparent !important;
   border: 0;
   box-shadow: none !important;
@@ -3477,6 +3481,10 @@ body {
   font-weight: 600;
   letter-spacing: -0.01em;
   opacity: 1;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 @media (max-width: 420px) {
@@ -3495,6 +3503,7 @@ body {
   }
 
   .nav-btn {
+    width: calc(100% - 4px);
     min-height: 50px;
     border-radius: 14px;
   }

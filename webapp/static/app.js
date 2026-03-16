@@ -92,8 +92,13 @@ let quoteLoopTimer = 0;
 let quoteIndex = 0;
 let quoteLength = 0;
 let quoteDeleting = false;
+let recordFlowSaving = false;
 
 const handleWorkoutBottomButtonClick = () => {
+  if (state.workoutFlow.step === "form") {
+    saveDraftItem();
+    return;
+  }
   handleSaveFlowButton();
 };
 
@@ -193,14 +198,18 @@ function showButtonProgress(button) {
 
 function hideTelegramBottomButtons() {
   if (telegramMainButton) {
-    telegramMainButton.offClick(handleWorkoutBottomButtonClick);
-    telegramMainButton.offClick(handleRecordBottomButtonClick);
+    if (typeof telegramMainButton.offClick === "function") {
+      telegramMainButton.offClick(handleWorkoutBottomButtonClick);
+      telegramMainButton.offClick(handleRecordBottomButtonClick);
+    }
     hideButtonProgress(telegramMainButton);
     telegramMainButton.hide();
   }
   if (telegramSecondaryButton) {
-    telegramSecondaryButton.offClick(handleWorkoutSecondaryButtonClick);
-    telegramSecondaryButton.offClick(handleRecordSecondaryButtonClick);
+    if (typeof telegramSecondaryButton.offClick === "function") {
+      telegramSecondaryButton.offClick(handleWorkoutSecondaryButtonClick);
+      telegramSecondaryButton.offClick(handleRecordSecondaryButtonClick);
+    }
     hideButtonProgress(telegramSecondaryButton);
     telegramSecondaryButton.hide();
   }
@@ -214,17 +223,30 @@ function syncTelegramBottomButtons() {
   hideTelegramBottomButtons();
 
   if (state.workoutFlow.open) {
-    const workoutButtonText = state.workoutFlow.step === "date" ? "Сохранить" : "Далее";
+    const workoutButtonText =
+      state.workoutFlow.step === "form"
+        ? "Сохранить упр."
+        : state.workoutFlow.step === "date"
+          ? "Сохранить"
+          : state.workoutFlow.step === "done"
+            ? "Готово"
+            : "Далее";
+    const workoutButtonDisabled =
+      state.workoutFlow.saving ||
+      (state.workoutFlow.step === "list" && !state.workoutFlow.items.length);
 
     setBottomButtonParams(telegramMainButton, {
       text: workoutButtonText,
-      has_shine_effect: !state.workoutFlow.saving,
+      has_shine_effect: !workoutButtonDisabled,
       icon_custom_emoji_id: TELEGRAM_BUTTON_ICON_ID,
     });
     telegramMainButton.onClick(handleWorkoutBottomButtonClick);
     if (state.workoutFlow.saving) {
       telegramMainButton.disable();
       showButtonProgress(telegramMainButton);
+    } else if (workoutButtonDisabled) {
+      hideButtonProgress(telegramMainButton);
+      telegramMainButton.disable();
     } else {
       hideButtonProgress(telegramMainButton);
       telegramMainButton.enable();
@@ -244,11 +266,17 @@ function syncTelegramBottomButtons() {
   if (recordOverlay && !recordOverlay.hidden) {
     setBottomButtonParams(telegramMainButton, {
       text: "Сохранить",
-      has_shine_effect: true,
+      has_shine_effect: !recordFlowSaving,
       icon_custom_emoji_id: TELEGRAM_BUTTON_ICON_ID,
     });
     telegramMainButton.onClick(handleRecordBottomButtonClick);
-    telegramMainButton.enable();
+    if (recordFlowSaving) {
+      telegramMainButton.disable();
+      showButtonProgress(telegramMainButton);
+    } else {
+      hideButtonProgress(telegramMainButton);
+      telegramMainButton.enable();
+    }
     telegramMainButton.show();
 
     setBottomButtonParams(telegramSecondaryButton, {
@@ -256,7 +284,11 @@ function syncTelegramBottomButtons() {
       position: "left",
     });
     telegramSecondaryButton.onClick(handleRecordSecondaryButtonClick);
-    telegramSecondaryButton.enable();
+    if (recordFlowSaving) {
+      telegramSecondaryButton.disable();
+    } else {
+      telegramSecondaryButton.enable();
+    }
     telegramSecondaryButton.show();
   }
 }
@@ -1917,6 +1949,7 @@ function openRecordFlow() {
     return;
   }
   freezeViewportFor(280);
+  recordFlowSaving = false;
   recordExerciseInput.value = "";
   recordWeightInput.value = "";
   setBodyScrollLock(true);
@@ -1937,6 +1970,7 @@ function closeRecordFlow() {
   if (!recordOverlay || recordOverlay.hidden) {
     return;
   }
+  recordFlowSaving = false;
   freezeViewportFor(320);
   const overlayAnimation = runMotion(recordOverlay, { opacity: [1, 0] }, { duration: 0.14, easing: "ease-out" });
   const modalAnimation = runMotion(
@@ -1959,6 +1993,9 @@ function closeRecordFlow() {
 
 async function submitRecordFlow() {
   blurActiveField();
+  if (recordFlowSaving) {
+    return;
+  }
   if (!state.userId) {
     showToast("Сначала открой профиль в боте");
     return;
@@ -1977,6 +2014,7 @@ async function submitRecordFlow() {
   }
 
   try {
+    recordFlowSaving = true;
     syncTelegramBottomButtons();
     const response = await fetch("/api/records", {
       method: "POST",
@@ -2000,6 +2038,7 @@ async function submitRecordFlow() {
     console.error(error);
     showToast("Не удалось добавить рекорд");
   } finally {
+    recordFlowSaving = false;
     syncTelegramBottomButtons();
   }
 }

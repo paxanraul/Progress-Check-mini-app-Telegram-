@@ -1968,7 +1968,9 @@ summary:focus-visible {
   color: rgba(246, 251, 255, 0.9);
   display: inline-grid;
   place-items: center;
-  font-size: 24px;
+  font-size: 30px;
+  font-weight: 400;
+  line-height: 1;
 }
 
 .modal-step.active {
@@ -2132,7 +2134,7 @@ summary:focus-visible {
   }
 
   .modal-close-btn {
-    font-size: 22px;
+    font-size: 28px;
   }
 
   #workout-date-input {

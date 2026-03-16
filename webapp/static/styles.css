@@ -2791,3 +2791,86 @@ body::after {
     border-radius: 28px;
   }
 }
+
+/* Subtle glass refinement layer */
+
+:root {
+  --subtle-glass-bg: rgba(255, 255, 255, 0.15);
+  --subtle-glass-bg-soft: rgba(255, 255, 255, 0.12);
+  --subtle-glass-border: 1px solid rgba(255, 255, 255, 0.2);
+  --subtle-glass-shadow: 0 12px 30px rgba(12, 18, 32, 0.16);
+}
+
+.profile-card,
+.section-block,
+.note-card,
+.history-card,
+.record-card,
+.faq-card,
+.field-card,
+.metrics-card,
+.date-card,
+.result-card,
+.search-shell,
+.quote-card,
+.history-bulk-actions,
+.records-toolbar,
+.draft-item {
+  background: var(--subtle-glass-bg);
+  border: var(--subtle-glass-border);
+  border-radius: 20px;
+  box-shadow: var(--subtle-glass-shadow);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.workout-modal,
+.record-modal {
+  background: rgba(255, 255, 255, 0.15);
+  border: var(--subtle-glass-border);
+  border-radius: 20px;
+  box-shadow: 0 18px 44px rgba(10, 16, 30, 0.22);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.action-card,
+.records-tool-btn,
+.history-manage-btn,
+.history-bulk-btn,
+.counter-btn,
+.draft-action-btn,
+.modal-close-btn,
+.icon-btn.subtle,
+.chip {
+  background: var(--subtle-glass-bg-soft);
+  border: var(--subtle-glass-border);
+  border-radius: 18px;
+  box-shadow: 0 8px 22px rgba(12, 18, 32, 0.12);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.field-card input,
+.metrics-card input,
+#workout-date-input,
+#wellbeing-note,
+#faq-search {
+  background: rgba(255, 255, 255, 0.15);
+  border: var(--subtle-glass-border);
+  border-radius: 18px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.field-card input:focus,
+.metrics-card input:focus,
+#workout-date-input:focus,
+#wellbeing-note:focus,
+#faq-search:focus {
+  border-color: rgba(255, 255, 255, 0.28);
+  box-shadow:
+    0 0 0 3px rgba(255, 255, 255, 0.08),
+    0 10px 24px rgba(12, 18, 32, 0.14);
+}

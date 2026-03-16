@@ -3528,3 +3528,596 @@ body {
     font-size: 18px;
   }
 }
+
+/* Figma Make redesign layer */
+
+html,
+body {
+  background:
+    radial-gradient(circle at 22% 8%, rgba(67, 120, 255, 0.14), transparent 26%),
+    radial-gradient(circle at 82% 74%, rgba(142, 84, 255, 0.11), transparent 28%),
+    linear-gradient(135deg, #0a0a0f 0%, #12121a 52%, #1a1a28 100%);
+}
+
+body {
+  color: #ffffff;
+}
+
+.device-shell {
+  width: min(100%, 402px);
+}
+
+.screen-glow {
+  inset: 0;
+  border-radius: 38px;
+  background:
+    radial-gradient(circle at 24% 10%, rgba(67, 120, 255, 0.18), transparent 32%),
+    radial-gradient(circle at 78% 76%, rgba(142, 84, 255, 0.16), transparent 34%);
+  filter: blur(34px);
+  opacity: 0.88;
+}
+
+.app-shell {
+  background:
+    linear-gradient(180deg, rgba(10, 10, 15, 0.98), rgba(18, 18, 26, 0.985)),
+    linear-gradient(135deg, #0a0a0f 0%, #12121a 52%, #1a1a28 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 32px 72px rgba(0, 0, 0, 0.52),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.topbar {
+  padding: 24px 24px 8px;
+  display: block;
+}
+
+#screen-title {
+  text-align: left;
+  font-size: 38px;
+  line-height: 1.04;
+  font-weight: 600;
+  letter-spacing: -0.045em;
+  color: #ffffff;
+}
+
+.content {
+  padding: 0 24px 108px;
+}
+
+.panel {
+  padding-bottom: 10px;
+}
+
+.hero-row {
+  margin: 0 0 16px;
+  justify-content: flex-end;
+  padding-right: 0;
+}
+
+.streak-badge {
+  gap: 10px;
+  padding: 12px 18px;
+  border-radius: 999px;
+  font-size: 30px !important;
+  line-height: 1;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.37),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.fire,
+.streak-badge .fire {
+  font-size: 30px !important;
+}
+
+.action-card,
+.profile-card,
+.note-card,
+.history-card,
+.record-card,
+.faq-card,
+.field-card,
+.metrics-card,
+.date-card,
+.result-card,
+.quote-card,
+.history-bulk-actions,
+.records-toolbar,
+.search-shell {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.37),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.action-card,
+.records-tool-btn,
+.history-manage-btn,
+.history-bulk-btn,
+.history-edit-btn,
+.modal-close-btn,
+.counter-btn,
+.icon-btn {
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    color 180ms ease,
+    opacity 180ms ease;
+}
+
+.action-card {
+  min-height: 72px;
+  padding: 0 20px;
+  margin-bottom: 14px;
+}
+
+.action-card.primary,
+.action-card.secondary,
+.action-card.danger {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.action-card span:first-child {
+  font-size: 21px;
+  font-weight: 500;
+  letter-spacing: -0.025em;
+}
+
+.plus,
+.plusik,
+.pluss {
+  transform: none;
+  font-size: 30px;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.action-card:hover,
+.records-tool-btn:hover,
+.history-manage-btn:hover,
+.history-bulk-btn:hover,
+.history-edit-btn:hover,
+.counter-btn:hover,
+.modal-close-btn:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.action-card:active,
+.records-tool-btn:active,
+.history-manage-btn:active,
+.history-bulk-btn:active,
+.history-edit-btn:active,
+.counter-btn:active,
+.modal-close-btn:active {
+  transform: scale(0.98);
+}
+
+.quote-card {
+  min-height: 180px;
+  padding: 22px;
+  align-items: center;
+  justify-content: center;
+}
+
+.quote-line {
+  min-height: 0;
+  width: 100%;
+  justify-content: center;
+  text-align: center;
+}
+
+#quote-text {
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  color: #ffffff;
+}
+
+.profile-card,
+.history-card,
+.record-card,
+.faq-card,
+.field-card,
+.metrics-card,
+.date-card,
+.note-card,
+.result-card {
+  padding: 18px;
+}
+
+.profile-card h2,
+.section-title h2 {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+}
+
+.profile-list {
+  gap: 10px;
+}
+
+.profile-line {
+  padding: 6px 0;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.profile-line span,
+.history-date,
+.field-label,
+.workout-comment-heading,
+.faq-card p,
+.history-note {
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.section-title,
+.records-toolbar {
+  padding: 0;
+  border: 0;
+  margin-bottom: 12px;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.records-toolbar,
+.history-bulk-actions {
+  gap: 10px;
+}
+
+.records-tool-btn,
+.history-manage-btn,
+.history-bulk-btn,
+.history-edit-btn {
+  min-height: 42px;
+  padding: 0 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.92);
+  box-shadow:
+    0 6px 20px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.records-tool-btn.add,
+.history-manage-btn {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.history-bulk-btn.danger,
+.action-card.danger {
+  background: rgba(200, 70, 70, 0.16);
+  border-color: rgba(255, 120, 120, 0.2);
+  color: #ffe2e2;
+}
+
+.history-card,
+.record-card,
+.faq-card {
+  gap: 12px;
+}
+
+.history-main {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.history-head {
+  margin-bottom: 12px;
+}
+
+.history-note {
+  margin-top: 12px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.history-select-indicator {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+}
+
+.history-card.selected,
+.record-card.selected,
+.record-card.highlight {
+  border-color: rgba(255, 255, 255, 0.16);
+  box-shadow:
+    0 12px 34px rgba(0, 0, 0, 0.34),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.field-card,
+.metrics-card,
+.date-card,
+.note-card {
+  gap: 12px;
+}
+
+.field-card,
+.metrics-card,
+.date-card {
+  min-height: 88px;
+}
+
+.field-card input,
+.metrics-card input,
+.date-card input,
+#wellbeing-note,
+#faq-search {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #ffffff;
+  padding: 14px 16px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+#workout-name-input,
+#exercise-name-input,
+#record-exercise-input,
+#record-weight-input,
+#exercise-weight-input,
+#workout-date-input {
+  transform: none;
+  top: auto;
+  margin: 0;
+}
+
+.field-card input::placeholder,
+.metrics-card input::placeholder,
+.date-card input::placeholder,
+#wellbeing-note::placeholder,
+#faq-search::placeholder {
+  color: rgba(255, 255, 255, 0.38);
+}
+
+.field-card input:focus,
+.metrics-card input:focus,
+.date-card input:focus,
+#wellbeing-note:focus,
+#faq-search:focus {
+  background: rgba(255, 255, 255, 0.07);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+.counter-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.05);
+  color: #ffffff;
+}
+
+.workout-overlay {
+  background: rgba(6, 7, 12, 0.52);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.workout-modal,
+.record-modal {
+  background: rgba(18, 18, 26, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 28px;
+  backdrop-filter: blur(26px) saturate(160%);
+  -webkit-backdrop-filter: blur(26px) saturate(160%);
+  box-shadow:
+    0 28px 64px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.modal-head {
+  align-items: center;
+  padding: 20px 20px 10px;
+}
+
+#modal-title,
+.record-modal .modal-head p {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  color: #ffffff;
+}
+
+.modal-close-btn,
+.icon-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.92);
+  box-shadow:
+    0 6px 18px rgba(0, 0, 0, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.workout-comment-card {
+  min-height: 220px;
+}
+
+.workout-comment-heading {
+  margin-bottom: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.workout-comment-title {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+}
+
+#wellbeing-note {
+  min-height: 128px;
+}
+
+.bottom-nav {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  width: auto;
+  height: auto;
+  padding: 8px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 28px;
+  background: rgba(18, 18, 26, 0.85);
+  box-shadow:
+    0 -4px 24px rgba(0, 0, 0, 0.5),
+    0 -1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  overflow: hidden;
+}
+
+.bottom-nav::before,
+.bottom-nav::after {
+  content: none;
+}
+
+.nav-pill {
+  display: block !important;
+  top: 8px;
+  bottom: 8px;
+  left: 8px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow:
+    0 10px 24px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.nav-btn {
+  width: 100%;
+  min-width: 0;
+  min-height: 64px;
+  padding: 10px 8px 9px;
+  border-radius: 20px;
+  gap: 4px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.nav-btn.active,
+.nav-btn.active .nav-icon,
+.nav-btn.active .nav-label {
+  color: #ffffff;
+}
+
+.nav-btn:not(.active) .nav-icon,
+.nav-btn:not(.active) .nav-label {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.nav-icon {
+  font-size: 23px;
+}
+
+.nav-label {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+@media (max-width: 420px) {
+  .device-shell {
+    width: 100%;
+  }
+
+  .topbar {
+    padding: 22px 20px 8px;
+  }
+
+  #screen-title {
+    font-size: 34px;
+  }
+
+  .content {
+    padding: 0 20px 104px;
+  }
+
+  .profile-card,
+  .history-card,
+  .record-card,
+  .faq-card,
+  .field-card,
+  .metrics-card,
+  .date-card,
+  .note-card {
+    padding: 16px;
+  }
+
+  .action-card {
+    min-height: 68px;
+    padding: 0 18px;
+  }
+
+  .quote-card {
+    min-height: 164px;
+    padding: 20px;
+  }
+
+  #quote-text {
+    font-size: 24px;
+  }
+
+  .bottom-nav {
+    left: 12px;
+    right: 12px;
+    bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    padding: 7px;
+    border-radius: 26px;
+  }
+
+  .nav-pill {
+    top: 7px;
+    bottom: 7px;
+    left: 7px;
+  }
+
+  .nav-btn {
+    min-height: 60px;
+    padding: 9px 6px 8px;
+  }
+
+  .nav-icon {
+    font-size: 21px;
+  }
+
+  .nav-label {
+    font-size: 11px;
+  }
+
+  .workout-modal,
+  .record-modal {
+    border-radius: 24px;
+  }
+}

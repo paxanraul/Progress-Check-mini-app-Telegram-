@@ -907,7 +907,7 @@ function renderHistory(history, options = {}) {
     state.selectedWorkoutSessions.clear();
     disableHistoryManageMode(true);
     updateHistoryManageControls();
-    root.innerHTML = emptyCard("Пока нет тренировок. Добавь первую через кнопку на главной.");
+    root.innerHTML = emptyCard("Пока нет тренировок.");
     return;
   }
 
@@ -2160,7 +2160,7 @@ function todayValue() {
 }
 
 function emptyCard(text) {
-  return `<div class="history-card"><div class="history-main">${escapeHtml(text)}</div></div>`;
+  return `<div class="history-card empty-card"><div class="history-main empty-card-text">${escapeHtml(text)}</div></div>`;
 }
 
 function showToast(message) {

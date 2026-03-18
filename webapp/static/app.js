@@ -12,6 +12,8 @@ const state = {
   activeTab: "home",
   faqCategory: "technique",
   faqQuery: "",
+  userQuotes: [],
+  quoteOverlayOpen: false,
   recordsEditMode: false,
   selectedRecordExercises: new Set(),
   historyEditMode: false,
@@ -41,6 +43,7 @@ const HOME_QUOTES = [
   "Small steps every day.",
   "Consistency builds strength.",
 ];
+const MAX_CUSTOM_QUOTES = 5;
 
 const TELEGRAM_BUTTON_ICON_ID = "5334882760735598374";
 
@@ -62,6 +65,16 @@ const deleteWorkoutDayBtn = document.getElementById("delete-workout-day");
 const removeRecordBtn = document.getElementById("delete-btn");
 const addRecordBtn = document.getElementById("move-btn");
 const quoteTextNode = document.getElementById("quote-text");
+const quoteLiveCard = document.getElementById("quote-live-card");
+const quoteOverlay = document.getElementById("quote-overlay");
+const quoteModal = document.querySelector(".quote-modal");
+const quoteInput = document.getElementById("quote-input");
+const quoteAuthorInput = document.getElementById("quote-author-input");
+const quoteFormHint = document.getElementById("quote-form-hint");
+const quoteModalBalance = document.getElementById("quote-modal-balance");
+const quoteLibraryMeta = document.getElementById("quote-library-meta");
+const quoteLibraryList = document.getElementById("quote-library-list");
+const saveQuoteBtn = document.getElementById("save-quote-overlay");
 const workoutModal = document.querySelector(".workout-modal");
 const recordModal = document.querySelector(".record-modal");
 const recordExerciseInput = document.getElementById("record-exercise-input");
@@ -306,8 +319,26 @@ function scheduleQuoteTick(delay) {
   quoteLoopTimer = window.setTimeout(runQuoteTick, delay);
 }
 
+function currentQuotePool() {
+  if (Array.isArray(state.userQuotes) && state.userQuotes.length) {
+    return state.userQuotes.map((quote) => {
+      const text = String(quote?.text || "").trim();
+      const author = String(quote?.author || "").trim();
+      return author ? `${text} - ${author}` : text;
+    });
+  }
+  return HOME_QUOTES;
+}
+
 function canAnimateQuotes() {
-  return Boolean(quoteTextNode && HOME_QUOTES.length && !document.hidden && state.activeTab === "home");
+  return Boolean(
+    quoteTextNode &&
+      quoteLiveCard &&
+      !quoteLiveCard.hidden &&
+      currentQuotePool().length &&
+      !document.hidden &&
+      state.activeTab === "home"
+  );
 }
 
 function renderQuoteText(text) {
@@ -317,13 +348,154 @@ function renderQuoteText(text) {
   quoteTextNode.textContent = text;
 }
 
+function customQuotesStorageKey() {
+  return `custom_quotes:${state.userId || "unknown"}`;
+}
+
+function normalizeCustomQuotes(items) {
+  if (!Array.isArray(items)) {
+    return [];
+  }
+  return items
+    .map((item) => {
+      if (typeof item === "string") {
+        const text = item.trim();
+        return text ? { text: text.slice(0, 240), author: "" } : null;
+      }
+      if (!item || typeof item !== "object") {
+        return null;
+      }
+      const text = String(item.text || "").trim();
+      const author = String(item.author || "").trim();
+      if (!text) {
+        return null;
+      }
+      return {
+        text: text.slice(0, 240),
+        author: author.slice(0, 80),
+      };
+    })
+    .filter(Boolean)
+    .slice(0, MAX_CUSTOM_QUOTES);
+}
+
+function loadCustomQuotes() {
+  try {
+    const raw = localStorage.getItem(customQuotesStorageKey());
+    return raw ? normalizeCustomQuotes(JSON.parse(raw)) : [];
+  } catch (error) {
+    return [];
+  }
+}
+
+function persistCustomQuotes(quotes) {
+  const normalized = normalizeCustomQuotes(quotes);
+  state.userQuotes = normalized;
+  try {
+    localStorage.setItem(customQuotesStorageKey(), JSON.stringify(normalized));
+  } catch (error) {
+    console.warn("custom quotes storage failed", error);
+  }
+}
+
+function updateQuoteFormState() {
+  const currentCount = state.userQuotes.length;
+  if (quoteModalBalance) {
+    quoteModalBalance.textContent = `${currentCount}/${MAX_CUSTOM_QUOTES}`;
+  }
+  if (quoteLibraryMeta) {
+    quoteLibraryMeta.textContent = `${currentCount}/${MAX_CUSTOM_QUOTES}`;
+  }
+  if (quoteFormHint) {
+    quoteFormHint.textContent =
+      currentCount >= MAX_CUSTOM_QUOTES
+        ? `Лимит достигнут: можно хранить максимум ${MAX_CUSTOM_QUOTES} цитат.`
+        : `Можно добавить еще ${MAX_CUSTOM_QUOTES - currentCount} из ${MAX_CUSTOM_QUOTES} цитат.`;
+  }
+  if (saveQuoteBtn) {
+    saveQuoteBtn.disabled = !String(quoteInput?.value || "").trim() || currentCount >= MAX_CUSTOM_QUOTES;
+  }
+}
+
+function renderQuoteLibrary() {
+  if (!quoteLibraryList) {
+    return;
+  }
+
+  const quotes = Array.isArray(state.userQuotes) ? state.userQuotes : [];
+  if (!quotes.length) {
+    quoteLibraryList.innerHTML = `<div class="quote-library-empty">Сохраненных цитат пока нет</div>`;
+    return;
+  }
+
+  quoteLibraryList.innerHTML = quotes
+    .map(
+      (quote, index) => `
+        <article class="quote-library-item">
+          <div class="quote-library-copy">
+            <p class="quote-library-text">${escapeHtml(quote.text)}</p>
+            ${quote.author ? `<p class="quote-library-author">${escapeHtml(quote.author)}</p>` : ""}
+          </div>
+          <button class="quote-delete-btn" type="button" data-quote-index="${index}" aria-label="Удалить цитату">
+            <i class='bx bx-trash'></i>
+          </button>
+        </article>
+      `
+    )
+    .join("");
+
+  quoteLibraryList.querySelectorAll(".quote-delete-btn").forEach((button) => {
+    button.addEventListener("click", () => {
+      const index = Number(button.dataset.quoteIndex);
+      deleteCustomQuote(index);
+    });
+  });
+}
+
+function renderQuotesSection(options = {}) {
+  if (!quoteLiveCard) {
+    return;
+  }
+
+  const { resetLoop = false } = options;
+
+  quoteLiveCard.hidden = false;
+  updateQuoteFormState();
+  renderQuoteLibrary();
+
+  if (resetLoop) {
+    clearQuoteLoopTimer();
+    quoteLength = 0;
+    quoteDeleting = false;
+    quoteIndex = 0;
+    renderQuoteText("");
+  }
+
+  if (!quoteTextNode?.textContent && quoteLength === 0) {
+    renderQuoteText("");
+  }
+  syncQuoteLoop();
+}
+
+function resetQuoteForm() {
+  if (quoteInput) {
+    quoteInput.value = "";
+    quoteInput.classList.remove("is-invalid");
+  }
+  if (quoteAuthorInput) {
+    quoteAuthorInput.value = "";
+  }
+  updateQuoteFormState();
+}
+
 function runQuoteTick() {
   quoteLoopTimer = 0;
   if (!canAnimateQuotes()) {
     return;
   }
 
-  const currentQuote = HOME_QUOTES[quoteIndex] || "";
+  const quotePool = currentQuotePool();
+  const currentQuote = quotePool[quoteIndex] || "";
   if (!quoteDeleting) {
     if (quoteLength < currentQuote.length) {
       quoteLength += 1;
@@ -344,7 +516,7 @@ function runQuoteTick() {
   }
 
   quoteDeleting = false;
-  quoteIndex = (quoteIndex + 1) % HOME_QUOTES.length;
+  quoteIndex = (quoteIndex + 1) % quotePool.length;
   scheduleQuoteTick(260);
 }
 
@@ -604,6 +776,10 @@ bindClick("save-record-flow", submitRecordFlow);
 bindClick("records-delete-selected", deleteSelectedRecords);
 bindClick("records-delete-all", deleteAllRecords);
 bindClick("records-manage-cancel", disableRecordsManageMode);
+bindClick("open-quote-overlay", openQuoteOverlay);
+bindClick("close-quote-overlay", closeQuoteOverlay);
+bindClick("cancel-quote-overlay", closeQuoteOverlay);
+bindClick("save-quote-overlay", saveCustomQuote);
 
 deleteWorkoutDayBtn?.addEventListener("click", handleDeleteWorkoutDay);
 addRecordBtn?.addEventListener("click", openRecordFlow);
@@ -613,6 +789,12 @@ preventTapFocusShift(document.getElementById("open-workout-flow"));
 recordOverlay?.addEventListener("click", (event) => {
   if (event.target === recordOverlay) {
     closeRecordFlow();
+  }
+});
+
+quoteOverlay?.addEventListener("click", (event) => {
+  if (event.target === quoteOverlay) {
+    closeQuoteOverlay();
   }
 });
 
@@ -635,6 +817,39 @@ recordOverlay?.addEventListener(
   },
   { passive: true }
 );
+
+quoteOverlay?.addEventListener(
+  "pointerdown",
+  (event) => {
+    if (shouldDismissKeyboard(event.target)) {
+      blurActiveField();
+    }
+  },
+  { passive: true }
+);
+
+quoteInput?.addEventListener("input", () => {
+  quoteInput.classList.remove("is-invalid");
+  updateQuoteFormState();
+});
+
+quoteAuthorInput?.addEventListener("input", updateQuoteFormState);
+
+quoteAuthorInput?.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" || event.shiftKey || event.isComposing) {
+    return;
+  }
+  event.preventDefault();
+  void saveCustomQuote();
+});
+
+quoteInput?.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" || event.shiftKey || event.isComposing || (!event.ctrlKey && !event.metaKey)) {
+    return;
+  }
+  event.preventDefault();
+  void saveCustomQuote();
+});
 
 recordExerciseInput?.addEventListener("keydown", (event) => {
   if (event.key !== "Enter" || event.shiftKey || event.isComposing) {
@@ -715,6 +930,8 @@ async function bootstrap() {
     return;
   }
   state.userId = userId;
+  state.userQuotes = loadCustomQuotes();
+  renderQuotesSection({ resetLoop: true });
 
   const response = await fetch(`/api/app-data?user_id=${encodeURIComponent(userId)}`);
   if (!response.ok) {
@@ -760,6 +977,7 @@ function renderApp(payload) {
   renderFaq();
   state.workoutFlow.items = convertHistoryToDraft(payload.history[0]);
   renderWorkoutFlow();
+  renderQuotesSection();
 }
 
 function resolveUserId() {
@@ -1296,8 +1514,101 @@ function switchTab(tab) {
   if (tab === "records") {
     renderRecords(state.payload?.records || [], { animate: false });
   }
+  if (tab === "home") {
+    renderQuotesSection();
+  }
   syncQuoteLoop();
   animatePanelEnter(tab);
+}
+
+function openQuoteOverlay() {
+  if (!state.userId) {
+    showToast("Сначала открой профиль в боте");
+    return;
+  }
+  freezeViewportFor(280);
+  state.quoteOverlayOpen = true;
+  resetQuoteForm();
+  setBodyScrollLock(true);
+  quoteOverlay.hidden = false;
+  runMotion(quoteOverlay, { opacity: [0, 1] }, { duration: 0.18, easing: "ease-out" });
+  runMotion(
+    quoteModal,
+    { opacity: [0.6, 1], transform: ["translateY(18px) scale(0.985)", "translateY(0px) scale(1)"] },
+    { duration: 0.24, easing: [0.22, 1, 0.36, 1] }
+  );
+  requestAnimationFrame(() => {
+    focusWithoutScroll(quoteInput);
+  });
+}
+
+function closeQuoteOverlay() {
+  if (!quoteOverlay || quoteOverlay.hidden) {
+    return;
+  }
+  state.quoteOverlayOpen = false;
+  freezeViewportFor(320);
+  const overlayAnimation = runMotion(quoteOverlay, { opacity: [1, 0] }, { duration: 0.14, easing: "ease-out" });
+  const modalAnimation = runMotion(
+    quoteModal,
+    { opacity: [1, 0.75], transform: ["translateY(0px) scale(1)", "translateY(12px) scale(0.99)"] },
+    { duration: 0.16, easing: "ease-in" }
+  );
+  if (overlayAnimation?.finished) {
+    overlayAnimation.finished.catch(() => undefined);
+  }
+  if (modalAnimation?.finished) {
+    modalAnimation.finished.catch(() => undefined);
+  }
+  setTimeout(() => {
+    quoteOverlay.hidden = true;
+    setBodyScrollLock(false);
+  }, 170);
+}
+
+async function saveCustomQuote() {
+  blurActiveField();
+  if (!state.userId) {
+    showToast("Сначала открой профиль в боте");
+    return;
+  }
+
+  const text = String(quoteInput?.value || "").trim();
+  const author = String(quoteAuthorInput?.value || "").trim();
+
+  if (!text) {
+    if (quoteInput) {
+      quoteInput.classList.add("is-invalid");
+      focusWithoutScroll(quoteInput);
+    }
+    updateQuoteFormState();
+    showToast("Введите текст цитаты");
+    return;
+  }
+  if (state.userQuotes.length >= MAX_CUSTOM_QUOTES) {
+    showToast(`Можно сохранить максимум ${MAX_CUSTOM_QUOTES} цитат`);
+    updateQuoteFormState();
+    return;
+  }
+
+  persistCustomQuotes([...state.userQuotes, { text, author }]);
+  renderQuotesSection({ resetLoop: true });
+  triggerHaptic("success");
+  resetQuoteForm();
+  closeQuoteOverlay();
+  showToast("Цитата добавлена");
+}
+
+function deleteCustomQuote(index) {
+  if (!Number.isInteger(index) || !state.userQuotes[index]) {
+    return;
+  }
+  const nextQuotes = state.userQuotes.filter((_, quoteIndex) => quoteIndex !== index);
+  persistCustomQuotes(nextQuotes);
+  renderQuotesSection({ resetLoop: true });
+  updateQuoteFormState();
+  triggerHaptic("selection");
+  showToast("Цитата удалена");
 }
 
 function syncNavPillPosition(tab, immediate) {
@@ -2237,4 +2548,4 @@ function decodeHtml(value) {
   const textarea = document.createElement("textarea");
   textarea.innerHTML = value;
   return textarea.value;
-}
+}///пенис 

@@ -236,13 +236,15 @@ h2 {
 }
 
 .plus {
-  position: relative ;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
   font-size: 43px;
   line-height: 1;
   font-weight: 300;
-top: 30%;
-transform: translateY(-50%);
- 
+  top: auto;
+  transform: translate(8px, -2px);
 }
 .plusik{
     font-size: 35px;
@@ -3687,13 +3689,22 @@ body {
 }
 
 .plus {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   position: relative;
-  top: 30%;
+  top: auto;
   font-size: 50px;
   line-height: 1;
   font-weight: 300;
-  transform: translateY(-50%);
+  transform: translate(8px, -2px);
+}
+
+.action-card .plus {
+  align-self: center;
+  width: 1em;
+  height: 1em;
+  flex: 0 0 auto;
 }
 
 .action-card:hover,
@@ -3736,7 +3747,7 @@ body {
 }
 
 #quote-text {
-  font-size: 33px;
+  font-size: 30px;
   font-weight: 600;
   line-height: 1.15;
   letter-spacing: -0.03em;
@@ -4092,10 +4103,15 @@ body {
   width: 100%;
   min-width: 0;
   min-height: 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   padding: 10px 8px 9px;
   border-radius: 20px;
   gap: 4px;
   color: rgba(255, 255, 255, 0.6);
+  text-align: center;
 }
 
 .nav-btn.active,
@@ -4117,6 +4133,7 @@ body {
   font-size: 12px;
   font-weight: 500;
   letter-spacing: -0.01em;
+  text-align: center;
 }
 
 @media (max-width: 420px) {
@@ -4162,7 +4179,7 @@ body {
   }
 
   #quote-text {
-    font-size: 29px;
+    font-size: 26px;
   }
 
   .bottom-nav {
@@ -4202,18 +4219,19 @@ body {
 
 .quote-section-card {
   position: relative;
-  min-height: 0;
-  padding: 18px 20px;
+  min-height: 152px;
+  padding: 0;
+  overflow: hidden;
 }
 
 .quote-manage-btn {
   position: absolute;
-  top: 10px;
-  right: 10px;
-  width: 37px;
-  height: 37px;
+  top: 12px;
+  right: 12px;
+  width: 41px;
+  height: 41px;
   border: 0;
-  border-radius: 0;
+  border-radius: 12px;
   background: transparent;
   color: rgba(255, 255, 255, 0.88);
   display: grid;
@@ -4250,14 +4268,30 @@ body {
 
 .quote-live-card {
   width: 100%;
-  min-height: 112px;
+  min-height: 152px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 6px 40px;
+  padding: 40px 44px;
   background: transparent;
   border: 0;
   box-shadow: none;
+  text-align: center;
+}
+
+.quote-live-card .quote-line {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  text-align: center;
+}
+
+.quote-live-card #quote-text {
+  display: block;
+  width: 100%;
+  text-align: center;
+  margin: 0 auto;
 }
 
 .quote-modal {
@@ -4437,7 +4471,12 @@ body {
 
 @media (max-width: 420px) {
   .quote-section-card {
-    padding: 16px 18px;
+    min-height: 138px;
+  }
+
+  .quote-manage-btn {
+    top: 12px;
+    right: 12px;
   }
 
   .quote-live-card,
@@ -4448,7 +4487,8 @@ body {
 
   .quote-live-card {
     min-height: 104px;
-    padding: 4px 36px;
+    min-height: 138px;
+    padding: 36px 40px;
   }
 
   .quote-library-item {

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Progress Check</title>
   <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
-  <link rel="stylesheet" href="/static/styles.css?v=47">
+  <link rel="stylesheet" href="/static/styles.css?v=59">
 </head>
 <body>
   <div class="device-shell">
@@ -30,15 +30,9 @@
           </button>
 
           <section class="quote-card quote-section-card" aria-live="polite" aria-atomic="true">
-            <div class="quote-card-head">
-              <div class="quote-card-copy">
-                <p class="quote-card-kicker">Цитаты</p>
-                <p class="quote-card-meta">Добавлено <span id="quote-count">0/5</span></p>
-              </div>
-              <button class="quote-manage-btn" id="open-quote-overlay" type="button" aria-label="Добавить цитату">
-                <i class='bx bx-cog'></i>
-              </button>
-            </div>
+            <button class="quote-manage-btn" id="open-quote-overlay" type="button" aria-label="Добавить цитату">
+              <i class='bx bx-cog'></i>
+            </button>
             <div class="quote-live-card" id="quote-live-card">
               <div class="quote-line">
                 <span id="quote-text"></span>
@@ -106,7 +100,7 @@
         <button class="nav-btn" data-tab="profile" type="button">
           <span class="nav-icon"><i class='bx bx-user'></i></span>
           <span class="nav-label">Профиль</span>
-        </button> до
+        </button>
         <button class="nav-btn" data-tab="records" type="button">
           <span class="nav-icon"><i class='bx bx-trophy'></i></span>
           <span class="nav-label">Рекорды</span>
@@ -244,6 +238,6 @@
 
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://unpkg.com/motion@11.11.13/dist/motion.js"></script>
-<script src="/static/app.js?v=39"></script>
+<script src="/static/app.js?v=41"></script>
 </body>
 </html>

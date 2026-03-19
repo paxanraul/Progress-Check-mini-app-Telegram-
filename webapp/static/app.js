@@ -72,7 +72,6 @@ const quoteInput = document.getElementById("quote-input");
 const quoteAuthorInput = document.getElementById("quote-author-input");
 const quoteFormHint = document.getElementById("quote-form-hint");
 const quoteModalBalance = document.getElementById("quote-modal-balance");
-const quoteLibraryMeta = document.getElementById("quote-library-meta");
 const quoteLibraryList = document.getElementById("quote-library-list");
 const saveQuoteBtn = document.getElementById("save-quote-overlay");
 const workoutModal = document.querySelector(".workout-modal");
@@ -402,9 +401,6 @@ function updateQuoteFormState() {
   const currentCount = state.userQuotes.length;
   if (quoteModalBalance) {
     quoteModalBalance.textContent = `${currentCount}/${MAX_CUSTOM_QUOTES}`;
-  }
-  if (quoteLibraryMeta) {
-    quoteLibraryMeta.textContent = `${currentCount}/${MAX_CUSTOM_QUOTES}`;
   }
   if (quoteFormHint) {
     quoteFormHint.textContent =

@@ -456,8 +456,8 @@ async def send_main_screen(message: Message, user_id: int) -> None:
     records = get_records(user_id)
 
     summary = (
-        "Мой прогресс: <tg-emoji emoji-id=\"5334882760735598374\">📝</tg-emoji>\n"
         "Для полного использования бота открой Mini app через кнопку Menu рядом с полем ввода.\n\n"
+        "Мой прогресс: <tg-emoji emoji-id=\"5334882760735598374\">📝</tg-emoji>\n"
         f"Имя: {user['name']}\n"
         f"Возраст: {user['age']}\n"
         f"Вес: {user['weight']:.1f} кг\n"

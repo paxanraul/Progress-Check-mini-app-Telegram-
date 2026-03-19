@@ -237,14 +237,6 @@ async def menu_questions(message: Message) -> None:
     await message.answer("Выбери тему:", reply_markup=faq_keyboard())
 
 
-@router.message(F.text == "Добавить тренировку")
-async def menu_add_workout(message: Message, state: FSMContext) -> None:
-    await message.answer(
-        "Добавление тренировок доступно только через mini app. Нажми кнопку 'Открыть ProgressCheck'.",
-        reply_markup=main_menu_keyboard(message.from_user.id),
-    )
-
-
 async def start_workout_flow(message: Message, state: FSMContext, user_id: int) -> None:
     if not get_user(user_id):
         await message.answer("Сначала заполни профиль через /start.")

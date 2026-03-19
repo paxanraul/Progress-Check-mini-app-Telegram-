@@ -451,6 +451,7 @@ async def send_main_screen(message: Message, user_id: int) -> None:
 
     workouts_count = get_workouts_count(user_id)
     workouts = get_recent_workouts(user_id, limit=5)
+    records = get_records(user_id)
 
     summary = (
         "Мой прогресс: <tg-emoji emoji-id=\"5334882760735598374\">📝</tg-emoji>\n"
@@ -471,8 +472,17 @@ async def send_main_screen(message: Message, user_id: int) -> None:
         ]
         history = "\n\nПоследние тренировки:\n" + "\n".join(items)
 
+    if not records:
+        records_block = ""
+    else:
+        record_items = [
+            f"{index}. {row['exercise']}: {row['best_weight']:.1f} кг"
+            for index, row in enumerate(records[:5], start=1)
+        ]
+        records_block = "\n\nРекорды:\n" + "\n".join(record_items)
+
     await message.answer(
-        summary + history,
+        summary + history + records_block,
         reply_markup=main_menu_keyboard(user_id),
         parse_mode="HTML",
     )

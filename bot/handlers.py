@@ -105,7 +105,10 @@ async def cmd_start(message: Message, state: FSMContext) -> None:
 
     await state.set_state(ProfileForm.name)
     await message.answer(
-        "Привет. Давай заполним профиль для старта.\n\nВведи имя:",
+        "Добро пожаловать в Progress Check.\n"
+        "Здесь можно вести тренировки, смотреть рекорды и открывать mini app прямо из чата.\n\n"
+        "Сначала заполним профиль.\n"
+        "Введи имя:",
     )
 
 

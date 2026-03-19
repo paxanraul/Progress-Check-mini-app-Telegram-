@@ -18,12 +18,7 @@ def main_menu_keyboard(user_id: int) -> ReplyKeyboardMarkup:
                     web_app=WebAppInfo(url=build_mini_app_url(user_id)),
                 )
             ],
-            [KeyboardButton(text="Добавить тренировку")],
-            [
-                KeyboardButton(text="Главная"),
-                KeyboardButton(text="Рекорды"),
-                KeyboardButton(text="Вопросы"),
-            ],
+            [KeyboardButton(text="Главная"), KeyboardButton(text="Вопросы")],
         ],
         resize_keyboard=True,
         is_persistent=True,

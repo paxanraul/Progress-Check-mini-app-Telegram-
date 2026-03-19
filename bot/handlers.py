@@ -105,10 +105,7 @@ async def cmd_start(message: Message, state: FSMContext) -> None:
 
     await state.set_state(ProfileForm.name)
     await message.answer(
-        "Добро пожаловать в Progress Check.\n"
-        "Здесь можно вести тренировки, смотреть рекорды и открывать mini app прямо из чата.\n\n"
-        "Сначала заполним профиль.\n"
-        "Введи имя:",
+        "Привет. Давай заполним профиль для старта.\n\nВведи имя:",
     )
 
 
@@ -229,7 +226,10 @@ async def menu_home(message: Message) -> None:
 
 @router.message(F.text == "Рекорды")
 async def menu_records(message: Message) -> None:
-    await send_records_screen(message, message.from_user.id)
+    await message.answer(
+        "Рекорды уже отображаются на главном экране и внутри mini app.",
+        reply_markup=main_menu_keyboard(message.from_user.id),
+    )
 
 
 @router.message(F.text == "Вопросы")
@@ -239,7 +239,10 @@ async def menu_questions(message: Message) -> None:
 
 @router.message(F.text == "Добавить тренировку")
 async def menu_add_workout(message: Message, state: FSMContext) -> None:
-    await start_workout_flow(message, state, message.from_user.id)
+    await message.answer(
+        "Добавление тренировок доступно только через mini app. Нажми кнопку 'Открыть ProgressCheck'.",
+        reply_markup=main_menu_keyboard(message.from_user.id),
+    )
 
 
 async def start_workout_flow(message: Message, state: FSMContext, user_id: int) -> None:
@@ -457,7 +460,7 @@ async def send_main_screen(message: Message, user_id: int) -> None:
     records = get_records(user_id)
 
     summary = (
-        "Мой прогресс: <tg-emoji emoji-id=\"5334882760735598374\">📝</tg-emoji>\n"
+        "Мой прогресс: <tg-emoji emoji-id=\"5334882760735598374\">📝</tg-emoji>\n\n"
         f"Имя: {user['name']}\n"
         f"Возраст: {user['age']}\n"
         f"Вес: {user['weight']:.1f} кг\n"

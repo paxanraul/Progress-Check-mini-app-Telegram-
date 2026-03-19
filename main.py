@@ -21,7 +21,6 @@ async def main():
     bot = Bot(token=token)
     dp = Dispatcher()
     dp.include_router(router)
-    # Force polling mode even if webhook was previously configured.
     await bot.delete_webhook(drop_pending_updates=False)
 
     web_app = create_web_app()

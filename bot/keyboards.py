@@ -12,14 +12,14 @@ from aiogram.types import (
 def main_menu_keyboard(user_id: int) -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="Главная"), KeyboardButton(text="Рекорды")],
-            [KeyboardButton(text="Добавить тренировку"), KeyboardButton(text="Вопросы")],
-            [
+                        [
                 KeyboardButton(
                     text="Открыть Mini App",
                     web_app=WebAppInfo(url=build_mini_app_url(user_id)),
                 )
             ],
+            [KeyboardButton(text="Главная"), KeyboardButton(text="Рекорды")],
+            [KeyboardButton(text="Добавить тренировку"), KeyboardButton(text="Вопросы")]
         ],
         resize_keyboard=True,
     )

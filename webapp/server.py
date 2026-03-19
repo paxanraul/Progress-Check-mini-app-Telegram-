@@ -12,6 +12,7 @@ from bot.db import (
     get_total_workout_days,
     get_user,
     get_workout_days,
+    upsert_user,
 )
 
 
@@ -174,6 +175,68 @@ async def app_data(request: web.Request) -> web.Response:
 
 async def faq_data(request: web.Request) -> web.Response:
     return web.json_response({"faq": FAQ_DATA})
+
+
+async def update_profile(request: web.Request) -> web.Response:
+    try:
+        payload = await request.json()
+    except Exception:
+        return web.json_response({"error": "invalid json"}, status=400)
+
+    user_id = payload.get("user_id")
+    name = str(payload.get("name", "")).strip()
+    experience = str(payload.get("experience", "")).strip()
+
+    try:
+        weight = float(payload.get("weight", 0))
+        height = float(payload.get("height", 0))
+    except (TypeError, ValueError):
+        return web.json_response({"error": "weight and height must be numbers"}, status=400)
+
+    if not isinstance(user_id, int):
+        return web.json_response({"error": "user_id must be int"}, status=400)
+    if not name:
+        return web.json_response({"error": "name is required"}, status=400)
+    if weight <= 0 or height <= 0:
+        return web.json_response({"error": "weight and height must be > 0"}, status=400)
+
+    started_user = get_started_user(user_id)
+    if not started_user:
+        return web.json_response({"error": "user not found"}, status=404)
+
+    current_profile = get_user(user_id)
+    age = int(current_profile["age"]) if current_profile and current_profile["age"] is not None else 0
+
+    upsert_user(
+        user_id=user_id,
+        name=name,
+        age=age,
+        weight=weight,
+        height=height,
+        experience=experience or "Не заполнено",
+    )
+    return web.json_response({"ok": True})
+
+
+async def clear_profile_data(request: web.Request) -> web.Response:
+    try:
+        payload = await request.json()
+    except Exception:
+        return web.json_response({"error": "invalid json"}, status=400)
+
+    user_id = payload.get("user_id")
+    if not isinstance(user_id, int):
+        return web.json_response({"error": "user_id must be int"}, status=400)
+    if not get_started_user(user_id):
+        return web.json_response({"error": "user not found"}, status=404)
+
+    with get_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute("DELETE FROM workouts WHERE user_id = ?", (user_id,))
+        cursor.execute("DELETE FROM users WHERE user_id = ?", (user_id,))
+        connection.commit()
+
+    return web.json_response({"ok": True})
 
 
 async def save_workout(request: web.Request) -> web.Response:
@@ -506,6 +569,8 @@ def create_web_app() -> web.Application:
     app.router.add_get("/app", index)
     app.router.add_get("/api/app-data", app_data)
     app.router.add_get("/api/faq", faq_data)
+    app.router.add_put("/api/profile", update_profile)
+    app.router.add_delete("/api/profile", clear_profile_data)
     app.router.add_post("/api/workouts", save_workout)
     app.router.add_put("/api/workouts", update_workout)
     app.router.add_delete("/api/workouts", delete_workout)

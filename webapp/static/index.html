@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Progress Check</title>
   <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
-  <link rel="stylesheet" href="/static/styles.css?v=59">
+  <link rel="stylesheet" href="/static/styles.css?v=60">
 </head>
 <body>
   <div class="device-shell">
@@ -45,7 +45,12 @@
 
         <section class="panel" data-panel="profile">
           <section class="profile-card">
-            <h2>Мои данные</h2>
+            <div class="profile-card-head">
+              <h2>Мои данные</h2>
+              <button class="profile-manage-btn" id="open-profile-overlay" type="button" aria-label="Редактировать профиль">
+                <i class='bx bx-cog'></i>
+              </button>
+            </div>
             <div class="profile-list">
               <div class="profile-line"><span>Имя</span><strong id="profile-name">Пользователь</strong></div>
               <div class="profile-line"><span>Вес</span><strong id="weight-value">—</strong></div>
@@ -236,8 +241,46 @@
     </div>
   </div>
 
+  <div class="workout-overlay" id="profile-overlay" hidden>
+    <div class="workout-modal profile-modal">
+      <div class="modal-head">
+        <button class="modal-close-btn" id="close-profile-overlay" type="button" aria-label="Закрыть">×</button>
+        <p>Редактировать профиль</p>
+        <span class="profile-modal-balance">Данные</span>
+      </div>
+      <section class="modal-step active profile-modal-step">
+        <label class="field-card profile-field">
+          <span class="field-label">Имя</span>
+          <input type="text" id="profile-edit-name" maxlength="80" placeholder="Введите имя">
+        </label>
+        <div class="metrics-card profile-metrics">
+          <div class="metric-big">
+            <span class="field-label">Вес (кг)</span>
+            <input type="number" id="profile-edit-weight" min="0" step="0.1" inputmode="decimal" placeholder="70">
+          </div>
+          <div class="metric-big">
+            <span class="field-label">Рост (см)</span>
+            <input type="number" id="profile-edit-height" min="0" step="0.1" inputmode="decimal" placeholder="180">
+          </div>
+        </div>
+        <label class="field-card profile-field">
+          <span class="field-label">Стаж</span>
+          <input type="text" id="profile-edit-experience" maxlength="80" placeholder="Например: 2 года">
+        </label>
+        <p class="quote-form-hint profile-form-hint">Можно изменить одно поле или обновить весь профиль сразу.</p>
+        <div class="profile-modal-actions">
+          <button class="history-bulk-btn danger" id="clear-profile-data" type="button">Очистить все данные</button>
+          <div class="profile-modal-actions-right">
+            <button class="history-bulk-btn subtle" id="cancel-profile-overlay" type="button">Отмена</button>
+            <button class="history-bulk-btn" id="save-profile-overlay" type="button">Сохранить</button>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://unpkg.com/motion@11.11.13/dist/motion.js"></script>
-<script src="/static/app.js?v=41"></script>
+<script src="/static/app.js?v=42"></script>
 </body>
 </html>

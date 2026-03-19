@@ -14,6 +14,7 @@ const state = {
   faqQuery: "",
   userQuotes: [],
   quoteOverlayOpen: false,
+  profileOverlayOpen: false,
   recordsEditMode: false,
   selectedRecordExercises: new Set(),
   historyEditMode: false,
@@ -68,6 +69,8 @@ const quoteTextNode = document.getElementById("quote-text");
 const quoteLiveCard = document.getElementById("quote-live-card");
 const quoteOverlay = document.getElementById("quote-overlay");
 const quoteModal = document.querySelector(".quote-modal");
+const profileOverlay = document.getElementById("profile-overlay");
+const profileModal = document.querySelector(".profile-modal");
 const quoteInput = document.getElementById("quote-input");
 const quoteAuthorInput = document.getElementById("quote-author-input");
 const quoteFormHint = document.getElementById("quote-form-hint");
@@ -78,6 +81,10 @@ const workoutModal = document.querySelector(".workout-modal");
 const recordModal = document.querySelector(".record-modal");
 const recordExerciseInput = document.getElementById("record-exercise-input");
 const recordWeightInput = document.getElementById("record-weight-input");
+const profileEditNameInput = document.getElementById("profile-edit-name");
+const profileEditWeightInput = document.getElementById("profile-edit-weight");
+const profileEditHeightInput = document.getElementById("profile-edit-height");
+const profileEditExperienceInput = document.getElementById("profile-edit-experience");
 const historyManageToggle = document.getElementById("history-manage-toggle");
 const historyBulkActions = document.getElementById("history-bulk-actions");
 const historyDeleteSelectedBtn = document.getElementById("history-delete-selected");
@@ -105,6 +112,7 @@ let quoteIndex = 0;
 let quoteLength = 0;
 let quoteDeleting = false;
 let recordFlowSaving = false;
+let profileSaving = false;
 
 const handleWorkoutBottomButtonClick = () => {
   if (state.workoutFlow.step === "form") {
@@ -776,6 +784,11 @@ bindClick("open-quote-overlay", openQuoteOverlay);
 bindClick("close-quote-overlay", closeQuoteOverlay);
 bindClick("cancel-quote-overlay", closeQuoteOverlay);
 bindClick("save-quote-overlay", saveCustomQuote);
+bindClick("open-profile-overlay", openProfileOverlay);
+bindClick("close-profile-overlay", closeProfileOverlay);
+bindClick("cancel-profile-overlay", closeProfileOverlay);
+bindClick("save-profile-overlay", saveProfileOverlay);
+bindClick("clear-profile-data", clearProfileData);
 
 deleteWorkoutDayBtn?.addEventListener("click", handleDeleteWorkoutDay);
 addRecordBtn?.addEventListener("click", openRecordFlow);
@@ -791,6 +804,12 @@ recordOverlay?.addEventListener("click", (event) => {
 quoteOverlay?.addEventListener("click", (event) => {
   if (event.target === quoteOverlay) {
     closeQuoteOverlay();
+  }
+});
+
+profileOverlay?.addEventListener("click", (event) => {
+  if (event.target === profileOverlay) {
+    closeProfileOverlay();
   }
 });
 
@@ -824,6 +843,16 @@ quoteOverlay?.addEventListener(
   { passive: true }
 );
 
+profileOverlay?.addEventListener(
+  "pointerdown",
+  (event) => {
+    if (shouldDismissKeyboard(event.target)) {
+      blurActiveField();
+    }
+  },
+  { passive: true }
+);
+
 quoteInput?.addEventListener("input", () => {
   quoteInput.classList.remove("is-invalid");
   updateQuoteFormState();
@@ -845,6 +874,38 @@ quoteInput?.addEventListener("keydown", (event) => {
   }
   event.preventDefault();
   void saveCustomQuote();
+});
+
+profileEditNameInput?.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" || event.shiftKey || event.isComposing) {
+    return;
+  }
+  event.preventDefault();
+  focusWithoutScroll(profileEditWeightInput);
+});
+
+profileEditWeightInput?.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" || event.shiftKey || event.isComposing) {
+    return;
+  }
+  event.preventDefault();
+  focusWithoutScroll(profileEditHeightInput);
+});
+
+profileEditHeightInput?.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" || event.shiftKey || event.isComposing) {
+    return;
+  }
+  event.preventDefault();
+  focusWithoutScroll(profileEditExperienceInput);
+});
+
+profileEditExperienceInput?.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" || event.shiftKey || event.isComposing) {
+    return;
+  }
+  event.preventDefault();
+  void saveProfileOverlay();
 });
 
 recordExerciseInput?.addEventListener("keydown", (event) => {
@@ -1560,6 +1621,153 @@ function closeQuoteOverlay() {
     quoteOverlay.hidden = true;
     setBodyScrollLock(false);
   }, 170);
+}
+
+function fillProfileOverlayForm() {
+  const user = state.payload?.user || {};
+  profileEditNameInput.value = user.name || "";
+  profileEditWeightInput.value = user.weight ? String(user.weight).replace(",", ".") : "";
+  profileEditHeightInput.value = user.height ? String(user.height).replace(",", ".") : "";
+  profileEditExperienceInput.value = user.experience && user.experience !== "Не заполнено" ? user.experience : "";
+}
+
+function openProfileOverlay() {
+  if (!state.userId) {
+    showToast("Сначала открой профиль в боте");
+    return;
+  }
+  freezeViewportFor(280);
+  state.profileOverlayOpen = true;
+  fillProfileOverlayForm();
+  setBodyScrollLock(true);
+  profileOverlay.hidden = false;
+  runMotion(profileOverlay, { opacity: [0, 1] }, { duration: 0.18, easing: "ease-out" });
+  runMotion(
+    profileModal,
+    { opacity: [0.6, 1], transform: ["translateY(18px) scale(0.985)", "translateY(0px) scale(1)"] },
+    { duration: 0.24, easing: [0.22, 1, 0.36, 1] }
+  );
+  requestAnimationFrame(() => {
+    focusWithoutScroll(profileEditNameInput);
+  });
+}
+
+function closeProfileOverlay() {
+  if (!profileOverlay || profileOverlay.hidden) {
+    return;
+  }
+  state.profileOverlayOpen = false;
+  freezeViewportFor(320);
+  const overlayAnimation = runMotion(profileOverlay, { opacity: [1, 0] }, { duration: 0.14, easing: "ease-out" });
+  const modalAnimation = runMotion(
+    profileModal,
+    { opacity: [1, 0.75], transform: ["translateY(0px) scale(1)", "translateY(12px) scale(0.99)"] },
+    { duration: 0.16, easing: "ease-in" }
+  );
+  if (overlayAnimation?.finished) {
+    overlayAnimation.finished.catch(() => undefined);
+  }
+  if (modalAnimation?.finished) {
+    modalAnimation.finished.catch(() => undefined);
+  }
+  setTimeout(() => {
+    profileOverlay.hidden = true;
+    setBodyScrollLock(false);
+  }, 170);
+}
+
+async function saveProfileOverlay() {
+  blurActiveField();
+  if (profileSaving || !state.userId) {
+    return;
+  }
+
+  const name = String(profileEditNameInput?.value || "").trim();
+  const weight = Number(String(profileEditWeightInput?.value || "").replace(",", "."));
+  const height = Number(String(profileEditHeightInput?.value || "").replace(",", "."));
+  const experience = String(profileEditExperienceInput?.value || "").trim();
+
+  if (!name) {
+    showToast("Введите имя");
+    focusWithoutScroll(profileEditNameInput);
+    return;
+  }
+  if (!Number.isFinite(weight) || weight <= 0) {
+    showToast("Введите корректный вес");
+    focusWithoutScroll(profileEditWeightInput);
+    return;
+  }
+  if (!Number.isFinite(height) || height <= 0) {
+    showToast("Введите корректный рост");
+    focusWithoutScroll(profileEditHeightInput);
+    return;
+  }
+
+  try {
+    profileSaving = true;
+    const response = await fetch("/api/profile", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        user_id: Number(state.userId),
+        name,
+        weight,
+        height,
+        experience,
+      }),
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || !result.ok) {
+      throw new Error(result.error || "failed to update profile");
+    }
+    triggerHaptic("success");
+    closeProfileOverlay();
+    showToast("Профиль обновлён");
+    await refreshAppDataStable();
+  } catch (error) {
+    console.error(error);
+    showToast("Не удалось обновить профиль");
+  } finally {
+    profileSaving = false;
+  }
+}
+
+async function clearProfileData() {
+  if (profileSaving || !state.userId) {
+    return;
+  }
+  const confirmed = window.confirm("Очистить профиль, историю тренировок и рекорды?");
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    profileSaving = true;
+    const response = await fetch("/api/profile", {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        user_id: Number(state.userId),
+      }),
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || !result.ok) {
+      throw new Error(result.error || "failed to clear profile");
+    }
+    triggerHaptic("warning");
+    closeProfileOverlay();
+    showToast("Все данные очищены");
+    await refreshAppDataStable();
+  } catch (error) {
+    console.error(error);
+    showToast("Не удалось очистить данные");
+  } finally {
+    profileSaving = false;
+  }
 }
 
 async function saveCustomQuote() {

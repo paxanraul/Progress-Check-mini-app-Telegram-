@@ -106,7 +106,7 @@ async def cmd_start(message: Message, state: FSMContext) -> None:
     await state.set_state(ProfileForm.name)
     await message.answer(
         "Добро пожаловать в ProgressCheck.\n"
-        "Для полного использования бота открой mini app через кнопку Menu рядом с полем ввода <tg-emoji emoji-id=\"5282869697463740318\">✨</tg-emoji>\n\n"
+        "Для полного использования бота открой mini app через кнопку Menu рядом с полем ввода.\n\n"
         "Сначала заполним профиль для старта.\n"
         "Введи имя:",
         parse_mode="HTML",
@@ -456,7 +456,7 @@ async def send_main_screen(message: Message, user_id: int) -> None:
     records = get_records(user_id)
 
     summary = (
-        "Для полного использования бота открой Mini app через кнопку Menu рядом с полем ввода.\n\n"
+        "Для полного использования бота открой Mini app через кнопку Menu рядом с полем ввода <tg-emoji emoji-id=\"5282869697463740318\">✨</tg-emoji>\n\n"
         "Мой прогресс: <tg-emoji emoji-id=\"5334882760735598374\">📝</tg-emoji>\n"
         f"Имя: {user['name']}\n"
         f"Возраст: {user['age']}\n"

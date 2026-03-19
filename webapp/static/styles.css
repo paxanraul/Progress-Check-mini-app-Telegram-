@@ -236,11 +236,15 @@ h2 {
 }
 
 .plus {
-  font-size: 35px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  font-size: 43px;
   line-height: 1;
   font-weight: 300;
- transform: translateY(-5%);
- 
+  top: auto;
+  transform: translate(8px, -2px);
 }
 .plusik{
     font-size: 35px;
@@ -1305,6 +1309,7 @@ body {
   justify-content: space-between;
   width: 100%;
   padding: 2px 2px 4px;
+  margin-top: 10px;
   margin-bottom: 8px;
 }
 
@@ -1313,24 +1318,24 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.1;
   letter-spacing: 0.15px;
   font-weight: 600;
-  padding: 10px 14px;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  padding: 12px 18px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   color: #e6ebf6;
-  background: rgba(255, 255, 255, 0.06);
-  min-height: 40px;
-  min-width: 114px;
+  background: rgba(255, 255, 255, 0.05);
+  min-height: 46px;
+  min-width: 126px;
   transition: 0.2s ease, transform 0.15s ease;
 }
 
 #move-btn.records-tool-btn.add {
-  border-color: rgba(112, 196, 255, 0.45);
+  border-color: rgba(255, 255, 255, 0.08);
   color: #dff5ff;
-  background: rgba(73, 163, 255, 0.16);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 #delete-btn.records-tool-btn:hover,
@@ -1924,7 +1929,7 @@ summary:focus-visible {
   margin: -2px -2px 14px;
   padding: 2px 2px 10px;
   display: grid;
-  grid-template-columns: 40px 1fr 40px;
+  grid-template-columns: 42px 1fr 42px;
   align-items: center;
   column-gap: 10px;
   background: linear-gradient(180deg, rgba(15, 18, 27, 0.96), rgba(15, 18, 27, 0.78), transparent);
@@ -2129,12 +2134,12 @@ summary:focus-visible {
   }
 
   .modal-head {
-    grid-template-columns: 40px 1fr 40px;
+    grid-template-columns: 42px 1fr 42px;
     column-gap: 8px;
   }
 
   .modal-close-btn {
-    font-size: 28px;
+    font-size: 30px;
   }
 
   #workout-date-input {
@@ -2663,6 +2668,7 @@ body::after {
   font-size: 25px;
   line-height: 1.18;
 }
+
 
 .bottom-nav {
   left: 12px;
@@ -3682,6 +3688,25 @@ body {
   color: rgba(255, 255, 255, 0.92);
 }
 
+.plus {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  top: auto;
+  font-size: 50px;
+  line-height: 1;
+  font-weight: 300;
+  transform: translate(8px, -2px);
+}
+
+.action-card .plus {
+  align-self: center;
+  width: 1em;
+  height: 1em;
+  flex: 0 0 auto;
+}
+
 .action-card:hover,
 .records-tool-btn:hover,
 .history-manage-btn:hover,
@@ -3703,10 +3728,15 @@ body {
 }
 
 .quote-card {
-  min-height: 180px;
-  padding: 22px;
+  min-height: 152px;
+  padding: 18px 20px;
   align-items: center;
   justify-content: center;
+  background: rgba(255, 255, 255, 0.035);
+  border-color: rgba(255, 255, 255, 0.07);
+  box-shadow:
+    0 6px 24px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .quote-line {
@@ -3717,7 +3747,7 @@ body {
 }
 
 #quote-text {
-  font-size: 28px;
+  font-size: 30px;
   font-weight: 600;
   line-height: 1.15;
   letter-spacing: -0.03em;
@@ -3736,6 +3766,10 @@ body {
   padding: 18px;
 }
 
+.profile-card {
+  padding: 23px;
+}
+
 .profile-card h2,
 .section-title h2 {
   font-size: 18px;
@@ -3744,12 +3778,17 @@ body {
   color: #ffffff;
 }
 
+.profile-card h2 {
+  font-size: 21px;
+}
+
 .profile-list {
   gap: 10px;
 }
 
 .profile-line {
   padding: 6px 0;
+  font-size: 17px;
   color: rgba(255, 255, 255, 0.9);
 }
 
@@ -3785,7 +3824,7 @@ body {
   min-height: 42px;
   padding: 0 14px;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.08);
   color: rgba(255, 255, 255, 0.92);
   box-shadow:
@@ -3795,7 +3834,7 @@ body {
 
 .records-tool-btn.add,
 .history-manage-btn {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .history-bulk-btn.danger,
@@ -3815,6 +3854,17 @@ body {
   font-size: 18px;
   font-weight: 600;
   letter-spacing: -0.02em;
+}
+
+.empty-card {
+  text-align: center;
+}
+
+.empty-card-text {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  text-align: center;
 }
 
 .history-head {
@@ -3953,6 +4003,39 @@ body {
     inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
+.modal-close-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  justify-self: center;
+  align-self: center;
+  padding: 0;
+  font-size: 0;
+  line-height: 1;
+  color: transparent;
+}
+
+.modal-close-btn::before,
+.modal-close-btn::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 53%;
+  width: 20px;
+  height: 2.5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  transform-origin: center;
+}
+
+.modal-close-btn::before {
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.modal-close-btn::after {
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+
 .workout-comment-card {
   min-height: 220px;
 }
@@ -4020,10 +4103,15 @@ body {
   width: 100%;
   min-width: 0;
   min-height: 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   padding: 10px 8px 9px;
   border-radius: 20px;
   gap: 4px;
   color: rgba(255, 255, 255, 0.6);
+  text-align: center;
 }
 
 .nav-btn.active,
@@ -4045,6 +4133,7 @@ body {
   font-size: 12px;
   font-weight: 500;
   letter-spacing: -0.01em;
+  text-align: center;
 }
 
 @media (max-width: 420px) {
@@ -4075,18 +4164,22 @@ body {
     padding: 16px;
   }
 
+  .profile-card {
+    padding: 21px;
+  }
+
   .action-card {
     min-height: 68px;
     padding: 0 18px;
   }
 
   .quote-card {
-    min-height: 164px;
-    padding: 20px;
+    min-height: 138px;
+    padding: 16px 18px;
   }
 
   #quote-text {
-    font-size: 24px;
+    font-size: 26px;
   }
 
   .bottom-nav {
@@ -4119,5 +4212,286 @@ body {
   .workout-modal,
   .record-modal {
     border-radius: 24px;
+  }
+}
+
+/* Quotes manager */
+
+.quote-section-card {
+  position: relative;
+  min-height: 152px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.quote-manage-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 41px;
+  height: 41px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.88);
+  display: grid;
+  place-items: center;
+  box-shadow: none;
+  padding: 0;
+  z-index: 2;
+}
+
+.quote-manage-btn i {
+  font-size: 27px;
+  line-height: 1;
+}
+
+.quote-manage-btn:hover {
+  background: transparent;
+  color: #ffffff;
+}
+
+.quote-manage-btn.limit-reached {
+  opacity: 0.76;
+}
+
+.quote-live-card,
+.quote-library-item,
+.quote-library-empty {
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow:
+    0 6px 24px rgba(0, 0, 0, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.quote-live-card {
+  width: 100%;
+  min-height: 152px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 44px;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  text-align: center;
+}
+
+.quote-live-card .quote-line {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  text-align: center;
+}
+
+.quote-live-card #quote-text {
+  display: block;
+  width: 100%;
+  text-align: center;
+  margin: 0 auto;
+}
+
+.quote-modal {
+  min-height: 0;
+}
+
+.quote-modal-balance {
+  min-width: 42px;
+  text-align: right;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.56);
+}
+
+.quote-modal-step {
+  display: grid;
+  gap: 12px;
+}
+
+.quote-field {
+  min-height: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.quote-field .field-label {
+  transform: none;
+  margin-bottom: 0;
+}
+
+#quote-input,
+#quote-author-input {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #ffffff;
+  padding: 14px 16px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+#quote-input {
+  min-height: 152px;
+  resize: vertical;
+}
+
+#quote-input::placeholder,
+#quote-author-input::placeholder {
+  color: rgba(255, 255, 255, 0.38);
+}
+
+#quote-input:focus,
+#quote-author-input:focus {
+  background: rgba(255, 255, 255, 0.07);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+#quote-input.is-invalid {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 0 0 1px rgba(255, 120, 120, 0.6);
+}
+
+.quote-form-hint {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.56);
+}
+
+.quote-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.quote-library {
+  display: grid;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.quote-library-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.quote-library-title,
+.quote-library-meta,
+.quote-library-text,
+.quote-library-author {
+  margin: 0;
+}
+
+.quote-library-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.quote-library-meta {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.56);
+}
+
+.quote-library-list {
+  display: grid;
+  gap: 10px;
+}
+
+.quote-library-item {
+  padding: 14px 14px 14px 16px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.quote-library-copy {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.quote-library-text {
+  font-size: 15px;
+  line-height: 1.45;
+  color: #ffffff;
+}
+
+.quote-library-author {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.56);
+}
+
+.quote-library-author::before {
+  content: "— ";
+}
+
+.quote-library-empty {
+  padding: 14px 16px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.56);
+  text-align: center;
+}
+
+.quote-delete-btn {
+  width: 38px;
+  height: 38px;
+  border: 1px solid rgba(255, 120, 120, 0.16);
+  border-radius: 12px;
+  background: rgba(255, 88, 88, 0.1);
+  color: #ffd7d7;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.quote-delete-btn i {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.quote-delete-btn:hover {
+  background: rgba(255, 88, 88, 0.16);
+}
+
+#save-quote-overlay:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+}
+
+@media (max-width: 420px) {
+  .quote-section-card {
+    min-height: 138px;
+  }
+
+  .quote-manage-btn {
+    top: 12px;
+    right: 12px;
+  }
+
+  .quote-live-card,
+  .quote-library-item,
+  .quote-library-empty {
+    border-radius: 16px;
+  }
+
+  .quote-live-card {
+    min-height: 104px;
+    min-height: 138px;
+    padding: 36px 40px;
+  }
+
+  .quote-library-item {
+    padding: 14px 16px;
   }
 }

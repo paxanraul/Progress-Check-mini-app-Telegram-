@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Progress Check</title>
   <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
-  <link rel="stylesheet" href="/static/styles.css?v=46">
+  <link rel="stylesheet" href="/static/styles.css?v=59">
 </head>
 <body>
   <div class="device-shell">
@@ -29,11 +29,17 @@
             <span class="plus">+</span>
           </button>
 
-          <section class="quote-card" aria-live="polite" aria-atomic="true">
-            <div class="quote-line">
-              <span id="quote-text"></span>
-              <span class="quote-cursor" aria-hidden="true"></span>
+          <section class="quote-card quote-section-card" aria-live="polite" aria-atomic="true">
+            <button class="quote-manage-btn" id="open-quote-overlay" type="button" aria-label="Добавить цитату">
+              <i class='bx bx-cog'></i>
+            </button>
+            <div class="quote-live-card" id="quote-live-card">
+              <div class="quote-line">
+                <span id="quote-text"></span>
+                <span class="quote-cursor" aria-hidden="true"></span>
+              </div>
             </div>
+            <div id="quotes-list" class="quote-list" hidden></div>
           </section>
         </section>
 
@@ -205,8 +211,33 @@
     </div>
   </div>
 
+  <div class="workout-overlay" id="quote-overlay" hidden>
+    <div class="workout-modal quote-modal">
+      <div class="modal-head">
+        <button class="modal-close-btn" id="close-quote-overlay" type="button" aria-label="Отмена">×</button>
+        <p>Новая цитата</p>
+        <span class="quote-modal-balance" id="quote-modal-balance">0/5</span>
+      </div>
+      <section class="modal-step active quote-modal-step">
+        <label class="field-card quote-field">
+          <span class="field-label">Текст цитаты</span>
+          <textarea id="quote-input" rows="5" maxlength="240" placeholder="Напишите цитату, которая будет мотивировать вас"></textarea>
+        </label>
+        <label class="field-card quote-field">
+          <span class="field-label">Автор</span>
+          <input type="text" id="quote-author-input" maxlength="80" placeholder="Необязательно">
+        </label>
+        <p class="quote-form-hint" id="quote-form-hint">Можно добавить до 5 цитат. Пустую цитату сохранить нельзя.</p>
+        <div class="quote-modal-actions">
+          <button class="history-bulk-btn subtle" id="cancel-quote-overlay" type="button">Отмена</button>
+          <button class="history-bulk-btn" id="save-quote-overlay" type="button">Сохранить</button>
+        </div>
+      </section>
+    </div>
+  </div>
+
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://unpkg.com/motion@11.11.13/dist/motion.js"></script>
-<script src="/static/app.js?v=38"></script>
+<script src="/static/app.js?v=41"></script>
 </body>
 </html>

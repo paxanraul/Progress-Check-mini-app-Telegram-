@@ -14,7 +14,7 @@ def main_menu_keyboard(user_id: int) -> ReplyKeyboardMarkup:
         keyboard=[
             [
                 KeyboardButton(
-                    text="Открыть Progress Check",
+                    text="Открыть ProgressCheck",
                     web_app=WebAppInfo(url=build_mini_app_url(user_id)),
                 )
             ],

@@ -1,11 +1,8 @@
-import os
-
 from aiogram.types import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     KeyboardButton,
     ReplyKeyboardMarkup,
-    WebAppInfo,
 )
 
 
@@ -13,7 +10,6 @@ def main_menu_keyboard(user_id: int) -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text="Главная"), KeyboardButton(text="Вопросы")],
-            [KeyboardButton(text="Открыть mini app", web_app=WebAppInfo(url=build_mini_app_url(user_id)))],
         ],
         resize_keyboard=True,
         is_persistent=True,
@@ -70,10 +66,3 @@ def faq_keyboard() -> InlineKeyboardMarkup:
             ],
         ]
     )
-
-
-def build_mini_app_url(user_id: int) -> str:
-    base_url = os.getenv("MINI_APP_URL", "http://127.0.0.1:8080/app").rstrip("/")
-    if base_url.endswith("/app"):
-        return f"{base_url}?user_id={user_id}"
-    return f"{base_url}/app?user_id={user_id}"

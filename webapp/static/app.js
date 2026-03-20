@@ -15,6 +15,7 @@ const state = {
   userQuotes: [],
   quoteOverlayOpen: false,
   profileOverlayOpen: false,
+  confirmOverlayOpen: false,
   recordsEditMode: false,
   selectedRecordExercises: new Set(),
   historyEditMode: false,
@@ -67,10 +68,13 @@ const removeRecordBtn = document.getElementById("delete-btn");
 const addRecordBtn = document.getElementById("move-btn");
 const quoteTextNode = document.getElementById("quote-text");
 const quoteLiveCard = document.getElementById("quote-live-card");
+const deleteLiveQuoteBtn = document.getElementById("delete-live-quote");
 const quoteOverlay = document.getElementById("quote-overlay");
 const quoteModal = document.querySelector(".quote-modal");
 const profileOverlay = document.getElementById("profile-overlay");
 const profileModal = document.querySelector(".profile-modal");
+const confirmOverlay = document.getElementById("confirm-overlay");
+const confirmModal = document.querySelector(".confirm-modal");
 const quoteInput = document.getElementById("quote-input");
 const quoteAuthorInput = document.getElementById("quote-author-input");
 const quoteFormHint = document.getElementById("quote-form-hint");
@@ -85,6 +89,8 @@ const profileEditNameInput = document.getElementById("profile-edit-name");
 const profileEditWeightInput = document.getElementById("profile-edit-weight");
 const profileEditHeightInput = document.getElementById("profile-edit-height");
 const profileEditExperienceInput = document.getElementById("profile-edit-experience");
+const confirmDeleteText = document.getElementById("confirm-delete-text");
+const confirmDeleteSubtext = document.getElementById("confirm-delete-subtext");
 const historyManageToggle = document.getElementById("history-manage-toggle");
 const historyBulkActions = document.getElementById("history-bulk-actions");
 const historyDeleteSelectedBtn = document.getElementById("history-delete-selected");
@@ -113,6 +119,7 @@ let quoteLength = 0;
 let quoteDeleting = false;
 let recordFlowSaving = false;
 let profileSaving = false;
+let confirmResolver = null;
 
 const handleWorkoutBottomButtonClick = () => {
   if (state.workoutFlow.step === "form") {
@@ -337,6 +344,13 @@ function currentQuotePool() {
   return HOME_QUOTES;
 }
 
+function currentCustomQuoteIndex() {
+  if (!Array.isArray(state.userQuotes) || !state.userQuotes.length) {
+    return -1;
+  }
+  return Math.min(quoteIndex, state.userQuotes.length - 1);
+}
+
 function canAnimateQuotes() {
   return Boolean(
     quoteTextNode &&
@@ -464,6 +478,10 @@ function renderQuotesSection(options = {}) {
   const { resetLoop = false } = options;
 
   quoteLiveCard.hidden = false;
+  if (deleteLiveQuoteBtn) {
+    deleteLiveQuoteBtn.hidden = !state.userQuotes.length;
+    deleteLiveQuoteBtn.disabled = !state.userQuotes.length;
+  }
   updateQuoteFormState();
   renderQuoteLibrary();
 
@@ -781,6 +799,7 @@ bindClick("records-delete-selected", deleteSelectedRecords);
 bindClick("records-delete-all", deleteAllRecords);
 bindClick("records-manage-cancel", disableRecordsManageMode);
 bindClick("open-quote-overlay", openQuoteOverlay);
+bindClick("delete-live-quote", deleteVisibleCustomQuote);
 bindClick("close-quote-overlay", closeQuoteOverlay);
 bindClick("cancel-quote-overlay", closeQuoteOverlay);
 bindClick("save-quote-overlay", saveCustomQuote);
@@ -789,6 +808,9 @@ bindClick("close-profile-overlay", closeProfileOverlay);
 bindClick("cancel-profile-overlay", closeProfileOverlay);
 bindClick("save-profile-overlay", saveProfileOverlay);
 bindClick("clear-profile-data", clearProfileData);
+bindClick("close-confirm-overlay", cancelDeleteConfirmation);
+bindClick("cancel-confirm-overlay", cancelDeleteConfirmation);
+bindClick("approve-confirm-overlay", approveDeleteConfirmation);
 
 deleteWorkoutDayBtn?.addEventListener("click", handleDeleteWorkoutDay);
 addRecordBtn?.addEventListener("click", openRecordFlow);
@@ -810,6 +832,12 @@ quoteOverlay?.addEventListener("click", (event) => {
 profileOverlay?.addEventListener("click", (event) => {
   if (event.target === profileOverlay) {
     closeProfileOverlay();
+  }
+});
+
+confirmOverlay?.addEventListener("click", (event) => {
+  if (event.target === confirmOverlay) {
+    cancelDeleteConfirmation();
   }
 });
 
@@ -844,6 +872,16 @@ quoteOverlay?.addEventListener(
 );
 
 profileOverlay?.addEventListener(
+  "pointerdown",
+  (event) => {
+    if (shouldDismissKeyboard(event.target)) {
+      blurActiveField();
+    }
+  },
+  { passive: true }
+);
+
+confirmOverlay?.addEventListener(
   "pointerdown",
   (event) => {
     if (shouldDismissKeyboard(event.target)) {
@@ -1340,7 +1378,10 @@ async function deleteSelectedHistoryWorkouts() {
   if (!state.historyEditMode || state.selectedWorkoutSessions.size === 0) {
     return;
   }
-  const confirmed = window.confirm(`Удалить выбранные тренировки: ${state.selectedWorkoutSessions.size} шт.?`);
+  const confirmed = await askDeleteConfirmation({
+    text: "Вы уверены, что хотите удалить?",
+    subtext: `Будут удалены выбранные тренировки: ${state.selectedWorkoutSessions.size} шт.`,
+  });
   if (!confirmed) {
     return;
   }
@@ -1377,7 +1418,10 @@ async function deleteAllHistoryWorkouts() {
     return;
   }
   const count = (state.payload?.history || []).length;
-  const confirmed = window.confirm(`Удалить все тренировки (${count})?`);
+  const confirmed = await askDeleteConfirmation({
+    text: "Вы уверены, что хотите удалить?",
+    subtext: `Будут удалены все тренировки (${count}).`,
+  });
   if (!confirmed) {
     return;
   }
@@ -1630,6 +1674,97 @@ function closeQuoteOverlay() {
   }, 170);
 }
 
+function hasVisibleBlockingOverlay() {
+  return [overlay, recordOverlay, quoteOverlay, profileOverlay, confirmOverlay].some(
+    (node) => node && !node.hidden
+  );
+}
+
+function updateBodyScrollLockFromVisibleOverlays() {
+  setBodyScrollLock(hasVisibleBlockingOverlay());
+}
+
+function closeConfirmOverlayWithResult(confirmed) {
+  if (!confirmOverlay || confirmOverlay.hidden) {
+    if (confirmResolver) {
+      const resolver = confirmResolver;
+      confirmResolver = null;
+      resolver(Boolean(confirmed));
+    }
+    return;
+  }
+
+  state.confirmOverlayOpen = false;
+  const resolver = confirmResolver;
+  confirmResolver = null;
+
+  const overlayAnimation = runMotion(confirmOverlay, { opacity: [1, 0] }, { duration: 0.14, easing: "ease-out" });
+  const modalAnimation = runMotion(
+    confirmModal,
+    { opacity: [1, 0.75], transform: ["translateY(0px) scale(1)", "translateY(12px) scale(0.99)"] },
+    { duration: 0.16, easing: "ease-in" }
+  );
+  if (overlayAnimation?.finished) {
+    overlayAnimation.finished.catch(() => undefined);
+  }
+  if (modalAnimation?.finished) {
+    modalAnimation.finished.catch(() => undefined);
+  }
+  setTimeout(() => {
+    confirmOverlay.hidden = true;
+    updateBodyScrollLockFromVisibleOverlays();
+    if (resolver) {
+      resolver(Boolean(confirmed));
+    }
+  }, 170);
+}
+
+function cancelDeleteConfirmation() {
+  closeConfirmOverlayWithResult(false);
+}
+
+function approveDeleteConfirmation() {
+  closeConfirmOverlayWithResult(true);
+}
+
+function askDeleteConfirmation({
+  text = "Вы уверены, что хотите удалить?",
+  subtext = "",
+} = {}) {
+  if (!confirmOverlay || !confirmModal) {
+    return Promise.resolve(window.confirm(text));
+  }
+
+  if (confirmResolver) {
+    const previousResolver = confirmResolver;
+    confirmResolver = null;
+    previousResolver(false);
+  }
+
+  blurActiveField();
+  freezeViewportFor(220);
+  state.confirmOverlayOpen = true;
+  if (confirmDeleteText) {
+    confirmDeleteText.textContent = text;
+  }
+  if (confirmDeleteSubtext) {
+    confirmDeleteSubtext.textContent = subtext;
+    confirmDeleteSubtext.hidden = !subtext;
+  }
+  confirmOverlay.hidden = false;
+  setBodyScrollLock(true);
+  runMotion(confirmOverlay, { opacity: [0, 1] }, { duration: 0.18, easing: "ease-out" });
+  runMotion(
+    confirmModal,
+    { opacity: [0.6, 1], transform: ["translateY(18px) scale(0.985)", "translateY(0px) scale(1)"] },
+    { duration: 0.24, easing: [0.22, 1, 0.36, 1] }
+  );
+
+  return new Promise((resolve) => {
+    confirmResolver = resolve;
+  });
+}
+
 function fillProfileOverlayForm() {
   const user = state.payload?.user || {};
   profileEditNameInput.value = user.name || "";
@@ -1745,7 +1880,10 @@ async function clearProfileData() {
   if (profileSaving || !state.userId) {
     return;
   }
-  const confirmed = window.confirm("Очистить профиль, историю тренировок и рекорды?");
+  const confirmed = await askDeleteConfirmation({
+    text: "Вы уверены, что хотите удалить?",
+    subtext: "Будут очищены профиль, история тренировок и рекорды.",
+  });
   if (!confirmed) {
     return;
   }
@@ -1820,6 +1958,26 @@ function deleteCustomQuote(index) {
   updateQuoteFormState();
   triggerHaptic("selection");
   showToast("Цитата удалена");
+}
+
+function deleteVisibleCustomQuote() {
+  const index = currentCustomQuoteIndex();
+  if (index < 0 || !state.userQuotes[index]) {
+    return;
+  }
+  const quote = state.userQuotes[index];
+  const text = String(quote?.text || "").trim();
+  const preview = text.length > 60 ? `${text.slice(0, 60)}...` : text;
+  const confirmedPromise = askDeleteConfirmation({
+    text: "Вы уверены, что хотите удалить?",
+    subtext: preview ? `"${preview}"` : "Будет удалена текущая пользовательская цитата.",
+  });
+  confirmedPromise.then((confirmed) => {
+    if (!confirmed) {
+      return;
+    }
+    deleteCustomQuote(index);
+  });
 }
 
 function syncNavPillPosition(tab, immediate) {

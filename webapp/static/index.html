@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Progress Check</title>
   <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
-  <link rel="stylesheet" href="/static/styles.css?v=69">
+  <link rel="stylesheet" href="/static/styles.css?v=70">
 </head>
 <body>
   <div class="device-shell">
@@ -32,6 +32,9 @@
           <section class="quote-card quote-section-card" aria-live="polite" aria-atomic="true">
             <button class="quote-manage-btn" id="open-quote-overlay" type="button" aria-label="Добавить цитату">
               <i class='bx bx-cog'></i>
+            </button>
+            <button class="quote-delete-live-btn" id="delete-live-quote" type="button" aria-label="Удалить текущую цитату" hidden>
+              <i class='bx bx-trash'></i>
             </button>
             <div class="quote-live-card" id="quote-live-card">
               <div class="quote-line">
@@ -281,8 +284,28 @@
     </div>
   </div>
 
+  <div class="workout-overlay" id="confirm-overlay" hidden>
+    <div class="workout-modal confirm-modal">
+      <div class="modal-head">
+        <button class="modal-close-btn" id="close-confirm-overlay" type="button" aria-label="Закрыть">×</button>
+        <p>Подтверждение</p>
+        <span class="profile-modal-balance">Удаление</span>
+      </div>
+      <section class="modal-step active confirm-modal-step">
+        <div class="note-card confirm-card">
+          <p class="confirm-title" id="confirm-delete-text">Вы уверены, что хотите удалить?</p>
+          <p class="confirm-subtitle" id="confirm-delete-subtext"></p>
+        </div>
+        <div class="confirm-actions">
+          <button class="history-bulk-btn subtle" id="cancel-confirm-overlay" type="button">Отмена</button>
+          <button class="history-bulk-btn danger" id="approve-confirm-overlay" type="button">Удалить</button>
+        </div>
+      </section>
+    </div>
+  </div>
+
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://unpkg.com/motion@11.11.13/dist/motion.js"></script>
-<script src="/static/app.js?v=43"></script>
+<script src="/static/app.js?v=45"></script>
 </body>
 </html>

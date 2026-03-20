@@ -4255,6 +4255,37 @@ body {
   opacity: 0.76;
 }
 
+.quote-delete-live-btn {
+  position: absolute;
+  top: 12px;
+  right: 58px;
+  width: 41px;
+  height: 41px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.82);
+  display: grid;
+  place-items: center;
+  box-shadow: none;
+  padding: 0;
+  z-index: 2;
+}
+
+.quote-delete-live-btn i {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.quote-delete-live-btn:hover {
+  color: #ffd7d7;
+}
+
+.quote-delete-live-btn:disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
 .quote-live-card,
 .quote-library-item,
 .quote-library-empty {

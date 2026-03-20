@@ -13,6 +13,7 @@ def main_menu_keyboard(user_id: int) -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text="Главная"), KeyboardButton(text="Вопросы")],
+            [KeyboardButton(text="Открыть mini app", web_app=WebAppInfo(url=build_mini_app_url(user_id)))],
         ],
         resize_keyboard=True,
         is_persistent=True,

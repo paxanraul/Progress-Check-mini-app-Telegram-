@@ -1215,7 +1215,9 @@ function renderHistory(history, options = {}) {
             </div>
             <div class="history-head-right">
               <div class="history-date">${formatDate(day.date)}</div>
-              <button class="history-edit-btn" data-date="${escapeHtml(day.date)}" data-session-key="${escapeHtml(sessionKey)}" type="button"${state.historyEditMode ? " hidden" : ""}>Изменить</button>
+              <button class="history-edit-btn" data-date="${escapeHtml(day.date)}" data-session-key="${escapeHtml(sessionKey)}" type="button" aria-label="Изменить тренировку"${state.historyEditMode ? " hidden" : ""}>
+                <i class='bx bx-cog'></i>
+              </button>
             </div>
           </div>
           <div class="exercise-list">${rows}</div>
@@ -1321,7 +1323,12 @@ function updateHistoryManageControls() {
   if (!historyManageToggle || !historyBulkActions) {
     return;
   }
-  historyManageToggle.textContent = state.historyEditMode ? "Готово" : "Изменить";
+  historyManageToggle.classList.toggle("is-text-mode", state.historyEditMode);
+  historyManageToggle.setAttribute(
+    "aria-label",
+    state.historyEditMode ? "Завершить редактирование истории тренировок" : "Изменить историю тренировок"
+  );
+  historyManageToggle.innerHTML = state.historyEditMode ? "Готово" : "<i class='bx bx-cog'></i>";
   historyBulkActions.hidden = !state.historyEditMode;
 
   if (historyDeleteSelectedBtn) {

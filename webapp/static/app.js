@@ -14,6 +14,7 @@ const state = {
   faqQuery: "",
   userQuotes: [],
   quoteOverlayOpen: false,
+  quoteEditor: { mode: "create", editingIndex: -1 },
   profileOverlayOpen: false,
   confirmOverlayOpen: false,
   recordsEditMode: false,
@@ -68,9 +69,9 @@ const removeRecordBtn = document.getElementById("delete-btn");
 const addRecordBtn = document.getElementById("move-btn");
 const quoteTextNode = document.getElementById("quote-text");
 const quoteLiveCard = document.getElementById("quote-live-card");
-const deleteLiveQuoteBtn = document.getElementById("delete-live-quote");
 const quoteOverlay = document.getElementById("quote-overlay");
 const quoteModal = document.querySelector(".quote-modal");
+const quoteModalTitle = document.getElementById("quote-modal-title");
 const profileOverlay = document.getElementById("profile-overlay");
 const profileModal = document.querySelector(".profile-modal");
 const confirmOverlay = document.getElementById("confirm-overlay");
@@ -81,6 +82,7 @@ const quoteFormHint = document.getElementById("quote-form-hint");
 const quoteModalBalance = document.getElementById("quote-modal-balance");
 const quoteLibraryList = document.getElementById("quote-library-list");
 const saveQuoteBtn = document.getElementById("save-quote-overlay");
+const deleteQuoteBtn = document.getElementById("delete-quote-overlay");
 const workoutModal = document.querySelector(".workout-modal");
 const recordModal = document.querySelector(".record-modal");
 const recordExerciseInput = document.getElementById("record-exercise-input");
@@ -351,6 +353,14 @@ function currentCustomQuoteIndex() {
   return Math.min(quoteIndex, state.userQuotes.length - 1);
 }
 
+function currentEditableQuoteIndex() {
+  const editingIndex = Number(state.quoteEditor?.editingIndex);
+  if (Number.isInteger(editingIndex) && editingIndex >= 0 && state.userQuotes[editingIndex]) {
+    return editingIndex;
+  }
+  return currentCustomQuoteIndex();
+}
+
 function canAnimateQuotes() {
   return Boolean(
     quoteTextNode &&
@@ -421,17 +431,31 @@ function persistCustomQuotes(quotes) {
 
 function updateQuoteFormState() {
   const currentCount = state.userQuotes.length;
+  const isEditing = state.quoteEditor?.mode === "edit" && currentEditableQuoteIndex() >= 0;
   if (quoteModalBalance) {
     quoteModalBalance.textContent = `${currentCount}/${MAX_CUSTOM_QUOTES}`;
   }
   if (quoteFormHint) {
-    quoteFormHint.textContent =
-      currentCount >= MAX_CUSTOM_QUOTES
+    quoteFormHint.textContent = isEditing
+      ? "Измените текст или автора, затем сохраните обновлённую цитату."
+      : currentCount >= MAX_CUSTOM_QUOTES
         ? `Лимит достигнут: можно хранить максимум ${MAX_CUSTOM_QUOTES} цитат.`
         : `Можно добавить еще ${MAX_CUSTOM_QUOTES - currentCount} из ${MAX_CUSTOM_QUOTES} цитат.`;
   }
   if (saveQuoteBtn) {
-    saveQuoteBtn.disabled = !String(quoteInput?.value || "").trim() || currentCount >= MAX_CUSTOM_QUOTES;
+    saveQuoteBtn.disabled = !String(quoteInput?.value || "").trim() || (!isEditing && currentCount >= MAX_CUSTOM_QUOTES);
+  }
+  if (deleteQuoteBtn) {
+    deleteQuoteBtn.hidden = !isEditing;
+    deleteQuoteBtn.disabled = !isEditing;
+  }
+  if (quoteModalTitle) {
+    quoteModalTitle.textContent = isEditing ? "Редактировать цитату" : "Новая цитата";
+  }
+  const quoteManageButton = document.getElementById("open-quote-overlay");
+  if (quoteManageButton) {
+    const hasQuote = currentCustomQuoteIndex() >= 0;
+    quoteManageButton.setAttribute("aria-label", hasQuote ? "Редактировать цитату" : "Добавить цитату");
   }
 }
 
@@ -478,10 +502,6 @@ function renderQuotesSection(options = {}) {
   const { resetLoop = false } = options;
 
   quoteLiveCard.hidden = false;
-  if (deleteLiveQuoteBtn) {
-    deleteLiveQuoteBtn.hidden = !state.userQuotes.length;
-    deleteLiveQuoteBtn.disabled = !state.userQuotes.length;
-  }
   updateQuoteFormState();
   renderQuoteLibrary();
 
@@ -506,6 +526,29 @@ function resetQuoteForm() {
   }
   if (quoteAuthorInput) {
     quoteAuthorInput.value = "";
+  }
+  updateQuoteFormState();
+}
+
+function setQuoteEditorMode(mode, editingIndex = -1) {
+  const isEditMode = mode === "edit" && Number.isInteger(editingIndex) && editingIndex >= 0 && state.userQuotes[editingIndex];
+  state.quoteEditor = {
+    mode: isEditMode ? "edit" : "create",
+    editingIndex: isEditMode ? editingIndex : -1,
+  };
+  updateQuoteFormState();
+}
+
+function fillQuoteOverlayForm() {
+  const editingIndex = currentEditableQuoteIndex();
+  const editingQuote = state.quoteEditor?.mode === "edit" && editingIndex >= 0 ? state.userQuotes[editingIndex] : null;
+
+  if (quoteInput) {
+    quoteInput.value = editingQuote?.text || "";
+    quoteInput.classList.remove("is-invalid");
+  }
+  if (quoteAuthorInput) {
+    quoteAuthorInput.value = editingQuote?.author || "";
   }
   updateQuoteFormState();
 }
@@ -799,10 +842,10 @@ bindClick("records-delete-selected", deleteSelectedRecords);
 bindClick("records-delete-all", deleteAllRecords);
 bindClick("records-manage-cancel", disableRecordsManageMode);
 bindClick("open-quote-overlay", openQuoteOverlay);
-bindClick("delete-live-quote", deleteVisibleCustomQuote);
 bindClick("close-quote-overlay", closeQuoteOverlay);
 bindClick("cancel-quote-overlay", closeQuoteOverlay);
 bindClick("save-quote-overlay", saveCustomQuote);
+bindClick("delete-quote-overlay", deleteQuoteFromOverlay);
 bindClick("open-profile-overlay", openProfileOverlay);
 bindClick("close-profile-overlay", closeProfileOverlay);
 bindClick("cancel-profile-overlay", closeProfileOverlay);
@@ -1634,9 +1677,15 @@ function openQuoteOverlay() {
     showToast("Сначала открой профиль в боте");
     return;
   }
+  const currentIndex = currentCustomQuoteIndex();
+  if (currentIndex >= 0) {
+    setQuoteEditorMode("edit", currentIndex);
+  } else {
+    setQuoteEditorMode("create");
+  }
   freezeViewportFor(280);
   state.quoteOverlayOpen = true;
-  resetQuoteForm();
+  fillQuoteOverlayForm();
   setBodyScrollLock(true);
   quoteOverlay.hidden = false;
   runMotion(quoteOverlay, { opacity: [0, 1] }, { duration: 0.18, easing: "ease-out" });
@@ -1655,6 +1704,7 @@ function closeQuoteOverlay() {
     return;
   }
   state.quoteOverlayOpen = false;
+  setQuoteEditorMode("create");
   freezeViewportFor(320);
   const overlayAnimation = runMotion(quoteOverlay, { opacity: [1, 0] }, { duration: 0.14, easing: "ease-out" });
   const modalAnimation = runMotion(
@@ -1924,6 +1974,8 @@ async function saveCustomQuote() {
 
   const text = String(quoteInput?.value || "").trim();
   const author = String(quoteAuthorInput?.value || "").trim();
+  const isEditing = state.quoteEditor?.mode === "edit";
+  const editingIndex = currentEditableQuoteIndex();
 
   if (!text) {
     if (quoteInput) {
@@ -1934,18 +1986,24 @@ async function saveCustomQuote() {
     showToast("Введите текст цитаты");
     return;
   }
-  if (state.userQuotes.length >= MAX_CUSTOM_QUOTES) {
+  if (!isEditing && state.userQuotes.length >= MAX_CUSTOM_QUOTES) {
     showToast(`Можно сохранить максимум ${MAX_CUSTOM_QUOTES} цитат`);
     updateQuoteFormState();
     return;
   }
 
-  persistCustomQuotes([...state.userQuotes, { text, author }]);
+  if (isEditing && editingIndex >= 0 && state.userQuotes[editingIndex]) {
+    const nextQuotes = [...state.userQuotes];
+    nextQuotes[editingIndex] = { text, author };
+    persistCustomQuotes(nextQuotes);
+  } else {
+    persistCustomQuotes([...state.userQuotes, { text, author }]);
+  }
   renderQuotesSection({ resetLoop: true });
   triggerHaptic("success");
   resetQuoteForm();
   closeQuoteOverlay();
-  showToast("Цитата добавлена");
+  showToast(isEditing ? "Цитата обновлена" : "Цитата добавлена");
 }
 
 function deleteCustomQuote(index) {
@@ -1960,24 +2018,23 @@ function deleteCustomQuote(index) {
   showToast("Цитата удалена");
 }
 
-function deleteVisibleCustomQuote() {
-  const index = currentCustomQuoteIndex();
+async function deleteQuoteFromOverlay() {
+  const index = currentEditableQuoteIndex();
   if (index < 0 || !state.userQuotes[index]) {
     return;
   }
   const quote = state.userQuotes[index];
   const text = String(quote?.text || "").trim();
   const preview = text.length > 60 ? `${text.slice(0, 60)}...` : text;
-  const confirmedPromise = askDeleteConfirmation({
-    text: "Вы уверены, что хотите удалить?",
+  const confirmed = await askDeleteConfirmation({
+    text: "Удалить цитату?",
     subtext: preview ? `"${preview}"` : "Будет удалена текущая пользовательская цитата.",
   });
-  confirmedPromise.then((confirmed) => {
-    if (!confirmed) {
-      return;
-    }
-    deleteCustomQuote(index);
-  });
+  if (!confirmed) {
+    return;
+  }
+  deleteCustomQuote(index);
+  closeQuoteOverlay();
 }
 
 function syncNavPillPosition(tab, immediate) {

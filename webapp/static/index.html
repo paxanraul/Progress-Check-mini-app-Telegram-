@@ -226,6 +226,18 @@
         <span class="quote-modal-balance" id="quote-modal-balance">0/5</span>
       </div>
       <section class="modal-step active quote-modal-step">
+        <div class="quote-manager-actions">
+          <button class="history-bulk-btn" id="add-quote-overlay" type="button">Добавить цитату</button>
+          <button class="history-bulk-btn subtle" id="edit-quote-overlay" type="button">Редактировать</button>
+          <button class="history-bulk-btn danger" id="delete-selected-quote-overlay" type="button">Удалить</button>
+        </div>
+        <section class="quote-library" aria-label="Сохраненные цитаты">
+          <div class="quote-library-head">
+            <p class="quote-library-title">Сохраненные цитаты</p>
+            <p class="quote-library-meta" id="quote-library-meta">0/5</p>
+          </div>
+          <div id="quote-library-list" class="quote-library-list"></div>
+        </section>
         <label class="field-card quote-field">
           <span class="field-label">Текст цитаты</span>
           <textarea id="quote-input" rows="5" maxlength="240" placeholder="Напишите цитату, которая будет мотивировать вас"></textarea>
@@ -236,7 +248,6 @@
         </label>
         <p class="quote-form-hint" id="quote-form-hint">Можно добавить до 5 цитат. Пустую цитату сохранить нельзя.</p>
         <div class="quote-modal-actions">
-          <button class="history-bulk-btn danger" id="delete-quote-overlay" type="button" hidden>Удалить цитату</button>
           <button class="history-bulk-btn subtle" id="cancel-quote-overlay" type="button">Отмена</button>
           <button class="history-bulk-btn" id="save-quote-overlay" type="button">Сохранить</button>
         </div>
@@ -304,6 +315,6 @@
 
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://unpkg.com/motion@11.11.13/dist/motion.js"></script>
-<script src="/static/app.js?v=46"></script>
+<script src="/static/app.js?v=47"></script>
 </body>
 </html>

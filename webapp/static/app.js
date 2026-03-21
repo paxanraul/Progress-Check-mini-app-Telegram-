@@ -80,7 +80,11 @@ const quoteInput = document.getElementById("quote-input");
 const quoteAuthorInput = document.getElementById("quote-author-input");
 const quoteFormHint = document.getElementById("quote-form-hint");
 const quoteModalBalance = document.getElementById("quote-modal-balance");
+const quoteLibraryMeta = document.getElementById("quote-library-meta");
 const quoteLibraryList = document.getElementById("quote-library-list");
+const addQuoteBtn = document.getElementById("add-quote-overlay");
+const editQuoteBtn = document.getElementById("edit-quote-overlay");
+const deleteSelectedQuoteBtn = document.getElementById("delete-selected-quote-overlay");
 const saveQuoteBtn = document.getElementById("save-quote-overlay");
 const deleteQuoteBtn = document.getElementById("delete-quote-overlay");
 const workoutModal = document.querySelector(".workout-modal");
@@ -358,7 +362,7 @@ function currentEditableQuoteIndex() {
   if (Number.isInteger(editingIndex) && editingIndex >= 0 && state.userQuotes[editingIndex]) {
     return editingIndex;
   }
-  return currentCustomQuoteIndex();
+  return -1;
 }
 
 function canAnimateQuotes() {
@@ -384,6 +388,12 @@ function customQuotesStorageKey() {
 }
 
 function normalizeCustomQuotes(items) {
+  if (typeof items === "string") {
+    return normalizeCustomQuotes([{ text: items }]);
+  }
+  if (items && typeof items === "object" && !Array.isArray(items)) {
+    return normalizeCustomQuotes([items]);
+  }
   if (!Array.isArray(items)) {
     return [];
   }
@@ -413,9 +423,17 @@ function normalizeCustomQuotes(items) {
 function loadCustomQuotes() {
   try {
     const raw = localStorage.getItem(customQuotesStorageKey());
-    return raw ? normalizeCustomQuotes(JSON.parse(raw)) : [];
+    if (!raw) {
+      return [];
+    }
+    return normalizeCustomQuotes(JSON.parse(raw));
   } catch (error) {
-    return [];
+    try {
+      const raw = localStorage.getItem(customQuotesStorageKey());
+      return raw ? normalizeCustomQuotes(raw) : [];
+    } catch (nestedError) {
+      return [];
+    }
   }
 }
 
@@ -432,8 +450,12 @@ function persistCustomQuotes(quotes) {
 function updateQuoteFormState() {
   const currentCount = state.userQuotes.length;
   const isEditing = state.quoteEditor?.mode === "edit" && currentEditableQuoteIndex() >= 0;
+  const hasSelectedQuote = currentEditableQuoteIndex() >= 0;
   if (quoteModalBalance) {
     quoteModalBalance.textContent = `${currentCount}/${MAX_CUSTOM_QUOTES}`;
+  }
+  if (quoteLibraryMeta) {
+    quoteLibraryMeta.textContent = `${currentCount}/${MAX_CUSTOM_QUOTES}`;
   }
   if (quoteFormHint) {
     quoteFormHint.textContent = isEditing
@@ -448,6 +470,15 @@ function updateQuoteFormState() {
   if (deleteQuoteBtn) {
     deleteQuoteBtn.hidden = !isEditing;
     deleteQuoteBtn.disabled = !isEditing;
+  }
+  if (addQuoteBtn) {
+    addQuoteBtn.disabled = currentCount >= MAX_CUSTOM_QUOTES && !isEditing;
+  }
+  if (editQuoteBtn) {
+    editQuoteBtn.disabled = !hasSelectedQuote;
+  }
+  if (deleteSelectedQuoteBtn) {
+    deleteSelectedQuoteBtn.disabled = !hasSelectedQuote;
   }
   if (quoteModalTitle) {
     quoteModalTitle.textContent = isEditing ? "Редактировать цитату" : "Новая цитата";
@@ -473,23 +504,34 @@ function renderQuoteLibrary() {
   quoteLibraryList.innerHTML = quotes
     .map(
       (quote, index) => `
-        <article class="quote-library-item">
+        <article
+          class="quote-library-item ${currentEditableQuoteIndex() === index ? "is-selected" : ""}"
+          data-quote-index="${index}"
+          tabindex="0"
+          role="button"
+          aria-pressed="${currentEditableQuoteIndex() === index ? "true" : "false"}"
+        >
           <div class="quote-library-copy">
             <p class="quote-library-text">${escapeHtml(quote.text)}</p>
             ${quote.author ? `<p class="quote-library-author">${escapeHtml(quote.author)}</p>` : ""}
           </div>
-          <button class="quote-delete-btn" type="button" data-quote-index="${index}" aria-label="Удалить цитату">
-            <i class='bx bx-trash'></i>
-          </button>
         </article>
       `
     )
     .join("");
 
-  quoteLibraryList.querySelectorAll(".quote-delete-btn").forEach((button) => {
-    button.addEventListener("click", () => {
-      const index = Number(button.dataset.quoteIndex);
-      deleteCustomQuote(index);
+  quoteLibraryList.querySelectorAll(".quote-library-item").forEach((item) => {
+    const openSelectedQuote = () => {
+      const index = Number(item.dataset.quoteIndex);
+      startEditCustomQuote(index);
+    };
+    item.addEventListener("click", openSelectedQuote);
+    item.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") {
+        return;
+      }
+      event.preventDefault();
+      openSelectedQuote();
     });
   });
 }
@@ -531,10 +573,11 @@ function resetQuoteForm() {
 }
 
 function setQuoteEditorMode(mode, editingIndex = -1) {
-  const isEditMode = mode === "edit" && Number.isInteger(editingIndex) && editingIndex >= 0 && state.userQuotes[editingIndex];
+  const hasValidIndex = Number.isInteger(editingIndex) && editingIndex >= 0 && state.userQuotes[editingIndex];
+  const isEditMode = mode === "edit" && hasValidIndex;
   state.quoteEditor = {
     mode: isEditMode ? "edit" : "create",
-    editingIndex: isEditMode ? editingIndex : -1,
+    editingIndex: hasValidIndex ? editingIndex : -1,
   };
   updateQuoteFormState();
 }
@@ -551,6 +594,41 @@ function fillQuoteOverlayForm() {
     quoteAuthorInput.value = editingQuote?.author || "";
   }
   updateQuoteFormState();
+}
+
+function startCreateCustomQuote() {
+  if (state.userQuotes.length >= MAX_CUSTOM_QUOTES) {
+    updateQuoteFormState();
+    showToast(`Можно сохранить максимум ${MAX_CUSTOM_QUOTES} цитат`);
+    return;
+  }
+  setQuoteEditorMode("create");
+  fillQuoteOverlayForm();
+  renderQuoteLibrary();
+  focusWithoutScroll(quoteInput);
+}
+
+function startEditCustomQuote(index = currentEditableQuoteIndex()) {
+  if (!Number.isInteger(index) || index < 0 || !state.userQuotes[index]) {
+    updateQuoteFormState();
+    showToast("Выберите цитату из списка");
+    return;
+  }
+  setQuoteEditorMode("edit", index);
+  fillQuoteOverlayForm();
+  renderQuoteLibrary();
+  focusWithoutScroll(quoteInput);
+}
+
+function syncQuoteEditorAfterDelete(deletedIndex) {
+  if (!state.userQuotes.length) {
+    setQuoteEditorMode("create");
+    fillQuoteOverlayForm();
+    return;
+  }
+  const nextIndex = Math.min(deletedIndex, state.userQuotes.length - 1);
+  setQuoteEditorMode("edit", nextIndex);
+  fillQuoteOverlayForm();
 }
 
 function runQuoteTick() {
@@ -844,6 +922,9 @@ bindClick("records-manage-cancel", disableRecordsManageMode);
 bindClick("open-quote-overlay", openQuoteOverlay);
 bindClick("close-quote-overlay", closeQuoteOverlay);
 bindClick("cancel-quote-overlay", closeQuoteOverlay);
+bindClick("add-quote-overlay", startCreateCustomQuote);
+bindClick("edit-quote-overlay", startEditCustomQuote);
+bindClick("delete-selected-quote-overlay", deleteQuoteFromOverlay);
 bindClick("save-quote-overlay", saveCustomQuote);
 bindClick("delete-quote-overlay", deleteQuoteFromOverlay);
 bindClick("open-profile-overlay", openProfileOverlay);
@@ -2012,6 +2093,7 @@ function deleteCustomQuote(index) {
   }
   const nextQuotes = state.userQuotes.filter((_, quoteIndex) => quoteIndex !== index);
   persistCustomQuotes(nextQuotes);
+  syncQuoteEditorAfterDelete(index);
   renderQuotesSection({ resetLoop: true });
   updateQuoteFormState();
   triggerHaptic("selection");

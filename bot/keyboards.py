@@ -9,7 +9,7 @@ from aiogram.types import (
 def main_menu_keyboard(user_id: int) -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="Главная"), KeyboardButton(text="Мини-гайд"),KeyboardButton(text="Главная")],
+            [KeyboardButton(text="Главная"), KeyboardButton(text="Мини-гайд")],
         ],
         resize_keyboard=True,
         is_persistent=True,

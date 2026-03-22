@@ -47,6 +47,11 @@ const HOME_QUOTES = [
   "Consistency builds strength.",
 ];
 const MAX_CUSTOM_QUOTES = 5;
+const QUOTE_DISPLAY_DURATION_MS = 3000;
+const QUOTE_FADE_DURATION_MS = 180;
+const QUOTE_TYPING_MIN_STEP_MS = 12;
+const QUOTE_TYPING_MAX_STEP_MS = 34;
+const QUOTE_TYPING_TARGET_DURATION_MS = 1600;
 
 const TELEGRAM_BUTTON_ICON_ID = "5334882760735598374";
 
@@ -118,6 +123,8 @@ let viewportFreezeUntil = 0;
 let quoteLoopTimer = 0;
 let quoteTransitionTimer = 0;
 let quoteIndex = 0;
+let quoteTypingRunId = 0;
+let quoteRotationPaused = false;
 let recordFlowSaving = false;
 let profileSaving = false;
 let confirmResolver = null;
@@ -323,12 +330,10 @@ function syncTelegramBottomButtons() {
 
 function clearQuoteLoopTimer() {
   if (!quoteLoopTimer) {
-    clearQuoteTransitionTimer();
     return;
   }
   window.clearTimeout(quoteLoopTimer);
   quoteLoopTimer = 0;
-  clearQuoteTransitionTimer();
 }
 
 function clearQuoteTransitionTimer() {
@@ -344,15 +349,35 @@ function scheduleQuoteTick(delay) {
   quoteLoopTimer = window.setTimeout(runQuoteTick, delay);
 }
 
+function normalizeQuoteText(quote) {
+  const text = String(quote?.text || "").trim();
+  const author = String(quote?.author || "").trim();
+  if (!text) {
+    return "";
+  }
+  return author ? `${text} - ${author}` : text;
+}
+
 function currentQuotePool() {
-  if (Array.isArray(state.userQuotes) && state.userQuotes.length) {
-    return state.userQuotes.map((quote) => {
-      const text = String(quote?.text || "").trim();
-      const author = String(quote?.author || "").trim();
-      return author ? `${text} - ${author}` : text;
-    });
+  const customQuotes = Array.isArray(state.userQuotes)
+    ? state.userQuotes.map(normalizeQuoteText).filter(Boolean)
+    : [];
+  if (customQuotes.length) {
+    return customQuotes;
   }
   return HOME_QUOTES;
+}
+
+function syncQuoteIndexWithPool(quotePool) {
+  if (!quotePool.length) {
+    quoteIndex = 0;
+    return;
+  }
+  if (!Number.isInteger(quoteIndex) || quoteIndex < 0) {
+    quoteIndex = 0;
+    return;
+  }
+  quoteIndex %= quotePool.length;
 }
 
 function currentCustomQuoteIndex() {
@@ -381,36 +406,121 @@ function canAnimateQuotes() {
   );
 }
 
+function getQuoteTypingStepMs(text) {
+  const length = Math.max(String(text || "").length, 1);
+  const candidate = Math.round(QUOTE_TYPING_TARGET_DURATION_MS / length);
+  return Math.max(QUOTE_TYPING_MIN_STEP_MS, Math.min(QUOTE_TYPING_MAX_STEP_MS, candidate));
+}
+
+function getQuoteTypingDurationMs(text) {
+  const nextText = String(text || "");
+  if (!nextText) {
+    return 0;
+  }
+  const stepDelay = getQuoteTypingStepMs(nextText);
+  return Math.min(90, stepDelay) + Math.max(nextText.length - 1, 0) * stepDelay;
+}
+
+function getQuoteTransitionDurationMs(text, { immediate = false } = {}) {
+  if (immediate) {
+    return 0;
+  }
+  return QUOTE_FADE_DURATION_MS + getQuoteTypingDurationMs(text);
+}
+
+function scheduleNextQuote(text, options = {}) {
+  clearQuoteLoopTimer();
+  if (quoteRotationPaused || !canAnimateQuotes()) {
+    return;
+  }
+
+  const quotePool = currentQuotePool();
+  if (quotePool.length <= 1) {
+    return;
+  }
+
+  const delay = getQuoteTransitionDurationMs(text, options) + QUOTE_DISPLAY_DURATION_MS;
+  scheduleQuoteTick(delay);
+}
+
 function renderQuoteText(text) {
   if (!quoteTextNode) {
     return;
   }
+  quoteTypingRunId += 1;
   clearQuoteTransitionTimer();
-  quoteTextNode.classList.remove("is-transitioning");
-  quoteTextNode.textContent = text;
+  quoteTextNode.classList.remove("is-transitioning", "is-typing");
+  quoteTextNode.textContent = String(text || "");
 }
 
-function transitionQuoteText(text, { immediate = false } = {}) {
+function transitionQuoteText(text, { immediate = false, restart = false } = {}) {
   if (!quoteTextNode) {
     return;
   }
 
   const nextText = String(text || "");
   const currentText = String(quoteTextNode.textContent || "");
-  if (immediate || !currentText || currentText === nextText) {
+  if (immediate) {
     renderQuoteText(nextText);
     return;
   }
+  if (!restart && currentText === nextText && !quoteTextNode.classList.contains("is-typing")) {
+    return;
+  }
 
+  quoteTypingRunId += 1;
+  const typingRunId = quoteTypingRunId;
   clearQuoteTransitionTimer();
+  quoteTextNode.classList.remove("is-typing");
   quoteTextNode.classList.add("is-transitioning");
-  quoteTransitionTimer = window.setTimeout(() => {
-    quoteTextNode.textContent = nextText;
-    requestAnimationFrame(() => {
-      quoteTextNode.classList.remove("is-transitioning");
-    });
-    quoteTransitionTimer = 0;
-  }, 170);
+
+  const startTyping = () => {
+    if (typingRunId !== quoteTypingRunId || !quoteTextNode) {
+      return;
+    }
+
+    quoteTextNode.classList.remove("is-transitioning");
+    quoteTextNode.classList.add("is-typing");
+    quoteTextNode.textContent = "";
+    if (!nextText) {
+      quoteTextNode.classList.remove("is-typing");
+      quoteTransitionTimer = 0;
+      return;
+    }
+
+    const stepDelay = getQuoteTypingStepMs(nextText);
+    let visibleLength = 0;
+
+    const typeNextCharacter = () => {
+      if (typingRunId !== quoteTypingRunId || !quoteTextNode) {
+        return;
+      }
+
+      visibleLength += 1;
+      quoteTextNode.textContent = nextText.slice(0, visibleLength);
+
+      if (visibleLength >= nextText.length) {
+        quoteTextNode.classList.remove("is-typing");
+        quoteTransitionTimer = 0;
+        return;
+      }
+
+      quoteTransitionTimer = window.setTimeout(typeNextCharacter, stepDelay);
+    };
+
+    quoteTransitionTimer = window.setTimeout(typeNextCharacter, Math.min(90, stepDelay));
+  };
+
+  quoteTransitionTimer = window.setTimeout(startTyping, QUOTE_FADE_DURATION_MS);
+}
+
+function showCurrentQuote(options = {}) {
+  const { restart = false, immediate = false } = options;
+  const quotePool = currentQuotePool();
+  syncQuoteIndexWithPool(quotePool);
+  const nextText = quotePool[quoteIndex] || quotePool[0] || "";
+  transitionQuoteText(nextText, { restart, immediate });
+  scheduleNextQuote(nextText, { immediate });
 }
 
 function customQuotesStorageKey() {
@@ -561,6 +671,7 @@ function renderQuotesSection(options = {}) {
   }
 
   const { resetLoop = false } = options;
+  const quotePool = currentQuotePool();
 
   quoteLiveCard.hidden = false;
   updateQuoteFormState();
@@ -568,12 +679,29 @@ function renderQuotesSection(options = {}) {
 
   if (resetLoop) {
     clearQuoteLoopTimer();
+    clearQuoteTransitionTimer();
     quoteIndex = 0;
-    renderQuoteText(currentQuotePool()[0] || "");
+    showCurrentQuote({ restart: true });
+    return;
   }
 
-  if (!quoteTextNode?.textContent) {
-    renderQuoteText(currentQuotePool()[0] || "");
+  syncQuoteIndexWithPool(quotePool);
+  const activeQuoteText = quotePool[quoteIndex] || quotePool[0] || "";
+  if (quoteTextNode?.classList.contains("is-typing")) {
+    if (!quoteLoopTimer) {
+      scheduleNextQuote(activeQuoteText);
+    }
+    return;
+  }
+
+  const currentText = String(quoteTextNode?.textContent || "");
+  if (!currentText || !quotePool.includes(currentText)) {
+    showCurrentQuote({ restart: true });
+    return;
+  }
+
+  if (!quoteLoopTimer) {
+    scheduleNextQuote(currentText);
   }
   syncQuoteLoop();
 }
@@ -650,28 +778,30 @@ function syncQuoteEditorAfterDelete(deletedIndex) {
 
 function runQuoteTick() {
   quoteLoopTimer = 0;
-  if (!canAnimateQuotes()) {
+  if (!canAnimateQuotes() || quoteRotationPaused) {
     return;
   }
 
   const quotePool = currentQuotePool();
+  syncQuoteIndexWithPool(quotePool);
   if (quotePool.length <= 1) {
     renderQuoteText(quotePool[0] || "");
     return;
   }
   quoteIndex = (quoteIndex + 1) % quotePool.length;
-  transitionQuoteText(quotePool[quoteIndex] || "");
-  scheduleQuoteTick(4200);
+  showCurrentQuote();
 }
 
 function syncQuoteLoop() {
   if (!canAnimateQuotes()) {
     quoteLiveCard?.classList.remove("is-breathing");
     clearQuoteLoopTimer();
+    clearQuoteTransitionTimer();
     return;
   }
 
   const quotePool = currentQuotePool();
+  syncQuoteIndexWithPool(quotePool);
   if (!quotePool.length) {
     quoteLiveCard?.classList.remove("is-breathing");
     clearQuoteLoopTimer();
@@ -681,9 +811,23 @@ function syncQuoteLoop() {
 
   quoteLiveCard?.classList.add("is-breathing");
 
-  if (!quoteTextNode?.textContent) {
-    quoteIndex = Math.min(quoteIndex, quotePool.length - 1);
-    renderQuoteText(quotePool[quoteIndex] || quotePool[0] || "");
+  if (quoteRotationPaused) {
+    clearQuoteLoopTimer();
+    return;
+  }
+
+  const activeQuoteText = quotePool[quoteIndex] || quotePool[0] || "";
+  if (quoteTextNode?.classList.contains("is-typing")) {
+    if (!quoteLoopTimer) {
+      scheduleNextQuote(activeQuoteText);
+    }
+    return;
+  }
+
+  const currentText = String(quoteTextNode?.textContent || "");
+  if (!currentText || !quotePool.includes(currentText)) {
+    showCurrentQuote({ restart: true });
+    return;
   }
 
   if (quotePool.length === 1) {
@@ -692,7 +836,7 @@ function syncQuoteLoop() {
   }
 
   if (!quoteLoopTimer) {
-    scheduleQuoteTick(4200);
+    scheduleNextQuote(currentText);
   }
 }
 
@@ -969,6 +1113,16 @@ quoteOverlay?.addEventListener("click", (event) => {
   if (event.target === quoteOverlay) {
     closeQuoteOverlay();
   }
+});
+
+quoteLiveCard?.addEventListener("pointerenter", () => {
+  quoteRotationPaused = true;
+  clearQuoteLoopTimer();
+});
+
+quoteLiveCard?.addEventListener("pointerleave", () => {
+  quoteRotationPaused = false;
+  syncQuoteLoop();
 });
 
 profileOverlay?.addEventListener("click", (event) => {

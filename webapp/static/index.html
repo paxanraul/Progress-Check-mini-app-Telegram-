@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Progress Check</title>
   <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
-  <link rel="stylesheet" href="/static/styles.css?v=75">
+  <link rel="stylesheet" href="/static/styles.css?v=78">
 </head>
 <body>
   <div class="device-shell">
@@ -263,19 +263,19 @@
           <span class="field-label">Имя</span>
           <input type="text" id="profile-edit-name" maxlength="80" placeholder="Введите имя">
         </label>
-        <div class="metrics-card profile-metrics">
-          <div class="metric-big">
+        <div class="profile-metrics">
+          <label class="profile-number-field">
             <span class="field-label">Вес (кг)</span>
             <input type="number" id="profile-edit-weight" min="0" step="0.1" inputmode="decimal" placeholder="70">
-          </div>
-          <div class="metric-big">
+          </label>
+          <label class="profile-number-field">
             <span class="field-label">Рост (см)</span>
             <input type="number" id="profile-edit-height" min="0" step="0.1" inputmode="decimal" placeholder="180">
-          </div>
-          <div class="metric-big">
+          </label>
+          <label class="profile-number-field">
             <span class="field-label">Стаж (лет)</span>
             <input type="number" id="profile-edit-experience" min="0" step="0.1" inputmode="decimal" placeholder="2">
-          </div>
+          </label>
         </div>
         <p class="quote-form-hint profile-form-hint">Можно изменить одно поле или обновить весь профиль сразу.</p>
         <div class="profile-modal-actions">
@@ -311,7 +311,7 @@
 
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://unpkg.com/motion@11.11.13/dist/motion.js"></script>
-<script src="/static/app.js?v=48"></script>
+<script src="/static/app.js?v=54"></script>
 </body>
 </html>
 

@@ -1,4 +1,4 @@
-:root {
+﻿:root {
   --app-vh: 100vh;
   --bg: #020305;
   --bg-soft: #0a0b0f;
@@ -4675,7 +4675,7 @@ body {
 }
 
 .quote-library-author::before {
-  content: "— ";
+  content: "вЂ” ";
 }
 
 .quote-library-empty {
@@ -4813,24 +4813,20 @@ body {
   width: 44px;
   height: 44px;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: var(--liquid-hairline);
-  backdrop-filter: blur(18px) saturate(175%);
-  -webkit-backdrop-filter: blur(18px) saturate(175%);
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .quote-live-card {
   min-height: 164px;
   padding: 34px 28px;
   border-radius: 24px;
-  background:
-    radial-gradient(circle at 18% 18%, rgba(160, 212, 255, 0.1), transparent 28%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.025));
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.07),
-    0 18px 34px rgba(3, 7, 18, 0.24);
+  background: transparent;
+  border: 0;
+  box-shadow: none;
 }
 
 .quote-live-card.is-breathing {
@@ -5025,4 +5021,259 @@ body {
     padding: 14px 12px;
     font-size: 15px;
   }
+}
+
+
+
+/* Records button text size override */
+#delete-btn.records-tool-btn,
+#move-btn.records-tool-btn,
+.records-toolbar .records-tool-btn {
+  font-size: calc(var(--ui-control-font-size) + 3px) !important;
+}
+
+/* Unified proportional sizing system */
+:root {
+  --scale-unit: clamp(14px, 3.9vw, 16px);
+  --scale-radius-sm: calc(var(--scale-unit) * 0.75);
+  --scale-radius-md: calc(var(--scale-unit) * 0.95);
+  --scale-radius-lg: calc(var(--scale-unit) * 1.2);
+  --scale-gap-sm: calc(var(--scale-unit) * 0.5);
+  --scale-gap-md: calc(var(--scale-unit) * 0.75);
+  --scale-gap-lg: calc(var(--scale-unit) * 1);
+  --scale-control-height: calc(var(--scale-unit) * 3.25);
+  --scale-icon-button: calc(var(--scale-unit) * 2.8);
+  --scale-card-padding-y: calc(var(--scale-unit) * 1.05);
+  --scale-card-padding-x: calc(var(--scale-unit) * 1.15);
+  --scale-field-padding-y: calc(var(--scale-unit) * 0.95);
+  --scale-field-padding-x: calc(var(--scale-unit) * 1.05);
+  --scale-title: calc(var(--scale-unit) * 1.65);
+  --scale-heading: calc(var(--scale-unit) * 1.18);
+  --scale-body: var(--scale-unit);
+  --scale-caption: calc(var(--scale-unit) * 0.86);
+  --scale-large-text: calc(var(--scale-unit) * 1.28);
+}
+
+body,
+button,
+input,
+textarea {
+  font-size: var(--scale-body);
+}
+
+#screen-title,
+#modal-title,
+.record-modal .modal-head p,
+.workout-comment-title,
+.quote-modal-title,
+.profile-modal .modal-head p,
+.confirm-modal .modal-head p {
+  font-size: var(--scale-title);
+}
+
+.profile-card h2,
+.section-title h2,
+.history-main,
+.record-title,
+.quote-library-title,
+.draft-title,
+.workout-comment-heading,
+.quote-library-text {
+  font-size: var(--scale-heading);
+}
+
+.history-date,
+.record-date,
+.history-note,
+.quote-form-hint,
+.profile-form-hint,
+.quote-library-author,
+.quote-library-meta,
+.faq-card p,
+.field-label,
+.draft-subtitle,
+.nav-label {
+  font-size: var(--scale-caption);
+}
+
+.action-card,
+.records-tool-btn,
+.history-bulk-btn,
+.section-title .history-manage-btn.is-text-mode,
+.history-head-right .history-edit-btn,
+.counter-btn {
+  min-height: var(--scale-control-height);
+  border-radius: var(--scale-radius-lg);
+}
+
+.action-card,
+.records-tool-btn,
+.history-bulk-btn,
+.section-title .history-manage-btn.is-text-mode,
+.history-head-right .history-edit-btn {
+  padding: 0 var(--scale-field-padding-x);
+  font-size: calc(var(--scale-unit) * 1.02);
+}
+
+.modal-close-btn,
+.icon-btn,
+.icon-btn.subtle,
+.quote-manage-btn,
+.profile-manage-btn,
+.section-title .history-manage-btn {
+  width: var(--scale-icon-button);
+  height: var(--scale-icon-button);
+  min-height: var(--scale-icon-button);
+  border-radius: var(--scale-radius-md);
+}
+
+.quote-manage-btn i,
+.profile-manage-btn i,
+.section-title .history-manage-btn i,
+.history-head-right .history-edit-btn i {
+  font-size: calc(var(--scale-unit) * 1.55);
+}
+
+.icon-btn {
+  font-size: calc(var(--scale-unit) * 2.05);
+}
+
+.icon-btn.subtle {
+  font-size: calc(var(--scale-unit) * 1.6);
+}
+
+.plus,
+.plusik,
+.pluss {
+  font-size: calc(var(--scale-unit) * 1.7);
+}
+
+.profile-card,
+.note-card,
+.history-card,
+.record-card,
+.faq-card,
+.field-card,
+.metrics-card,
+.date-card,
+.result-card,
+.search-shell,
+.quote-live-card,
+.quote-library-item,
+.quote-library-empty,
+.workout-modal,
+.record-modal,
+.quote-modal,
+.profile-modal,
+.confirm-modal {
+  border-radius: calc(var(--scale-unit) * 1.25);
+}
+
+.profile-card,
+.note-card,
+.history-card,
+.record-card,
+.faq-card,
+.field-card,
+.metrics-card,
+.date-card,
+.result-card,
+.search-shell,
+.quote-library-item,
+.quote-library-empty {
+  padding: var(--scale-card-padding-y) var(--scale-card-padding-x);
+}
+
+#quote-input,
+#quote-author-input,
+#profile-edit-name,
+#profile-edit-weight,
+#profile-edit-height,
+#profile-edit-experience,
+#record-exercise-input,
+#record-weight-input,
+#exercise-name-input,
+#workout-name-input,
+#wellbeing-note,
+#faq-search,
+#workout-date-input,
+#exercise-weight-input {
+  font-size: var(--scale-body);
+  border-radius: var(--scale-radius-lg);
+}
+
+#quote-input,
+#quote-author-input,
+#profile-edit-name,
+#profile-edit-weight,
+#profile-edit-height,
+#profile-edit-experience,
+#record-exercise-input,
+#record-weight-input {
+  padding: var(--scale-field-padding-y) var(--scale-field-padding-x);
+}
+
+.records-toolbar,
+.history-bulk-actions,
+.quote-manager-actions,
+.quote-modal-actions,
+.profile-modal-actions,
+.profile-modal-actions-right,
+.profile-metrics,
+.draft-list,
+.list-stack,
+.panel-stack,
+.chip-row {
+  gap: var(--scale-gap-md);
+}
+
+.profile-line,
+.exercise-row,
+.counter-line,
+.metric-big {
+  gap: var(--scale-gap-md);
+}
+
+.quote-live-card {
+  min-height: calc(var(--scale-unit) * 10.25);
+  padding: calc(var(--scale-unit) * 2.1) calc(var(--scale-unit) * 1.75);
+}
+
+.quote-live-card .quote-line {
+  min-height: calc(var(--scale-unit) * 6.2);
+}
+
+.quote-live-card #quote-text {
+  font-size: clamp(calc(var(--scale-unit) * 1.45), 5vw, calc(var(--scale-unit) * 1.85));
+}
+
+.record-weight,
+.history-main,
+.workout-comment-title {
+  font-size: var(--scale-large-text);
+}
+
+.streak-badge,
+.fire {
+  font-size: calc(var(--scale-unit) * 2.05) !important;
+}
+
+#delete-btn.records-tool-btn,
+#move-btn.records-tool-btn,
+.records-toolbar .records-tool-btn {
+  font-size: calc(var(--scale-unit) * 1.18) !important;
+}
+/* Gear button size override */
+.quote-manage-btn,
+.profile-manage-btn,
+.section-title .history-manage-btn:not(.is-text-mode) {
+  width: calc(var(--scale-icon-button) + 3px);
+  height: calc(var(--scale-icon-button) + 3px);
+  min-height: calc(var(--scale-icon-button) + 3px);
+}
+
+.quote-manage-btn i,
+.profile-manage-btn i,
+.section-title .history-manage-btn:not(.is-text-mode) i {
+  font-size: calc(var(--scale-unit) * 1.55 + 3px);
 }

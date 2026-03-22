@@ -79,14 +79,10 @@ const confirmModal = document.querySelector(".confirm-modal");
 const quoteInput = document.getElementById("quote-input");
 const quoteAuthorInput = document.getElementById("quote-author-input");
 const quoteFormHint = document.getElementById("quote-form-hint");
-const quoteModalBalance = document.getElementById("quote-modal-balance");
-const quoteLibraryMeta = document.getElementById("quote-library-meta");
 const quoteLibraryList = document.getElementById("quote-library-list");
 const addQuoteBtn = document.getElementById("add-quote-overlay");
-const editQuoteBtn = document.getElementById("edit-quote-overlay");
 const deleteSelectedQuoteBtn = document.getElementById("delete-selected-quote-overlay");
 const saveQuoteBtn = document.getElementById("save-quote-overlay");
-const deleteQuoteBtn = document.getElementById("delete-quote-overlay");
 const workoutModal = document.querySelector(".workout-modal");
 const recordModal = document.querySelector(".record-modal");
 const recordExerciseInput = document.getElementById("record-exercise-input");
@@ -120,9 +116,8 @@ let wellbeingNoteSaving = false;
 let lastWorkoutStep = "";
 let viewportFreezeUntil = 0;
 let quoteLoopTimer = 0;
+let quoteTransitionTimer = 0;
 let quoteIndex = 0;
-let quoteLength = 0;
-let quoteDeleting = false;
 let recordFlowSaving = false;
 let profileSaving = false;
 let confirmResolver = null;
@@ -328,10 +323,20 @@ function syncTelegramBottomButtons() {
 
 function clearQuoteLoopTimer() {
   if (!quoteLoopTimer) {
+    clearQuoteTransitionTimer();
     return;
   }
   window.clearTimeout(quoteLoopTimer);
   quoteLoopTimer = 0;
+  clearQuoteTransitionTimer();
+}
+
+function clearQuoteTransitionTimer() {
+  if (!quoteTransitionTimer) {
+    return;
+  }
+  window.clearTimeout(quoteTransitionTimer);
+  quoteTransitionTimer = 0;
 }
 
 function scheduleQuoteTick(delay) {
@@ -380,7 +385,32 @@ function renderQuoteText(text) {
   if (!quoteTextNode) {
     return;
   }
+  clearQuoteTransitionTimer();
+  quoteTextNode.classList.remove("is-transitioning");
   quoteTextNode.textContent = text;
+}
+
+function transitionQuoteText(text, { immediate = false } = {}) {
+  if (!quoteTextNode) {
+    return;
+  }
+
+  const nextText = String(text || "");
+  const currentText = String(quoteTextNode.textContent || "");
+  if (immediate || !currentText || currentText === nextText) {
+    renderQuoteText(nextText);
+    return;
+  }
+
+  clearQuoteTransitionTimer();
+  quoteTextNode.classList.add("is-transitioning");
+  quoteTransitionTimer = window.setTimeout(() => {
+    quoteTextNode.textContent = nextText;
+    requestAnimationFrame(() => {
+      quoteTextNode.classList.remove("is-transitioning");
+    });
+    quoteTransitionTimer = 0;
+  }, 170);
 }
 
 function customQuotesStorageKey() {
@@ -451,31 +481,20 @@ function updateQuoteFormState() {
   const currentCount = state.userQuotes.length;
   const isEditing = state.quoteEditor?.mode === "edit" && currentEditableQuoteIndex() >= 0;
   const hasSelectedQuote = currentEditableQuoteIndex() >= 0;
-  if (quoteModalBalance) {
-    quoteModalBalance.textContent = `${currentCount}/${MAX_CUSTOM_QUOTES}`;
-  }
-  if (quoteLibraryMeta) {
-    quoteLibraryMeta.textContent = `${currentCount}/${MAX_CUSTOM_QUOTES}`;
-  }
   if (quoteFormHint) {
     quoteFormHint.textContent = isEditing
       ? "Измените текст или автора, затем сохраните обновлённую цитату."
       : currentCount >= MAX_CUSTOM_QUOTES
         ? `Лимит достигнут: можно хранить максимум ${MAX_CUSTOM_QUOTES} цитат.`
-        : `Можно добавить еще ${MAX_CUSTOM_QUOTES - currentCount} из ${MAX_CUSTOM_QUOTES} цитат.`;
+        : currentCount > 0
+          ? "Выберите цитату из списка, чтобы изменить ее, или добавьте новую."
+          : `Можно добавить до ${MAX_CUSTOM_QUOTES} цитат.`;
   }
   if (saveQuoteBtn) {
     saveQuoteBtn.disabled = !String(quoteInput?.value || "").trim() || (!isEditing && currentCount >= MAX_CUSTOM_QUOTES);
   }
-  if (deleteQuoteBtn) {
-    deleteQuoteBtn.hidden = !isEditing;
-    deleteQuoteBtn.disabled = !isEditing;
-  }
   if (addQuoteBtn) {
     addQuoteBtn.disabled = currentCount >= MAX_CUSTOM_QUOTES && !isEditing;
-  }
-  if (editQuoteBtn) {
-    editQuoteBtn.disabled = !hasSelectedQuote;
   }
   if (deleteSelectedQuoteBtn) {
     deleteSelectedQuoteBtn.disabled = !hasSelectedQuote;
@@ -549,14 +568,12 @@ function renderQuotesSection(options = {}) {
 
   if (resetLoop) {
     clearQuoteLoopTimer();
-    quoteLength = 0;
-    quoteDeleting = false;
     quoteIndex = 0;
-    renderQuoteText("");
+    renderQuoteText(currentQuotePool()[0] || "");
   }
 
-  if (!quoteTextNode?.textContent && quoteLength === 0) {
-    renderQuoteText("");
+  if (!quoteTextNode?.textContent) {
+    renderQuoteText(currentQuotePool()[0] || "");
   }
   syncQuoteLoop();
 }
@@ -638,41 +655,44 @@ function runQuoteTick() {
   }
 
   const quotePool = currentQuotePool();
-  const currentQuote = quotePool[quoteIndex] || "";
-  if (!quoteDeleting) {
-    if (quoteLength < currentQuote.length) {
-      quoteLength += 1;
-      renderQuoteText(currentQuote.slice(0, quoteLength));
-      scheduleQuoteTick(currentQuote[quoteLength - 1] === " " ? 42 : 68);
-      return;
-    }
-    quoteDeleting = true;
-    scheduleQuoteTick(1700);
+  if (quotePool.length <= 1) {
+    renderQuoteText(quotePool[0] || "");
     return;
   }
-
-  if (quoteLength > 0) {
-    quoteLength -= 1;
-    renderQuoteText(currentQuote.slice(0, quoteLength));
-    scheduleQuoteTick(32);
-    return;
-  }
-
-  quoteDeleting = false;
   quoteIndex = (quoteIndex + 1) % quotePool.length;
-  scheduleQuoteTick(260);
+  transitionQuoteText(quotePool[quoteIndex] || "");
+  scheduleQuoteTick(4200);
 }
 
 function syncQuoteLoop() {
   if (!canAnimateQuotes()) {
+    quoteLiveCard?.classList.remove("is-breathing");
     clearQuoteLoopTimer();
     return;
   }
-  if (!quoteTextNode?.textContent && quoteLength === 0) {
+
+  const quotePool = currentQuotePool();
+  if (!quotePool.length) {
+    quoteLiveCard?.classList.remove("is-breathing");
+    clearQuoteLoopTimer();
     renderQuoteText("");
+    return;
   }
+
+  quoteLiveCard?.classList.add("is-breathing");
+
+  if (!quoteTextNode?.textContent) {
+    quoteIndex = Math.min(quoteIndex, quotePool.length - 1);
+    renderQuoteText(quotePool[quoteIndex] || quotePool[0] || "");
+  }
+
+  if (quotePool.length === 1) {
+    clearQuoteLoopTimer();
+    return;
+  }
+
   if (!quoteLoopTimer) {
-    scheduleQuoteTick(280);
+    scheduleQuoteTick(4200);
   }
 }
 
@@ -923,10 +943,8 @@ bindClick("open-quote-overlay", openQuoteOverlay);
 bindClick("close-quote-overlay", closeQuoteOverlay);
 bindClick("cancel-quote-overlay", closeQuoteOverlay);
 bindClick("add-quote-overlay", startCreateCustomQuote);
-bindClick("edit-quote-overlay", startEditCustomQuote);
 bindClick("delete-selected-quote-overlay", deleteQuoteFromOverlay);
 bindClick("save-quote-overlay", saveCustomQuote);
-bindClick("delete-quote-overlay", deleteQuoteFromOverlay);
 bindClick("open-profile-overlay", openProfileOverlay);
 bindClick("close-profile-overlay", closeProfileOverlay);
 bindClick("cancel-profile-overlay", closeProfileOverlay);
@@ -1896,12 +1914,18 @@ function askDeleteConfirmation({
   });
 }
 
+function parseNumericProfileInput(value) {
+  const normalized = String(value || "").replace(",", ".").match(/\d+(?:\.\d+)?/);
+  return normalized ? normalized[0] : "";
+}
+
 function fillProfileOverlayForm() {
   const user = state.payload?.user || {};
   profileEditNameInput.value = user.name || "";
   profileEditWeightInput.value = user.weight ? String(user.weight).replace(",", ".") : "";
   profileEditHeightInput.value = user.height ? String(user.height).replace(",", ".") : "";
-  profileEditExperienceInput.value = user.experience && user.experience !== "Не заполнено" ? user.experience : "";
+  profileEditExperienceInput.value =
+    user.experience && user.experience !== "Не заполнено" ? parseNumericProfileInput(user.experience) : "";
 }
 
 function openProfileOverlay() {
@@ -1958,7 +1982,8 @@ async function saveProfileOverlay() {
   const name = String(profileEditNameInput?.value || "").trim();
   const weight = Number(String(profileEditWeightInput?.value || "").replace(",", "."));
   const height = Number(String(profileEditHeightInput?.value || "").replace(",", "."));
-  const experience = String(profileEditExperienceInput?.value || "").trim();
+  const experienceRaw = String(profileEditExperienceInput?.value || "").replace(",", ".").trim();
+  const experienceValue = experienceRaw ? Number(experienceRaw) : NaN;
 
   if (!name) {
     showToast("Введите имя");
@@ -1975,6 +2000,13 @@ async function saveProfileOverlay() {
     focusWithoutScroll(profileEditHeightInput);
     return;
   }
+  if (experienceRaw && (!Number.isFinite(experienceValue) || experienceValue < 0)) {
+    showToast("Введите корректный стаж");
+    focusWithoutScroll(profileEditExperienceInput);
+    return;
+  }
+
+  const experience = experienceRaw ? `${experienceRaw} лет` : "";
 
   try {
     profileSaving = true;

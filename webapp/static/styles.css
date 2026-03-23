@@ -4498,6 +4498,25 @@ body {
   min-height: 0;
 }
 
+.profile-modal .modal-head {
+  display: grid;
+  grid-template-columns: 42px 1fr 42px;
+  align-items: center;
+  column-gap: 10px;
+}
+
+.profile-modal .modal-head p {
+  margin: 0;
+  justify-self: center;
+  text-align: center;
+}
+
+.profile-modal .modal-head::after {
+  content: "";
+  width: 42px;
+  height: 42px;
+}
+
 .profile-modal-balance {
   min-width: 42px;
   text-align: right;

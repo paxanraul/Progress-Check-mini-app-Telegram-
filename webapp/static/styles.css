@@ -5366,16 +5366,21 @@ textarea {
 
 .record-modal .metric-big {
   min-height: 0;
+  min-width: 0;
+  width: 100%;
 }
 
 #record-weight-input,
 #record-date-input {
+  display: block;
   width: 100%;
+  max-width: 100%;
   min-height: var(--scale-control-height);
   padding: 0 18px;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: calc(var(--scale-radius) - 2px);
+  box-sizing: border-box;
   color: var(--ui-text-main);
   font-size: var(--scale-body);
   font-weight: 500;

@@ -222,11 +222,22 @@ def get_records(user_id: int) -> list[sqlite3.Row]:
         cursor = connection.cursor()
         cursor.execute(
             """
-            SELECT exercise, MAX(weight) AS best_weight
-            FROM workouts
-            WHERE user_id = ? AND is_record = 1
-            GROUP BY exercise
-            ORDER BY best_weight DESC, exercise ASC
+            SELECT
+                w.exercise,
+                w.weight AS best_weight,
+                w.workout_date
+            FROM workouts AS w
+            WHERE w.user_id = ? AND w.is_record = 1
+              AND w.id = (
+                SELECT w2.id
+                FROM workouts AS w2
+                WHERE w2.user_id = w.user_id
+                  AND w2.is_record = 1
+                  AND TRIM(w2.exercise) = TRIM(w.exercise) COLLATE NOCASE
+                ORDER BY w2.weight DESC, w2.workout_date DESC, w2.id DESC
+                LIMIT 1
+              )
+            ORDER BY w.weight DESC, w.exercise COLLATE NOCASE ASC
             """,
             (user_id,),
         )

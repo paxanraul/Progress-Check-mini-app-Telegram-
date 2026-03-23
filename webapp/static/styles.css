@@ -5226,6 +5226,7 @@ textarea {
 #profile-edit-experience,
 #record-exercise-input,
 #record-weight-input,
+#record-date-input,
 #exercise-name-input,
 #workout-name-input,
 #wellbeing-note,
@@ -5243,7 +5244,8 @@ textarea {
 #profile-edit-height,
 #profile-edit-experience,
 #record-exercise-input,
-#record-weight-input {
+#record-weight-input,
+#record-date-input {
   padding: var(--scale-field-padding-y) var(--scale-field-padding-x);
 }
 
@@ -5343,6 +5345,35 @@ textarea {
   margin: 0;
   justify-self: center;
   text-align: center;
+}
+
+.record-modal .record-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--scale-gap-md);
+  align-items: start;
+}
+
+.record-modal .metric-big {
+  min-height: 0;
+}
+
+#record-weight-input,
+#record-date-input {
+  width: 100%;
+  min-height: var(--scale-control-height);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--ui-text-main);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+#record-weight-input:focus,
+#record-date-input:focus {
+  background: rgba(255, 255, 255, 0.07);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 0 0 1px rgba(255, 255, 255, 0.12);
 }
 
 .streak-badge,

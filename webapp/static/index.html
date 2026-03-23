@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Progress Check</title>
   <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
-  <link rel="stylesheet" href="/static/styles.css?v=79">
+  <link rel="stylesheet" href="/static/styles.css?v=80">
 </head>
 <body>
   <div class="device-shell">
@@ -213,6 +213,10 @@
             <span class="field-label">Вес (кг)</span>
             <input type="number" id="record-weight-input" min="0" step="0.5" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*" placeholder="100">
           </div>
+          <div class="metric-big">
+            <span class="field-label">Дата</span>
+            <input type="date" id="record-date-input">
+          </div>
         </div>
       </section>
     </div>
@@ -311,7 +315,7 @@
 
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://unpkg.com/motion@11.11.13/dist/motion.js"></script>
-<script src="/static/app.js?v=55"></script>
+<script src="/static/app.js?v=56"></script>
 </body>
 </html>
 

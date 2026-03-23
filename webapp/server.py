@@ -1,5 +1,5 @@
 from pathlib import Path
-from datetime import date
+from datetime import date, datetime
 from uuid import uuid4
 
 from aiohttp import web
@@ -150,6 +150,7 @@ async def app_data(request: web.Request) -> web.Response:
                     {
                         "exercise": row["exercise"],
                         "best_weight": f"{float(row['best_weight']):.1f}",
+                        "date": normalize_record_date_output(row["workout_date"] if "workout_date" in row.keys() else ""),
                     }
                 )
             except (KeyError, TypeError, ValueError):
@@ -493,6 +494,7 @@ async def save_record(request: web.Request) -> web.Response:
     user_id = payload.get("user_id")
     exercise = str(payload.get("exercise", "")).strip()
     best_weight = payload.get("best_weight")
+    raw_workout_date = payload.get("workout_date", payload.get("date", ""))
 
     if not isinstance(user_id, int):
         return web.json_response({"error": "user_id must be int"}, status=400)
@@ -504,6 +506,10 @@ async def save_record(request: web.Request) -> web.Response:
         return web.json_response({"error": "best_weight must be number"}, status=400)
     if weight <= 0:
         return web.json_response({"error": "best_weight must be > 0"}, status=400)
+    try:
+        workout_date = parse_record_date(raw_workout_date) or date.today().isoformat()
+    except ValueError:
+        return web.json_response({"error": "workout_date must be YYYY-MM-DD or DD.MM.YYYY"}, status=400)
 
     if not get_started_user(user_id):
         return web.json_response({"error": "user not found"}, status=404)
@@ -511,14 +517,109 @@ async def save_record(request: web.Request) -> web.Response:
     # Save records as dedicated rows so regular workouts do not appear in the Records screen.
     add_workout(
         user_id=user_id,
-        workout_date=date.today().isoformat(),
+        workout_date=workout_date,
         exercise=exercise,
         weight=weight,
         sets=1,
         reps=1,
         is_record=True,
     )
-    return web.json_response({"ok": True})
+    return web.json_response(
+        {
+            "ok": True,
+            "record": {
+                "exercise": exercise,
+                "best_weight": f"{weight:.1f}",
+                "date": workout_date,
+            },
+        }
+    )
+
+
+async def update_record(request: web.Request) -> web.Response:
+    try:
+        payload = await request.json()
+    except Exception:
+        return web.json_response({"error": "invalid json"}, status=400)
+
+    user_id = payload.get("user_id")
+    source_exercise = str(payload.get("source_exercise", payload.get("exercise", ""))).strip()
+    exercise = str(payload.get("exercise", source_exercise)).strip()
+    best_weight = payload.get("best_weight")
+    raw_source_workout_date = payload.get("source_workout_date", payload.get("source_date", ""))
+    raw_workout_date = payload.get("workout_date", payload.get("date", ""))
+
+    if not isinstance(user_id, int):
+        return web.json_response({"error": "user_id must be int"}, status=400)
+    if not source_exercise:
+        return web.json_response({"error": "source_exercise is required"}, status=400)
+    if not exercise:
+        return web.json_response({"error": "exercise is required"}, status=400)
+    try:
+        weight = float(best_weight)
+    except (TypeError, ValueError):
+        return web.json_response({"error": "best_weight must be number"}, status=400)
+    if weight <= 0:
+        return web.json_response({"error": "best_weight must be > 0"}, status=400)
+    try:
+        source_workout_date = parse_record_date(raw_source_workout_date)
+        workout_date = parse_record_date(raw_workout_date) or source_workout_date or date.today().isoformat()
+    except ValueError:
+        return web.json_response({"error": "workout_date must be YYYY-MM-DD or DD.MM.YYYY"}, status=400)
+
+    if not get_started_user(user_id):
+        return web.json_response({"error": "user not found"}, status=404)
+
+    with get_connection() as connection:
+        cursor = connection.cursor()
+        if source_workout_date:
+            cursor.execute(
+                """
+                DELETE FROM workouts
+                WHERE user_id = ?
+                  AND is_record = 1
+                  AND TRIM(exercise) = TRIM(?) COLLATE NOCASE
+                  AND workout_date = ?
+                """,
+                (user_id, source_exercise, source_workout_date),
+            )
+        else:
+            cursor.execute(
+                """
+                DELETE FROM workouts
+                WHERE user_id = ?
+                  AND is_record = 1
+                  AND TRIM(exercise) = TRIM(?) COLLATE NOCASE
+                """,
+                (user_id, source_exercise),
+            )
+
+        deleted = cursor.rowcount
+        if deleted == 0:
+            connection.rollback()
+            return web.json_response({"error": "record not found"}, status=404)
+
+        cursor.execute(
+            """
+            INSERT INTO workouts (
+                user_id, workout_date, exercise, weight, sets, reps, is_record, workout_name, wellbeing_note, session_key
+            )
+            VALUES (?, ?, ?, ?, 1, 1, 1, NULL, NULL, NULL)
+            """,
+            (user_id, workout_date, exercise, weight),
+        )
+        connection.commit()
+
+    return web.json_response(
+        {
+            "ok": True,
+            "record": {
+                "exercise": exercise,
+                "best_weight": f"{weight:.1f}",
+                "date": workout_date,
+            },
+        }
+    )
 
 
 async def delete_record(request: web.Request) -> web.Response:
@@ -576,6 +677,7 @@ def create_web_app() -> web.Application:
     app.router.add_delete("/api/workouts", delete_workout)
     app.router.add_delete("/api/workouts/all", delete_all_workouts)
     app.router.add_post("/api/records", save_record)
+    app.router.add_put("/api/records", update_record)
     app.router.add_delete("/api/records", delete_record)
     app.router.add_static("/static/", STATIC_DIR, show_index=False)
     return app
@@ -586,3 +688,24 @@ def parse_user_id(request: web.Request) -> int | None:
     if not raw_value.isdigit():
         return None
     return int(raw_value)
+
+
+def parse_record_date(raw_value) -> str | None:
+    text = str(raw_value or "").strip()
+    if not text:
+        return None
+
+    for pattern in ("%Y-%m-%d", "%d.%m.%Y", "%d.%m.%y"):
+        try:
+            return datetime.strptime(text, pattern).date().isoformat()
+        except ValueError:
+            continue
+
+    raise ValueError("invalid record date")
+
+
+def normalize_record_date_output(raw_value) -> str:
+    try:
+        return parse_record_date(raw_value) or ""
+    except ValueError:
+        return ""

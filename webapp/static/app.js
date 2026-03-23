@@ -92,6 +92,7 @@ const workoutModal = document.querySelector(".workout-modal");
 const recordModal = document.querySelector(".record-modal");
 const recordExerciseInput = document.getElementById("record-exercise-input");
 const recordWeightInput = document.getElementById("record-weight-input");
+const recordDateInput = document.getElementById("record-date-input");
 const profileEditNameInput = document.getElementById("profile-edit-name");
 const profileEditWeightInput = document.getElementById("profile-edit-weight");
 const profileEditHeightInput = document.getElementById("profile-edit-height");
@@ -1250,6 +1251,14 @@ recordExerciseInput?.addEventListener("keydown", (event) => {
 });
 
 recordWeightInput?.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" || event.shiftKey || event.isComposing) {
+    return;
+  }
+  event.preventDefault();
+  focusWithoutScroll(recordDateInput);
+});
+
+recordDateInput?.addEventListener("keydown", (event) => {
   if (event.key !== "Enter" || event.shiftKey || event.isComposing) {
     return;
   }
@@ -2958,6 +2967,9 @@ function openRecordFlow() {
   recordFlowSaving = false;
   recordExerciseInput.value = "";
   recordWeightInput.value = "";
+  if (recordDateInput) {
+    recordDateInput.value = todayValue();
+  }
   setBodyScrollLock(true);
   recordOverlay.hidden = false;
   runMotion(recordOverlay, { opacity: [0, 1] }, { duration: 0.18, easing: "ease-out" });
@@ -3018,6 +3030,12 @@ async function submitRecordFlow() {
     focusWithoutScroll(recordWeightInput);
     return;
   }
+  const workoutDate = String(recordDateInput?.value || "").trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(workoutDate)) {
+    showToast("Выберите корректную дату");
+    focusWithoutScroll(recordDateInput);
+    return;
+  }
 
   try {
     recordFlowSaving = true;
@@ -3031,6 +3049,7 @@ async function submitRecordFlow() {
         user_id: Number(state.userId),
         exercise,
         best_weight: bestWeight,
+        workout_date: workoutDate,
       }),
     });
     const result = await response.json().catch(() => ({}));

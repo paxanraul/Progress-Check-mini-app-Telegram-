@@ -5467,17 +5467,30 @@ textarea {
   }
 
   .record-modal .record-metrics {
-    grid-template-columns: 1fr;
-    gap: 12px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: 10px;
   }
 
   .record-modal .metric-big {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
     gap: 8px;
+    min-width: 0;
   }
 
   #record-weight-input,
   #record-date-input {
     width: 100%;
     max-width: 100%;
+    min-width: 0;
+    height: 56px;
+    min-height: 56px;
+    padding-inline: 12px;
+    font-size: 16px;
+    box-sizing: border-box;
   }
 }

@@ -4,6 +4,13 @@ from pathlib import Path
 
 
 DB_PATH = Path("gym_bot.db")
+WORKOUT_OPTIONAL_COLUMNS = (
+    ("sets", "INTEGER NOT NULL DEFAULT 1"),
+    ("is_record", "INTEGER NOT NULL DEFAULT 0"),
+    ("workout_name", "TEXT"),
+    ("wellbeing_note", "TEXT"),
+    ("session_key", "TEXT"),
+)
 
 
 def get_connection() -> sqlite3.Connection:
@@ -55,36 +62,13 @@ def init_db() -> None:
             )
             """
         )
-        ensure_column(
-            cursor=cursor,
-            table_name="workouts",
-            column_name="sets",
-            definition="INTEGER NOT NULL DEFAULT 1",
-        )
-        ensure_column(
-            cursor=cursor,
-            table_name="workouts",
-            column_name="is_record",
-            definition="INTEGER NOT NULL DEFAULT 0",
-        )
-        ensure_column(
-            cursor=cursor,
-            table_name="workouts",
-            column_name="workout_name",
-            definition="TEXT",
-        )
-        ensure_column(
-            cursor=cursor,
-            table_name="workouts",
-            column_name="wellbeing_note",
-            definition="TEXT",
-        )
-        ensure_column(
-            cursor=cursor,
-            table_name="workouts",
-            column_name="session_key",
-            definition="TEXT",
-        )
+        for column_name, definition in WORKOUT_OPTIONAL_COLUMNS:
+            ensure_column(
+                cursor=cursor,
+                table_name="workouts",
+                column_name=column_name,
+                definition=definition,
+            )
         connection.commit()
 
 
@@ -244,14 +228,6 @@ def get_records(user_id: int) -> list[sqlite3.Row]:
         return cursor.fetchall()
 
 
-def get_all_user_ids() -> list[int]:
-    with closing(get_connection()) as connection:
-        cursor = connection.cursor()
-        cursor.execute("SELECT user_id FROM users")
-        rows = cursor.fetchall()
-        return [int(row["user_id"]) for row in rows]
-
-
 def get_all_started_user_ids() -> list[int]:
     with closing(get_connection()) as connection:
         cursor = connection.cursor()
@@ -264,14 +240,6 @@ def get_started_users_count() -> int:
     with closing(get_connection()) as connection:
         cursor = connection.cursor()
         cursor.execute("SELECT COUNT(*) AS total FROM started_users")
-        row = cursor.fetchone()
-        return int(row["total"]) if row else 0
-
-
-def get_registered_users_count() -> int:
-    with closing(get_connection()) as connection:
-        cursor = connection.cursor()
-        cursor.execute("SELECT COUNT(*) AS total FROM users")
         row = cursor.fetchone()
         return int(row["total"]) if row else 0
 

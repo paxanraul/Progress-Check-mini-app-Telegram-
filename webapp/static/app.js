@@ -2908,7 +2908,10 @@ async function handleDeleteWorkoutDay() {
   if (state.workoutFlow.saving) {
     return;
   }
-  const confirmed = window.confirm(`Удалить тренировку за ${formatDate(state.workoutFlow.sourceDate)}?`);
+  const confirmed = await askDeleteConfirmation({
+    text: `Удалить тренировку за ${formatDate(state.workoutFlow.sourceDate)}?`,
+    subtext: "Это действие нельзя отменить.",
+  });
   if (!confirmed) {
     return;
   }
@@ -3090,7 +3093,10 @@ async function deleteSelectedRecords() {
   if (!state.recordsEditMode || state.selectedRecordExercises.size === 0) {
     return;
   }
-  const confirmed = window.confirm(`Удалить выбранные рекорды: ${state.selectedRecordExercises.size} шт.?`);
+  const confirmed = await askDeleteConfirmation({
+    text: `Удалить выбранные рекорды: ${state.selectedRecordExercises.size} шт.?`,
+    subtext: "Будут удалены только отмеченные записи.",
+  });
   if (!confirmed) {
     return;
   }
@@ -3126,7 +3132,10 @@ async function deleteAllRecords() {
   if (!records.length) {
     return;
   }
-  const confirmed = window.confirm(`Удалить все рекорды (${records.length})?`);
+  const confirmed = await askDeleteConfirmation({
+    text: `Удалить все рекорды (${records.length})?`,
+    subtext: "Это действие нельзя отменить.",
+  });
   if (!confirmed) {
     return;
   }

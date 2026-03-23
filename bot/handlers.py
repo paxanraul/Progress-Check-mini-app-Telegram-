@@ -89,6 +89,15 @@ class WorkoutForm(StatesGroup):
     decision = State()
 
 
+async def ensure_active_workout_state(event: CallbackQuery, state: FSMContext) -> bool:
+    current_state = await state.get_state()
+    if current_state and current_state.startswith("WorkoutForm:"):
+        return True
+
+    await event.answer("Нет активной записи тренировки.", show_alert=False)
+    return False
+
+
 @router.message(CommandStart())
 async def cmd_start(message: Message, state: FSMContext) -> None:
     if message.from_user:
@@ -232,12 +241,12 @@ async def menu_home(message: Message) -> None:
 async def menu_records(message: Message) -> None:
     await message.answer(
         "Рекорды уже отображаются на главном экране и внутри mini app.",
-        reply_markup=main_menu_keyboard(message.from_user.id),
+        reply_markup=main_menu_keyboard(),
     )
 
 
-@router.message(F.text == "Вопросы")
-async def menu_questions(message: Message) -> None:
+@router.message(F.text == "Мини-гайд")
+async def menu_mini_guide(message: Message) -> None:
     await message.answer("Выбери тему:", reply_markup=faq_keyboard())
 
 
@@ -258,9 +267,7 @@ async def start_workout_flow(message: Message, state: FSMContext, user_id: int) 
 
 @router.callback_query(F.data == "workout_cancel")
 async def workout_cancel(callback: CallbackQuery, state: FSMContext) -> None:
-    current_state = await state.get_state()
-    if not current_state or not current_state.startswith("WorkoutForm:"):
-        await callback.answer("Нет активной записи тренировки.", show_alert=False)
+    if not await ensure_active_workout_state(callback, state):
         return
 
     await state.clear()
@@ -271,9 +278,7 @@ async def workout_cancel(callback: CallbackQuery, state: FSMContext) -> None:
 
 @router.callback_query(F.data == "workout_reset")
 async def workout_reset(callback: CallbackQuery, state: FSMContext) -> None:
-    current_state = await state.get_state()
-    if not current_state or not current_state.startswith("WorkoutForm:"):
-        await callback.answer("Нет активной записи тренировки.", show_alert=False)
+    if not await ensure_active_workout_state(callback, state):
         return
 
     await state.set_state(WorkoutForm.workout_date)
@@ -288,9 +293,7 @@ async def workout_reset(callback: CallbackQuery, state: FSMContext) -> None:
 
 @router.callback_query(F.data == "workout_add_more")
 async def workout_add_more(callback: CallbackQuery, state: FSMContext) -> None:
-    current_state = await state.get_state()
-    if not current_state or not current_state.startswith("WorkoutForm:"):
-        await callback.answer("Нет активной записи тренировки.", show_alert=False)
+    if not await ensure_active_workout_state(callback, state):
         return
 
     await state.set_state(WorkoutForm.exercise)
@@ -317,9 +320,7 @@ async def workout_date_today(callback: CallbackQuery, state: FSMContext) -> None
 
 @router.callback_query(F.data == "workout_finish")
 async def workout_finish(callback: CallbackQuery, state: FSMContext) -> None:
-    current_state = await state.get_state()
-    if not current_state or not current_state.startswith("WorkoutForm:"):
-        await callback.answer("Нет активной записи тренировки.", show_alert=False)
+    if not await ensure_active_workout_state(callback, state):
         return
 
     data = await state.get_data()
@@ -486,28 +487,9 @@ async def send_main_screen(message: Message, user_id: int) -> None:
 
     await message.answer(
         summary + history + records_block,
-        reply_markup=main_menu_keyboard(user_id),
+        reply_markup=main_menu_keyboard(),
         parse_mode="HTML",
     )
-
-
-async def send_records_screen(message: Message, user_id: int) -> None:
-    if not get_user(user_id):
-        await message.answer("Сначала заполни профиль через /start.")
-        return
-
-    records = get_records(user_id)
-    if not records:
-        await message.answer(
-            "Пока нет записей тренировок. Добавь первую через кнопку 'Добавить тренировку'.",
-            reply_markup=main_menu_keyboard(user_id),
-        )
-        return
-
-    lines = ["Твои рекорды:"]
-    for index, row in enumerate(records, start=1):
-        lines.append(f"{index}. {row['exercise']}: {row['best_weight']:.1f} кг")
-    await message.answer("\n".join(lines), reply_markup=main_menu_keyboard(user_id))
 
 
 def parse_float(value: str) -> float | None:

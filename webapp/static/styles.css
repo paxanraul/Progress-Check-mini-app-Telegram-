@@ -5400,6 +5400,18 @@ textarea {
 #record-weight-input {
   appearance: textfield;
   -moz-appearance: textfield;
+  padding-inline: 0;
+  text-indent: 0;
+  text-align: center;
+  text-align-last: center;
+  line-height: var(--scale-control-height);
+  direction: ltr;
+  caret-color: currentColor;
+}
+
+#record-weight-input:focus {
+  text-align: center;
+  text-align-last: center;
 }
 
 #record-weight-input::-webkit-outer-spin-button,

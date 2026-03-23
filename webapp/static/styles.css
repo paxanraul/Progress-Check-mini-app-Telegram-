@@ -5386,6 +5386,11 @@ textarea {
   -moz-appearance: textfield;
 }
 
+#record-date-input {
+  appearance: none;
+  -webkit-appearance: none;
+}
+
 #record-weight-input::-webkit-outer-spin-button,
 #record-weight-input::-webkit-inner-spin-button {
   -webkit-appearance: none;

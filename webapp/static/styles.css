@@ -5287,6 +5287,64 @@ textarea {
   font-size: var(--scale-large-text);
 }
 
+.history-head-right {
+  gap: calc(var(--scale-unit) * 0.7);
+}
+
+.history-head-right .history-date {
+  font-size: calc(var(--scale-unit) * 1.16);
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  color: rgba(244, 247, 251, 0.86);
+}
+
+.history-head-right .history-edit-btn {
+  width: calc(var(--scale-unit) * 1.85);
+  height: calc(var(--scale-unit) * 1.85);
+  min-height: calc(var(--scale-unit) * 1.85);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: rgba(244, 247, 251, 0.72);
+}
+
+.history-head-right .history-edit-btn:hover {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.96);
+  transform: translateY(-1px);
+}
+
+.history-head-right .history-edit-btn i {
+  font-size: calc(var(--scale-unit) * 1.3);
+}
+
+.plus {
+  font-size: calc(var(--scale-unit) * 1.7 + 3px);
+}
+
+.modal-head-spacer {
+  display: block;
+}
+
+.record-head-spacer {
+  width: var(--scale-icon-button);
+  height: var(--scale-icon-button);
+}
+
+.record-modal .modal-head {
+  display: grid;
+  grid-template-columns: var(--scale-icon-button) 1fr var(--scale-icon-button);
+  align-items: center;
+  column-gap: calc(var(--scale-unit) * 0.6);
+}
+
+.record-modal .modal-head p {
+  margin: 0;
+  justify-self: center;
+  text-align: center;
+}
+
 .streak-badge,
 .fire {
   font-size: calc(var(--scale-unit) * 2.05) !important;

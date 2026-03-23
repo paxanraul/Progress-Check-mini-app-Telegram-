@@ -1078,7 +1078,6 @@ bindClick("history-manage-toggle", toggleHistoryManageMode);
 bindClick("history-manage-cancel", disableHistoryManageMode);
 bindClick("history-delete-selected", deleteSelectedHistoryWorkouts);
 bindClick("history-delete-all", deleteAllHistoryWorkouts);
-bindClick("close-record-flow", closeRecordFlow);
 bindClick("save-record-flow", submitRecordFlow);
 bindClick("records-delete-selected", deleteSelectedRecords);
 bindClick("records-delete-all", deleteAllRecords);

@@ -4862,7 +4862,7 @@ body {
 .quote-live-card #quote-text {
   max-width: 460px;
   margin: 0 auto;
-  font-size: clamp(24px, 5.4vw, 31px);
+  font-size: clamp(26px, 5.8vw, 34px);
   line-height: 1.36;
   letter-spacing: -0.045em;
   text-wrap: balance;
@@ -5013,7 +5013,7 @@ body {
   }
 
   .quote-live-card #quote-text {
-    font-size: 24px;
+    font-size: 26px;
   }
 
   .quote-manager-actions,
@@ -5259,7 +5259,7 @@ textarea {
 }
 
 .quote-live-card #quote-text {
-  font-size: clamp(calc(var(--scale-unit) * 1.45), 5vw, calc(var(--scale-unit) * 1.85));
+  font-size: clamp(calc(var(--scale-unit) * 1.6), 5vw, calc(var(--scale-unit) * 2.05));
 }
 
 .record-weight,

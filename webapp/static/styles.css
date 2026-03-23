@@ -5459,3 +5459,259 @@ textarea {
 .section-title .history-manage-btn:not(.is-text-mode) i {
   font-size: calc(var(--scale-unit) * 1.55 + 3px);
 }
+
+/* Final responsive pass for recent UI updates */
+@media (min-width: 768px) {
+  .panel {
+    max-width: min(100%, 760px);
+    margin-inline: auto;
+  }
+
+  .quote-section-card,
+  .profile-card,
+  .section-block,
+  .records-toolbar,
+  .history-bulk-actions,
+  .quote-manager-actions,
+  .quote-modal-actions {
+    max-width: 100%;
+  }
+
+  .workout-modal,
+  .record-modal,
+  .quote-modal,
+  .profile-modal,
+  .confirm-modal {
+    width: min(100%, 620px);
+  }
+
+  .quote-live-card {
+    min-height: calc(var(--scale-unit) * 11.25);
+  }
+
+  .quote-live-card #quote-text {
+    font-size: clamp(28px, 3.2vw, 36px);
+  }
+
+  .bottom-nav {
+    width: min(100%, 620px);
+    margin-inline: auto;
+  }
+}
+
+@media (max-width: 767px) {
+  .panel {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .workout-modal,
+  .record-modal,
+  .quote-modal,
+  .profile-modal,
+  .confirm-modal {
+    width: min(100%, 100vw - 20px);
+    max-height: min(92vh, 880px);
+  }
+
+  .quote-live-card {
+    min-height: calc(var(--scale-unit) * 9.75);
+  }
+
+  .quote-live-card .quote-line {
+    min-height: calc(var(--scale-unit) * 5.8);
+  }
+
+  .quote-live-card #quote-text {
+    font-size: clamp(24px, 5.2vw, 32px);
+    line-height: 1.18;
+    overflow-wrap: anywhere;
+  }
+
+  .quote-manager-actions,
+  .quote-modal-actions,
+  .profile-modal-actions-right,
+  .records-toolbar,
+  .history-bulk-actions.records-bulk-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .profile-modal-actions {
+    gap: var(--scale-gap-md);
+  }
+
+  .profile-modal-actions > .history-bulk-btn {
+    width: 100%;
+  }
+
+  .bottom-nav {
+    width: min(100%, calc(100vw - 20px));
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}
+
+@media (max-width: 560px) {
+  .content {
+    padding-inline: clamp(12px, 4vw, 16px);
+  }
+
+  .quote-live-card,
+  .quote-library-item,
+  .quote-library-empty,
+  .history-card,
+  .field-card,
+  .metrics-card,
+  .date-card,
+  .profile-card,
+  .note-card,
+  .result-card,
+  .search-shell {
+    padding: clamp(14px, 4vw, 18px);
+  }
+
+  .quote-manager-actions,
+  .quote-modal-actions,
+  .profile-modal-actions-right,
+  .records-toolbar,
+  .history-bulk-actions,
+  .chip-row {
+    gap: clamp(8px, 2.8vw, 12px);
+  }
+
+  .record-modal .record-metrics {
+    gap: clamp(10px, 3vw, 14px);
+  }
+
+  .record-modal .metric-big,
+  .profile-number-field,
+  .records-toolbar .records-tool-btn,
+  .quote-manager-actions .history-bulk-btn,
+  .quote-modal-actions .history-bulk-btn,
+  .profile-modal-actions-right .history-bulk-btn,
+  .history-bulk-actions .history-bulk-btn {
+    min-width: 0;
+  }
+
+  .profile-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .profile-metrics .profile-number-field:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .history-head {
+    gap: clamp(10px, 3vw, 14px);
+  }
+
+  .history-head-right {
+    gap: clamp(8px, 2.4vw, 10px);
+  }
+
+  .history-head-right .history-date {
+    font-size: clamp(14px, 3.8vw, 17px);
+  }
+
+  .bottom-nav {
+    padding-inline: 8px;
+  }
+
+  .nav-btn {
+    min-width: 0;
+    padding-inline: clamp(8px, 2.5vw, 12px);
+  }
+
+  .nav-label {
+    font-size: clamp(11px, 2.9vw, 12px);
+  }
+}
+
+@media (max-width: 420px) {
+  .workout-modal,
+  .record-modal,
+  .quote-modal,
+  .profile-modal,
+  .confirm-modal {
+    width: calc(100vw - 14px);
+    max-height: min(94vh, 860px);
+  }
+
+  .record-modal .record-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  #record-weight-input,
+  #record-date-input,
+  #profile-edit-weight,
+  #profile-edit-height,
+  #profile-edit-experience {
+    padding-inline: 14px;
+  }
+
+  .records-toolbar,
+  .quote-manager-actions,
+  .quote-modal-actions,
+  .profile-modal-actions-right {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-metrics .profile-number-field:last-child {
+    grid-column: auto;
+  }
+
+  .quote-live-card {
+    min-height: calc(var(--scale-unit) * 9.25);
+  }
+
+  .quote-live-card #quote-text {
+    font-size: clamp(22px, 6vw, 28px);
+  }
+
+  .history-head {
+    align-items: flex-start;
+  }
+
+  .history-head-right {
+    width: auto;
+    margin-left: auto;
+  }
+
+  .bottom-nav {
+    width: calc(100vw - 14px);
+    padding-inline: 6px;
+  }
+
+  .nav-btn {
+    padding-inline: 6px;
+  }
+}
+
+@media (max-width: 360px) {
+  .content {
+    padding-inline: 10px;
+  }
+
+  .quote-live-card #quote-text {
+    font-size: clamp(20px, 6.4vw, 24px);
+  }
+
+  .history-head-right .history-date {
+    font-size: 13px;
+  }
+
+  .history-head-right .history-edit-btn {
+    width: calc(var(--scale-unit) * 1.7);
+    height: calc(var(--scale-unit) * 1.7);
+    min-height: calc(var(--scale-unit) * 1.7);
+  }
+
+  .nav-label {
+    font-size: 10px;
+  }
+}

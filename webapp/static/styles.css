@@ -1410,7 +1410,8 @@ body {
 }
 
 .record-modal #record-exercise-input,
-.record-modal #record-weight-input {
+.record-modal #record-weight-input,
+.record-modal #record-date-input {
   transform: none;
   margin: 0;
   min-height: 42px;
@@ -1422,7 +1423,8 @@ body {
   box-sizing: border-box;
 }
 
-.record-modal #record-weight-input {
+.record-modal #record-weight-input,
+.record-modal #record-date-input {
   font-size: 20px;
   font-weight: 600;
   text-align: left;
@@ -1775,6 +1777,7 @@ summary:focus-visible {
 .metric-big input,
 #record-exercise-input,
 #record-weight-input,
+#record-date-input,
 #wellbeing-note {
   width: 100%;
   border-radius: var(--ui-radius-md);
@@ -1788,7 +1791,8 @@ summary:focus-visible {
 #faq-search,
 .field-card input,
 #record-exercise-input,
-#record-weight-input {
+#record-weight-input,
+#record-date-input {
   min-height: 46px;
 }
 
@@ -1797,6 +1801,7 @@ summary:focus-visible {
 #record-exercise-input,
 #faq-search,
 #record-weight-input,
+#record-date-input,
 #exercise-weight-input {
   display: block;
   transform: none !important;
@@ -1824,6 +1829,7 @@ summary:focus-visible {
 #record-exercise-input::placeholder,
 #faq-search::placeholder,
 #record-weight-input::placeholder,
+#record-date-input::placeholder,
 #exercise-weight-input::placeholder {
   color: rgba(156, 166, 180, 0.88);
 }
@@ -2565,6 +2571,7 @@ body::after {
 #record-exercise-input,
 #exercise-weight-input,
 #record-weight-input,
+#record-date-input,
 #faq-search,
 #wellbeing-note {
   padding: 14px 16px !important;
@@ -2578,6 +2585,7 @@ body::after {
 #record-exercise-input::placeholder,
 #exercise-weight-input::placeholder,
 #record-weight-input::placeholder,
+#record-date-input::placeholder,
 #faq-search::placeholder,
 #wellbeing-note::placeholder {
   color: rgba(224, 233, 245, 0.5);
@@ -3924,6 +3932,7 @@ body {
 #exercise-name-input,
 #record-exercise-input,
 #record-weight-input,
+#record-date-input,
 #exercise-weight-input,
 #workout-date-input {
   transform: none;
@@ -4965,7 +4974,8 @@ body {
 #profile-edit-height,
 #profile-edit-experience,
 #record-exercise-input,
-#record-weight-input {
+#record-weight-input,
+#record-date-input {
   border-radius: var(--ui-field-radius);
   padding: var(--ui-field-padding);
   font-size: 16px;
@@ -5384,11 +5394,6 @@ textarea {
 #record-weight-input {
   appearance: textfield;
   -moz-appearance: textfield;
-}
-
-#record-date-input {
-  appearance: none;
-  -webkit-appearance: none;
 }
 
 #record-weight-input::-webkit-outer-spin-button,

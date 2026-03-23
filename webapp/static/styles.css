@@ -5375,6 +5375,7 @@ textarea {
   display: block;
   width: 100%;
   max-width: 100%;
+  height: var(--scale-control-height);
   min-height: var(--scale-control-height);
   padding: 0 18px;
   background: rgba(255, 255, 255, 0.04);
@@ -5410,6 +5411,28 @@ textarea {
 #record-weight-input::placeholder,
 #record-date-input::placeholder {
   text-align: center;
+}
+
+#record-date-input::-webkit-date-and-time-value {
+  min-height: 0;
+  margin: 0;
+  line-height: normal;
+  text-align: center;
+}
+
+#record-date-input::-webkit-datetime-edit {
+  padding: 0;
+}
+
+#record-date-input::-webkit-datetime-edit-fields-wrapper {
+  padding: 0;
+}
+
+#record-date-input::-webkit-datetime-edit-text,
+#record-date-input::-webkit-datetime-edit-day-field,
+#record-date-input::-webkit-datetime-edit-month-field,
+#record-date-input::-webkit-datetime-edit-year-field {
+  padding: 0;
 }
 
 .streak-badge,

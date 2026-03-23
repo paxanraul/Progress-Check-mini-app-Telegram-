@@ -5459,3 +5459,25 @@ textarea {
 .section-title .history-manage-btn:not(.is-text-mode) i {
   font-size: calc(var(--scale-unit) * 1.55 + 3px);
 }
+
+@media (max-width: 420px) {
+  .record-modal .modal-head p {
+    font-size: clamp(24px, 8.8vw, 32px);
+    line-height: 1.05;
+  }
+
+  .record-modal .record-metrics {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .record-modal .metric-big {
+    gap: 8px;
+  }
+
+  #record-weight-input,
+  #record-date-input {
+    width: 100%;
+    max-width: 100%;
+  }
+}

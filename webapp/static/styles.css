@@ -5290,8 +5290,7 @@ textarea {
 }
 
 .quote-live-card #quote-text {
-  font-size: clamp(calc(var(--scale-unit) * 1.82), 5.8vw, calc(var(--scale-unit) * 2.28));
-  line-height: 1.32;
+  font-size: clamp(calc(var(--scale-unit) * 1.6), 5vw, calc(var(--scale-unit) * 2.05));
 }
 
 .record-weight,

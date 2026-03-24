@@ -5286,7 +5286,7 @@ textarea {
 }
 
 .quote-live-card .quote-line {
-  min-height: calc(var(--scale-unit) * 6.2);
+    min-height: calc(var(--scale-unit) * 6.2);
 }
 
 .quote-live-card #quote-text {

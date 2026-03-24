@@ -241,7 +241,7 @@ async def menu_home(message: Message) -> None:
 async def menu_records(message: Message) -> None:
     await message.answer(
         "Рекорды уже отображаются на главном экране и внутри mini app.",
-        reply_markup=main_menu_keyboard(),
+        reply_markup=main_menu_keyboard(message.from_user.id),
     )
 
 
@@ -487,7 +487,7 @@ async def send_main_screen(message: Message, user_id: int) -> None:
 
     await message.answer(
         summary + history + records_block,
-        reply_markup=main_menu_keyboard(),
+        reply_markup=main_menu_keyboard(user_id),
         parse_mode="HTML",
     )
 

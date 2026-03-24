@@ -1,113 +1,183 @@
 ﻿<!DOCTYPE html>
 <html lang="ru">
 <head>
+  <!-- Метаданные страницы и базовые настройки отображения -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
+  <!-- Заголовок вкладки браузера -->
   <title>Progress Check</title>
+
+  <!-- Подключение библиотеки иконок -->
   <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+
+  <!-- Подключение основных стилей приложения -->
   <link rel="stylesheet" href="/static/styles.css?v=85">
 </head>
 <body>
+  <!-- Внешняя рамка интерфейса -->
   <div class="device-shell">
+    <!-- Декоративная подсветка экрана -->
     <div class="screen-glow"></div>
-    <div class="app-shell">
-      <header class="topbar">
 
+    <!-- Основная оболочка приложения -->
+    <div class="app-shell">
+      <!-- Верхняя шапка -->
+      <header class="topbar">
+        <!-- Заголовок текущего экрана -->
         <h1 id="screen-title">Главная</h1>
-        
       </header>
 
+      <!-- Основная область контента -->
       <main class="content">
+        <!-- Экран "Главная" -->
         <section class="panel active" data-panel="home">
+          <!-- Верхний блок главной страницы -->
           <div class="hero-row">
-         
+            <!-- Бейдж серии тренировок -->
             <div class="streak-badge"><span id="streak-value">0</span><span class="fire">🔥</span></div>
           </div>
 
+          <!-- Кнопка запуска сценария добавления тренировки -->
           <button class="action-card primary" id="open-workout-flow" type="button">
             <span>Добавить тренировку</span>
             <span class="plus">+</span>
           </button>
 
+          <!-- Блок цитат на главной странице -->
           <section class="quote-card quote-section-card" aria-live="polite" aria-atomic="true">
+            <!-- Кнопка открытия управления цитатами -->
             <button class="quote-manage-btn" id="open-quote-overlay" type="button" aria-label="Добавить цитату">
               <i class='bx bx-cog'></i>
             </button>
+
+            <!-- Карточка текущей отображаемой цитаты -->
             <div class="quote-live-card" id="quote-live-card">
+              <!-- Строка с текстом цитаты и декоративным курсором -->
               <div class="quote-line">
                 <span id="quote-text"></span>
                 <span class="quote-cursor" aria-hidden="true"></span>
               </div>
             </div>
+
+            <!-- Скрытый список всех сохраненных цитат -->
             <div id="quotes-list" class="quote-list" hidden></div>
           </section>
         </section>
 
+        <!-- Экран "Профиль" -->
         <section class="panel" data-panel="profile">
+          <!-- Карточка с основными данными пользователя -->
           <section class="profile-card">
+            <!-- Шапка карточки профиля -->
             <div class="profile-card-head">
               <h2>Мои данные</h2>
+
+              <!-- Кнопка открытия редактирования профиля -->
               <button class="profile-manage-btn" id="open-profile-overlay" type="button" aria-label="Редактировать профиль">
                 <i class='bx bx-cog'></i>
               </button>
             </div>
+
+            <!-- Список параметров профиля -->
             <div class="profile-list">
+              <!-- Имя пользователя -->
               <div class="profile-line"><span>Имя</span><strong id="profile-name">Пользователь</strong></div>
+
+              <!-- Текущий вес -->
               <div class="profile-line"><span>Вес</span><strong id="weight-value">—</strong></div>
+
+              <!-- Текущий рост -->
               <div class="profile-line"><span>Рост</span><strong id="height-value">—</strong></div>
+
+              <!-- Стаж тренировок -->
               <div class="profile-line"><span>Стаж</span><strong id="experience-value">—</strong></div>
+
+              <!-- Количество сохраненных тренировок -->
               <div class="profile-line"><span>Тренировок</span><strong id="workouts-value">0</strong></div>
             </div>
           </section>
 
+          <!-- Блок истории тренировок -->
           <section class="section-block">
+            <!-- Заголовок секции истории -->
             <div class="section-title">
               <h2>История тренировок</h2>
+
+              <!-- Кнопка включения режима редактирования истории -->
               <button class="history-manage-btn" id="history-manage-toggle" type="button" aria-label="Изменить историю тренировок">
                 <i class='bx bx-cog'></i>
               </button>
             </div>
+
+            <!-- Панель массовых действий над историей тренировок -->
             <div class="history-bulk-actions" id="history-bulk-actions" hidden>
               <button class="history-bulk-btn" id="history-delete-selected" type="button">Удалить выбранные</button>
               <button class="history-bulk-btn danger" id="history-delete-all" type="button">Удалить все</button>
               <button class="history-bulk-btn subtle" id="history-manage-cancel" type="button">Отмена</button>
             </div>
+
+            <!-- Контейнер списка тренировок -->
             <div id="history-list" class="list-stack"></div>
           </section>
         </section>
 
+        <!-- Экран "Рекорды" -->
         <section class="panel" data-panel="records">
+          <!-- Панель действий для рекордов -->
           <div class="records-toolbar">
+            <!-- Кнопка перехода в режим редактирования рекордов -->
             <button class="records-tool-btn" type="button" id="delete-btn" aria-label="Режим редактирования рекордов">Изменить</button>
+
+            <!-- Кнопка открытия формы добавления рекорда -->
             <button class="records-tool-btn add" type="button" id="move-btn" aria-label="Добавить рекорд">Добавить</button>
           </div>
+
+          <!-- Панель массовых действий над рекордами -->
           <div class="history-bulk-actions records-bulk-actions" id="records-bulk-actions" hidden>
             <button class="history-bulk-btn" id="records-delete-selected" type="button">Удалить выбранные</button>
             <button class="history-bulk-btn danger" id="records-delete-all" type="button">Удалить все</button>
             <button class="history-bulk-btn subtle" id="records-manage-cancel" type="button">Отмена</button>
           </div>
+
+          <!-- Список рекордов -->
           <div id="records-list" class="list-stack"></div>
         </section>
 
+        <!-- Экран с вопросами и поиском -->
         <section class="panel" data-panel="faq">
+          <!-- Обертка поискового поля -->
           <div class="search-shell">
+            <!-- Поле поиска по вопросам -->
             <input type="search" id="faq-search" placeholder="Поиск вопросов...">
           </div>
+
+          <!-- Контейнер вкладок или категорий FAQ -->
           <div id="faq-tabs" class="chip-row"></div>
+
+          <!-- Список вопросов и ответов -->
           <div id="faq-list" class="list-stack"></div>
         </section>
       </main>
 
+      <!-- Нижнее меню навигации -->
       <nav class="bottom-nav" id="bottom-nav">
+        <!-- Декоративный индикатор активной вкладки -->
         <span class="nav-pill" id="nav-pill" aria-hidden="true"></span>
+
+        <!-- Кнопка перехода на главную -->
         <button class="nav-btn active" data-tab="home" type="button">
           <span class="nav-icon"><i class='bx bx-home-alt-2'></i></span>
           <span class="nav-label">Главная</span>
         </button>
+
+        <!-- Кнопка перехода в профиль -->
         <button class="nav-btn" data-tab="profile" type="button">
           <span class="nav-icon"><i class='bx bx-user'></i></span>
           <span class="nav-label">Профиль</span>
         </button>
+
+        <!-- Кнопка перехода к рекордам -->
         <button class="nav-btn" data-tab="records" type="button">
           <span class="nav-icon"><i class='bx bx-trophy'></i></span>
           <span class="nav-label">Рекорды</span>
@@ -116,39 +186,60 @@
     </div>
   </div>
 
+  <!-- Модальное окно добавления и редактирования тренировки -->
   <div class="workout-overlay" id="workout-overlay" hidden>
     <div class="workout-modal">
+      <!-- Верхняя панель модального окна тренировки -->
       <div class="modal-head">
+        <!-- Кнопка закрытия модального окна -->
         <button class="modal-close-btn" id="close-workout-flow" type="button" aria-label="Отмена">×</button>
+
+        <!-- Заголовок текущего шага сценария -->
         <p id="modal-title">Добавить упражнения</p>
+
+        <!-- Кнопка финального сохранения тренировки -->
         <button class="icon-btn subtle" id="save-workout-flow" type="button" aria-label="Сохранить" hidden aria-hidden="true" tabindex="-1">✓</button>
       </div>
+
+      <!-- Шаг со списком упражнений тренировки -->
       <section class="modal-step active" data-step="list">
+        <!-- Поле названия тренировки -->
         <label class="field-card workout-name-card">
-          
           <input type="text" id="workout-name-input" placeholder="Название тренировки">
         </label>
+
+        <!-- Временный список добавленных упражнений -->
         <div id="draft-list" class="draft-list"></div>
+
+        <!-- Кнопка добавления нового упражнения -->
         <button class="action-card secondary" id="add-draft-item" type="button">
           <span>Добавить упражнение</span>
           <span class="plus">+</span>
         </button>
+
+        <!-- Кнопка удаления всей тренировки -->
         <button class="action-card danger" id="delete-workout-day" type="button" hidden>
           <span>Удалить тренировку</span>
           <span class="pluss"><i class='bx bx-trash'></i></span>
         </button>
       </section>
 
+      <!-- Шаг ввода параметров одного упражнения -->
       <section class="modal-step" data-step="form">
+        <!-- Поле названия упражнения -->
         <label class="field-card">
-         
           <input type="text" id="exercise-name-input" placeholder="Название упражнения">
         </label>
+
+        <!-- Карточка с метриками упражнения -->
         <div class="metrics-card">
+          <!-- Поле веса -->
           <div class="metric-big">
             <span class="field-label">Вес (кг)</span>
             <input type="number" id="exercise-weight-input" min="0" step="0.5" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*" placeholder="80">
           </div>
+
+          <!-- Блок выбора количества подходов -->
           <div class="counter-line">
             <span>Подходы</span>
             <div class="counter-control">
@@ -157,6 +248,8 @@
               <button class="counter-btn" data-counter="sets" data-direction="1" type="button">+</button>
             </div>
           </div>
+
+          <!-- Блок выбора количества повторов -->
           <div class="counter-line">
             <span>Повторы</span>
             <div class="counter-control">
@@ -166,20 +259,23 @@
             </div>
           </div>
         </div>
+
+        <!-- Кнопка подтверждения упражнения -->
         <button class="action-card primary" id="confirm-draft-item" type="button" hidden aria-hidden="true" tabindex="-1">
           <span>Сохранить упражнение</span>
           <span class="plusik"><i class='bx bx-check'></i></span>
         </button>
       </section>
 
+      <!-- Шаг выбора даты тренировки -->
       <section class="modal-step" data-step="date">
         <div class="date-card">
           <p class="field-label">Дата тренировки</p>
-          
           <input type="date" id="workout-date-input">
         </div>
       </section>
 
+      <!-- Шаг добавления заметки о самочувствии -->
       <section class="modal-step" data-step="comment">
         <section class="note-card workout-comment-card">
           <p class="workout-comment-heading">Состояние</p>
@@ -188,31 +284,46 @@
         </section>
       </section>
 
+      <!-- Финальный экран после сохранения тренировки -->
       <section class="modal-step" data-step="done">
         <div class="result-card">
           <h2 class="savedtrain">Тренировка сохранена</h2>
           <p id="saved-summary">Все упражнения добавлены.</p>
         </div>
       </section>
-    </div>  
+    </div>
   </div>
 
+  <!-- Модальное окно добавления рекорда -->
   <div class="workout-overlay" id="record-overlay" hidden>
     <div class="workout-modal record-modal">
+      <!-- Верхняя панель модального окна рекорда -->
       <div class="modal-head">
+        <!-- Декоративный отступ для балансировки заголовка -->
         <span class="modal-head-spacer record-head-spacer" aria-hidden="true"></span>
+
+        <!-- Заголовок окна рекорда -->
         <p>Добавить рекорд</p>
+
+        <!-- Кнопка сохранения рекорда -->
         <button class="icon-btn subtle" id="save-record-flow" type="button" aria-label="Сохранить" hidden aria-hidden="true" tabindex="-1">✓</button>
       </div>
+
+      <!-- Основная форма рекорда -->
       <section class="modal-step active">
+        <!-- Поле названия упражнения для рекорда -->
         <label class="field-card record-field">
           <input type="text" id="record-exercise-input" placeholder="Название упражнения">
         </label>
+
+        <!-- Блок ввода веса рекорда -->
         <div class="metrics-card record-metrics">
           <div class="metric-big">
             <span class="field-label">Вес (кг)</span>
             <input type="number" id="record-weight-input" min="0" step="0.5" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*" placeholder="100">
           </div>
+
+          <!-- Поле выбора даты рекорда -->
           <div class="metric-big">
             <span class="field-label">Дата</span>
             <input type="date" id="record-date-input">
@@ -222,32 +333,52 @@
     </div>
   </div>
 
+  <!-- Модальное окно управления цитатами -->
   <div class="workout-overlay" id="quote-overlay" hidden>
     <div class="workout-modal quote-modal">
+      <!-- Верхняя панель модального окна цитат -->
       <div class="modal-head">
+        <!-- Кнопка закрытия окна цитат -->
         <button class="modal-close-btn" id="close-quote-overlay" type="button" aria-label="Отмена">×</button>
+
+        <!-- Заголовок режима работы с цитатой -->
         <p id="quote-modal-title">Новая цитата</p>
       </div>
+
+      <!-- Основной шаг редактирования цитат -->
       <section class="modal-step active quote-modal-step">
+        <!-- Кнопки добавления и удаления цитат -->
         <div class="quote-manager-actions">
           <button class="history-bulk-btn" id="add-quote-overlay" type="button">Добавить</button>
           <button class="history-bulk-btn danger" id="delete-selected-quote-overlay" type="button">Удалить</button>
         </div>
+
+        <!-- Библиотека уже сохраненных цитат -->
         <section class="quote-library" aria-label="Сохраненные цитаты">
           <div class="quote-library-head">
             <p class="quote-library-title">Сохраненные цитаты</p>
           </div>
+
+          <!-- Список сохраненных цитат -->
           <div id="quote-library-list" class="quote-library-list"></div>
         </section>
+
+        <!-- Поле ввода текста цитаты -->
         <label class="field-card quote-field">
           <span class="field-label">Текст цитаты</span>
           <textarea id="quote-input" rows="5" maxlength="240" placeholder="Напишите цитату, которая будет мотивировать вас"></textarea>
         </label>
+
+        <!-- Поле ввода автора цитаты -->
         <label class="field-card quote-field">
           <span class="field-label">Автор</span>
           <input type="text" id="quote-author-input" maxlength="80" placeholder="Необязательно">
         </label>
+
+        <!-- Подсказка по ограничениям формы -->
         <p class="quote-form-hint" id="quote-form-hint">Можно добавить до 5 цитат. Пустую цитату сохранить нельзя.</p>
+
+        <!-- Кнопки отмены и сохранения цитаты -->
         <div class="quote-modal-actions">
           <button class="history-bulk-btn subtle" id="cancel-quote-overlay" type="button">Отмена</button>
           <button class="history-bulk-btn" id="save-quote-overlay" type="button">Сохранить</button>
@@ -256,34 +387,55 @@
     </div>
   </div>
 
+  <!-- Модальное окно редактирования профиля -->
   <div class="workout-overlay" id="profile-overlay" hidden>
     <div class="workout-modal profile-modal">
+      <!-- Верхняя панель модального окна профиля -->
       <div class="modal-head">
+        <!-- Кнопка закрытия окна профиля -->
         <button class="modal-close-btn" id="close-profile-overlay" type="button" aria-label="Закрыть">×</button>
+
+        <!-- Заголовок редактирования профиля -->
         <p>Редактировать профиль</p>
       </div>
+
+      <!-- Основная форма профиля -->
       <section class="modal-step active profile-modal-step">
+        <!-- Поле имени -->
         <label class="field-card profile-field">
           <span class="field-label">Имя</span>
           <input type="text" id="profile-edit-name" maxlength="80" placeholder="Введите имя">
         </label>
+
+        <!-- Блок числовых параметров профиля -->
         <div class="profile-metrics">
+          <!-- Поле веса -->
           <label class="profile-number-field">
             <span class="field-label">Вес (кг)</span>
             <input type="number" id="profile-edit-weight" min="0" step="0.1" inputmode="decimal" placeholder="70">
           </label>
+
+          <!-- Поле роста -->
           <label class="profile-number-field">
             <span class="field-label">Рост (см)</span>
             <input type="number" id="profile-edit-height" min="0" step="0.1" inputmode="decimal" placeholder="180">
           </label>
+
+          <!-- Поле стажа -->
           <label class="profile-number-field">
             <span class="field-label">Стаж (лет)</span>
             <input type="number" id="profile-edit-experience" min="0" step="0.1" inputmode="decimal" placeholder="2">
           </label>
         </div>
+
+        <!-- Подсказка по использованию формы профиля -->
         <p class="quote-form-hint profile-form-hint">Можно изменить одно поле или обновить весь профиль сразу.</p>
+
+        <!-- Кнопки управления данными профиля -->
         <div class="profile-modal-actions">
           <button class="history-bulk-btn danger" id="clear-profile-data" type="button">Очистить все данные</button>
+
+          <!-- Правая группа кнопок формы профиля -->
           <div class="profile-modal-actions-right">
             <button class="history-bulk-btn subtle" id="cancel-profile-overlay" type="button">Отмена</button>
             <button class="history-bulk-btn" id="save-profile-overlay" type="button">Сохранить</button>
@@ -293,18 +445,30 @@
     </div>
   </div>
 
+  <!-- Модальное окно подтверждения удаления -->
   <div class="workout-overlay" id="confirm-overlay" hidden>
     <div class="workout-modal confirm-modal">
+      <!-- Верхняя панель окна подтверждения -->
       <div class="modal-head">
+        <!-- Кнопка закрытия окна подтверждения -->
         <button class="modal-close-btn" id="close-confirm-overlay" type="button" aria-label="Закрыть">×</button>
+
+        <!-- Заголовок окна -->
         <p>Подтверждение</p>
+
+        <!-- Дополнительная метка действия -->
         <span class="profile-modal-balance">Удаление</span>
       </div>
+
+      <!-- Основной шаг подтверждения -->
       <section class="modal-step active confirm-modal-step">
+        <!-- Карточка с текстом подтверждения -->
         <div class="note-card confirm-card">
           <p class="confirm-title" id="confirm-delete-text">Вы уверены, что хотите удалить?</p>
           <p class="confirm-subtitle" id="confirm-delete-subtext"></p>
         </div>
+
+        <!-- Кнопки отмены и подтверждения удаления -->
         <div class="confirm-actions">
           <button class="history-bulk-btn subtle" id="cancel-confirm-overlay" type="button">Отмена</button>
           <button class="history-bulk-btn danger" id="approve-confirm-overlay" type="button">Удалить</button>
@@ -313,14 +477,14 @@
     </div>
   </div>
 
+  <!-- Подключение Telegram Web App API -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <!-- Подключение библиотеки анимаций -->
   <script src="https://unpkg.com/motion@11.11.13/dist/motion.js"></script>
-<script src="/static/app.js?v=57"></script>
+
+  <!-- Подключение основного JavaScript-файла приложения -->
+  <script src="/static/app.js?v=58"></script>
 </body>
 </html>
-
-
-
-
-
 

@@ -68,6 +68,8 @@ const modalSteps = [...document.querySelectorAll(".modal-step")];
 const modalTitle = document.getElementById("modal-title");
 const dateInput = document.getElementById("workout-date-input");
 const workoutNameInput = document.getElementById("workout-name-input");
+const exerciseNameInput = document.getElementById("exercise-name-input");
+const exerciseWeightInput = document.getElementById("exercise-weight-input");
 const wellbeingNoteInput = document.getElementById("wellbeing-note");
 const deleteWorkoutDayBtn = document.getElementById("delete-workout-day");
 const removeRecordBtn = document.getElementById("delete-btn");
@@ -130,6 +132,8 @@ let recordFlowSaving = false;
 let profileSaving = false;
 let confirmResolver = null;
 
+const enterFieldBehaviors = new WeakMap();
+
 const handleWorkoutBottomButtonClick = () => {
   if (state.workoutFlow.step === "form") {
     saveDraftItem();
@@ -149,6 +153,61 @@ const handleRecordBottomButtonClick = () => {
 const handleRecordSecondaryButtonClick = () => {
   closeRecordFlow();
 };
+
+function blurSubmittedField(node) {
+  if (node instanceof HTMLElement && typeof node.blur === "function") {
+    node.blur();
+  }
+  freezeViewportFor(220);
+}
+
+function registerEnterFieldBehavior(node, behavior = {}) {
+  if (!(node instanceof HTMLElement)) {
+    return;
+  }
+  enterFieldBehaviors.set(node, behavior);
+}
+
+function isEnterManagedField(node) {
+  return (
+    node instanceof HTMLInputElement ||
+    node instanceof HTMLTextAreaElement ||
+    node instanceof HTMLSelectElement
+  );
+}
+
+async function handleEnterFieldKeydown(event) {
+  if (
+    event.key !== "Enter" ||
+    event.defaultPrevented ||
+    event.isComposing ||
+    event.repeat ||
+    !isEnterManagedField(event.target) ||
+    event.target.disabled ||
+    event.target.readOnly ||
+    event.target.type === "hidden"
+  ) {
+    return;
+  }
+
+  event.preventDefault();
+
+  const field = event.target;
+  const behavior = enterFieldBehaviors.get(field);
+
+  try {
+    const result =
+      typeof behavior?.submit === "function" ? await behavior.submit(field, event) : true;
+    if (result === false) {
+      return;
+    }
+  } catch (error) {
+    console.error("enter field submission failed", error);
+    return;
+  }
+
+  blurSubmittedField(field);
+}
 
 function focusWithoutScroll(node) {
   if (!node || typeof node.focus !== "function") {
@@ -1194,78 +1253,6 @@ quoteInput?.addEventListener("input", () => {
 
 quoteAuthorInput?.addEventListener("input", updateQuoteFormState);
 
-quoteAuthorInput?.addEventListener("keydown", (event) => {
-  if (event.key !== "Enter" || event.shiftKey || event.isComposing) {
-    return;
-  }
-  event.preventDefault();
-  void saveCustomQuote();
-});
-
-quoteInput?.addEventListener("keydown", (event) => {
-  if (event.key !== "Enter" || event.shiftKey || event.isComposing || (!event.ctrlKey && !event.metaKey)) {
-    return;
-  }
-  event.preventDefault();
-  void saveCustomQuote();
-});
-
-profileEditNameInput?.addEventListener("keydown", (event) => {
-  if (event.key !== "Enter" || event.shiftKey || event.isComposing) {
-    return;
-  }
-  event.preventDefault();
-  focusWithoutScroll(profileEditWeightInput);
-});
-
-profileEditWeightInput?.addEventListener("keydown", (event) => {
-  if (event.key !== "Enter" || event.shiftKey || event.isComposing) {
-    return;
-  }
-  event.preventDefault();
-  focusWithoutScroll(profileEditHeightInput);
-});
-
-profileEditHeightInput?.addEventListener("keydown", (event) => {
-  if (event.key !== "Enter" || event.shiftKey || event.isComposing) {
-    return;
-  }
-  event.preventDefault();
-  focusWithoutScroll(profileEditExperienceInput);
-});
-
-profileEditExperienceInput?.addEventListener("keydown", (event) => {
-  if (event.key !== "Enter" || event.shiftKey || event.isComposing) {
-    return;
-  }
-  event.preventDefault();
-  void saveProfileOverlay();
-});
-
-recordExerciseInput?.addEventListener("keydown", (event) => {
-  if (event.key !== "Enter" || event.shiftKey || event.isComposing) {
-    return;
-  }
-  event.preventDefault();
-  focusWithoutScroll(recordWeightInput);
-});
-
-recordWeightInput?.addEventListener("keydown", (event) => {
-  if (event.key !== "Enter" || event.shiftKey || event.isComposing) {
-    return;
-  }
-  event.preventDefault();
-  focusWithoutScroll(recordDateInput);
-});
-
-recordDateInput?.addEventListener("keydown", (event) => {
-  if (event.key !== "Enter" || event.shiftKey || event.isComposing) {
-    return;
-  }
-  event.preventDefault();
-  void submitRecordFlow();
-});
-
 dateInput.addEventListener("change", (event) => {
   if (!event.target.value) {
     return;
@@ -1294,19 +1281,53 @@ faqSearch.addEventListener("input", (event) => {
   renderFaq();
 });
 
-wellbeingNoteInput?.addEventListener("keydown", (event) => {
-  if (!state.workoutFlow.open || state.workoutFlow.step !== "comment") {
-    return;
-  }
-  if (event.key !== "Enter" || event.shiftKey || event.isComposing) {
-    return;
-  }
-  event.preventDefault();
-  if (event.repeat) {
-    return;
-  }
-  handleSaveFlowButton();
+registerEnterFieldBehavior(faqSearch, {
+  submit: () => {
+    state.faqQuery = faqSearch.value.trim().toLowerCase();
+    renderFaq();
+    return true;
+  },
 });
+registerEnterFieldBehavior(workoutNameInput);
+registerEnterFieldBehavior(exerciseNameInput);
+registerEnterFieldBehavior(exerciseWeightInput);
+registerEnterFieldBehavior(dateInput, {
+  submit: () => {
+    if (dateInput?.value) {
+      state.workoutFlow.date = dateInput.value;
+    }
+    return true;
+  },
+});
+registerEnterFieldBehavior(wellbeingNoteInput);
+registerEnterFieldBehavior(recordExerciseInput);
+registerEnterFieldBehavior(recordWeightInput);
+registerEnterFieldBehavior(recordDateInput);
+registerEnterFieldBehavior(quoteInput, {
+  submit: () => {
+    quoteInput.classList.remove("is-invalid");
+    updateQuoteFormState();
+    return true;
+  },
+});
+registerEnterFieldBehavior(quoteAuthorInput, {
+  submit: () => {
+    updateQuoteFormState();
+    return true;
+  },
+});
+registerEnterFieldBehavior(profileEditNameInput);
+registerEnterFieldBehavior(profileEditWeightInput);
+registerEnterFieldBehavior(profileEditHeightInput);
+registerEnterFieldBehavior(profileEditExperienceInput);
+
+document.addEventListener(
+  "keydown",
+  (event) => {
+    void handleEnterFieldKeydown(event);
+  },
+  true
+);
 
 syncQuoteLoop();
 
@@ -2138,7 +2159,7 @@ function closeProfileOverlay() {
 async function saveProfileOverlay() {
   blurActiveField();
   if (profileSaving || !state.userId) {
-    return;
+    return false;
   }
 
   const name = String(profileEditNameInput?.value || "").trim();
@@ -2150,22 +2171,22 @@ async function saveProfileOverlay() {
   if (!name) {
     showToast("Введите имя");
     focusWithoutScroll(profileEditNameInput);
-    return;
+    return false;
   }
   if (!Number.isFinite(weight) || weight <= 0) {
     showToast("Введите корректный вес");
     focusWithoutScroll(profileEditWeightInput);
-    return;
+    return false;
   }
   if (!Number.isFinite(height) || height <= 0) {
     showToast("Введите корректный рост");
     focusWithoutScroll(profileEditHeightInput);
-    return;
+    return false;
   }
   if (experienceRaw && (!Number.isFinite(experienceValue) || experienceValue < 0)) {
     showToast("Введите корректный стаж");
     focusWithoutScroll(profileEditExperienceInput);
-    return;
+    return false;
   }
 
   const experience = experienceRaw ? `${experienceRaw} лет` : "";
@@ -2193,9 +2214,11 @@ async function saveProfileOverlay() {
     closeProfileOverlay();
     showToast("Профиль обновлён");
     await refreshAppDataStable();
+    return true;
   } catch (error) {
     console.error(error);
     showToast("Не удалось обновить профиль");
+    return false;
   } finally {
     profileSaving = false;
   }
@@ -2244,7 +2267,7 @@ async function saveCustomQuote() {
   blurActiveField();
   if (!state.userId) {
     showToast("Сначала открой профиль в боте");
-    return;
+    return false;
   }
 
   const text = String(quoteInput?.value || "").trim();
@@ -2259,12 +2282,12 @@ async function saveCustomQuote() {
     }
     updateQuoteFormState();
     showToast("Введите текст цитаты");
-    return;
+    return false;
   }
   if (!isEditing && state.userQuotes.length >= MAX_CUSTOM_QUOTES) {
     showToast(`Можно сохранить максимум ${MAX_CUSTOM_QUOTES} цитат`);
     updateQuoteFormState();
-    return;
+    return false;
   }
 
   if (isEditing && editingIndex >= 0 && state.userQuotes[editingIndex]) {
@@ -2279,6 +2302,7 @@ async function saveCustomQuote() {
   resetQuoteForm();
   closeQuoteOverlay();
   showToast(isEditing ? "Цитата обновлена" : "Цитата добавлена");
+  return true;
 }
 
 function deleteCustomQuote(index) {
@@ -2453,14 +2477,18 @@ function resetWorkoutFlowForNewEntry() {
 }
 
 function saveDraftItem() {
-  const nameInput = document.getElementById("exercise-name-input");
-  const weightInput = document.getElementById("exercise-weight-input");
+  const nameInput = exerciseNameInput;
+  const weightInput = exerciseWeightInput;
+  if (!nameInput || !weightInput) {
+    return false;
+  }
   const name = nameInput.value.trim();
   const weight = Number(weightInput.value);
 
   if (!name) {
     showToast("Введи название упражнения");
-    return;
+    focusWithoutScroll(nameInput);
+    return false;
   }
 
   const nextItem = {
@@ -2482,34 +2510,37 @@ function saveDraftItem() {
   state.workoutFlow.draft = { sets: 1, reps: 8 };
   state.workoutFlow.step = "list";
   renderWorkoutFlow();
+  return true;
 }
 
-function handleSaveFlowButton() {
+async function handleSaveFlowButton() {
   blurActiveField();
   if (state.workoutFlow.step === "list") {
     if (!state.workoutFlow.items.length) {
       showToast("Сначала добавь хотя бы одно упражнение");
-      return;
+      return false;
     }
     state.workoutFlow.step = "comment";
     renderWorkoutFlow();
-    return;
+    return true;
   }
 
   if (state.workoutFlow.step === "comment") {
     state.workoutFlow.step = "date";
     renderWorkoutFlow();
-    return;
+    return true;
   }
 
   if (state.workoutFlow.step === "date") {
-    submitWorkoutFlow();
-    return;
+    return submitWorkoutFlow();
   }
 
   if (state.workoutFlow.step === "done") {
     closeWorkoutFlow();
+    return true;
   }
+
+  return false;
 }
 
 function renderWorkoutFlow() {
@@ -2697,7 +2728,7 @@ function saveButtonLabel(step, saving) {
 
 async function submitWorkoutFlow() {
   if (state.workoutFlow.saving) {
-    return;
+    return false;
   }
 
   state.workoutFlow.saving = true;
@@ -2748,9 +2779,11 @@ async function submitWorkoutFlow() {
     resetWorkoutFlowForNewEntry();
     showToast("Тренировка сохранена. Можно добавить новую");
     renderWorkoutFlow();
+    return true;
   } catch (error) {
     console.error(error);
     showToast("Не удалось сохранить тренировку");
+    return false;
   } finally {
     state.workoutFlow.saving = false;
     renderWorkoutFlow();
@@ -3015,29 +3048,29 @@ function closeRecordFlow() {
 async function submitRecordFlow() {
   blurActiveField();
   if (recordFlowSaving) {
-    return;
+    return false;
   }
   if (!state.userId) {
     showToast("Сначала открой профиль в боте");
-    return;
+    return false;
   }
   const exercise = String(recordExerciseInput?.value || "").trim();
   if (!exercise) {
     showToast("Введите название упражнения");
     focusWithoutScroll(recordExerciseInput);
-    return;
+    return false;
   }
   const bestWeight = Number(String(recordWeightInput?.value || "").replace(",", "."));
   if (!Number.isFinite(bestWeight) || bestWeight <= 0) {
     showToast("Введите корректный вес");
     focusWithoutScroll(recordWeightInput);
-    return;
+    return false;
   }
   const workoutDate = String(recordDateInput?.value || "").trim();
   if (!/^\d{4}-\d{2}-\d{2}$/.test(workoutDate)) {
     showToast("Выберите корректную дату");
     focusWithoutScroll(recordDateInput);
-    return;
+    return false;
   }
 
   try {
@@ -3062,9 +3095,11 @@ async function submitRecordFlow() {
     closeRecordFlow();
     showToast("Рекорд добавлен");
     await refreshAppDataStable();
+    return true;
   } catch (error) {
     console.error(error);
     showToast("Не удалось добавить рекорд");
+    return false;
   } finally {
     recordFlowSaving = false;
     syncTelegramBottomButtons();

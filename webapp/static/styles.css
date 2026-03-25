@@ -5426,6 +5426,40 @@ textarea {
   text-align: center;
 }
 
+.record-date-field {
+  position: relative;
+}
+
+.record-date-field #record-date-input {
+  position: relative;
+  z-index: 1;
+  color: transparent;
+  caret-color: transparent;
+}
+
+.record-date-field #record-date-input::-webkit-date-and-time-value {
+  color: transparent;
+}
+
+.record-date-field #record-date-input::-webkit-calendar-picker-indicator {
+  opacity: 0;
+}
+
+.record-date-display {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 18px;
+  color: var(--ui-text-main);
+  font-size: var(--scale-body);
+  font-weight: 500;
+  pointer-events: none;
+  text-align: center;
+}
+
 .streak-badge,
 .fire {
   font-size: calc(var(--scale-unit) * 2.05) !important;
@@ -5508,5 +5542,10 @@ textarea {
 
   .record-modal #record-date-input::-webkit-date-and-time-value {
     text-align: center;
+  }
+
+  .record-date-display {
+    padding-inline: 10px;
+    font-size: 15px;
   }
 }

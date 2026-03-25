@@ -96,6 +96,7 @@ const recordModal = document.querySelector(".record-modal");
 const recordExerciseInput = document.getElementById("record-exercise-input");
 const recordWeightInput = document.getElementById("record-weight-input");
 const recordDateInput = document.getElementById("record-date-input");
+const recordDateDisplay = document.getElementById("record-date-display");
 const profileEditNameInput = document.getElementById("profile-edit-name");
 const profileEditWeightInput = document.getElementById("profile-edit-weight");
 const profileEditHeightInput = document.getElementById("profile-edit-height");
@@ -1304,6 +1305,9 @@ registerEnterFieldBehavior(wellbeingNoteInput);
 registerEnterFieldBehavior(recordExerciseInput);
 registerEnterFieldBehavior(recordWeightInput);
 registerEnterFieldBehavior(recordDateInput);
+recordDateInput?.addEventListener("change", syncRecordDateDisplay);
+recordDateInput?.addEventListener("input", syncRecordDateDisplay);
+syncRecordDateDisplay();
 registerEnterFieldBehavior(quoteInput, {
   submit: () => {
     quoteInput.classList.remove("is-invalid");
@@ -2958,6 +2962,7 @@ function openRecordFlow() {
   if (recordDateInput) {
     recordDateInput.value = todayValue();
   }
+  syncRecordDateDisplay();
   setBodyScrollLock(true);
   recordOverlay.hidden = false;
   runMotion(recordOverlay, { opacity: [0, 1] }, { duration: 0.18, easing: "ease-out" });
@@ -3168,6 +3173,14 @@ function formatDate(value) {
     return value;
   }
   return `${parts[2]}.${parts[1]}.${parts[0].slice(-2)}`;
+}
+
+function syncRecordDateDisplay() {
+  if (!recordDateDisplay) {
+    return;
+  }
+  const value = String(recordDateInput?.value || "").trim();
+  recordDateDisplay.textContent = value ? formatDate(value) : "сегодня";
 }
 
 function todayValue() {

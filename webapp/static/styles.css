@@ -21,6 +21,10 @@
   display: none !important;
 }
 
+.is-enter-hidden {
+  opacity: 0;
+}
+
 html,
 body {
   margin: 0;

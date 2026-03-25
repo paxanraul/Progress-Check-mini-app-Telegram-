@@ -136,6 +136,7 @@ let profileSaving = false;
 let confirmResolver = null;
 
 const enterFieldBehaviors = new WeakMap();
+const ENTER_HIDDEN_FIELD_CLASS = "is-enter-hidden";
 
 const handleWorkoutBottomButtonClick = () => {
   if (state.workoutFlow.step === "form") {
@@ -162,6 +163,18 @@ function blurSubmittedField(node) {
     node.blur();
   }
   freezeViewportFor(220);
+}
+
+function revealSubmittedField(node) {
+  if (node instanceof HTMLElement) {
+    node.classList.remove(ENTER_HIDDEN_FIELD_CLASS);
+  }
+}
+
+function hideSubmittedField(node) {
+  if (node instanceof HTMLElement) {
+    node.classList.add(ENTER_HIDDEN_FIELD_CLASS);
+  }
 }
 
 function registerEnterFieldBehavior(node, behavior = {}) {
@@ -210,12 +223,14 @@ async function handleEnterFieldKeydown(event) {
   }
 
   blurSubmittedField(field);
+  hideSubmittedField(field);
 }
 
 function focusWithoutScroll(node) {
   if (!node || typeof node.focus !== "function") {
     return;
   }
+  revealSubmittedField(node);
   try {
     node.focus({ preventScroll: true });
   } catch (error) {
@@ -1334,6 +1349,16 @@ document.addEventListener(
   "keydown",
   (event) => {
     void handleEnterFieldKeydown(event);
+  },
+  true
+);
+
+document.addEventListener(
+  "focusin",
+  (event) => {
+    if (isEnterManagedField(event.target)) {
+      revealSubmittedField(event.target);
+    }
   },
   true
 );

@@ -5499,7 +5499,14 @@ textarea {
     min-height: 54px;
     padding-inline: 10px;
     font-size: 15px;
-    line-height: 1;
+    line-height: 54px;
+    text-align: center;
+    text-align-last: center;
+    vertical-align: middle;
     box-sizing: border-box;
+  }
+
+  .record-modal #record-date-input::-webkit-date-and-time-value {
+    text-align: center;
   }
 }

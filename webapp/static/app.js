@@ -2056,44 +2056,6 @@ function approveDeleteConfirmation() {
   closeConfirmOverlayWithResult(true);
 }
 
-function askDeleteConfirmation({
-  text = "Вы уверены, что хотите удалить?",
-  subtext = "",
-} = {}) {
-  if (!confirmOverlay || !confirmModal) {
-    return Promise.resolve(window.confirm(text));
-  }
-
-  if (confirmResolver) {
-    const previousResolver = confirmResolver;
-    confirmResolver = null;
-    previousResolver(false);
-  }
-
-  blurActiveField();
-  freezeViewportFor(220);
-  state.confirmOverlayOpen = true;
-  if (confirmDeleteText) {
-    confirmDeleteText.textContent = text;
-  }
-  if (confirmDeleteSubtext) {
-    confirmDeleteSubtext.textContent = subtext;
-    confirmDeleteSubtext.hidden = !subtext;
-  }
-  confirmOverlay.hidden = false;
-  setBodyScrollLock(true);
-  runMotion(confirmOverlay, { opacity: [0, 1] }, { duration: 0.18, easing: "ease-out" });
-  runMotion(
-    confirmModal,
-    { opacity: [0.6, 1], transform: ["translateY(18px) scale(0.985)", "translateY(0px) scale(1)"] },
-    { duration: 0.24, easing: [0.22, 1, 0.36, 1] }
-  );
-
-  return new Promise((resolve) => {
-    confirmResolver = resolve;
-  });
-}
-
 function parseNumericProfileInput(value) {
   const normalized = String(value || "").replace(",", ".").match(/\d+(?:\.\d+)?/);
   return normalized ? normalized[0] : "";
@@ -2225,10 +2187,7 @@ async function clearProfileData() {
   if (profileSaving || !state.userId) {
     return;
   }
-  const confirmed = await askDeleteConfirmation({
-    text: "Вы уверены, что хотите удалить?",
-    subtext: "Будут очищены профиль, история тренировок и рекорды.",
-  });
+  const confirmed = window.confirm("Очистить профиль, историю тренировок и рекорды?");
   if (!confirmed) {
     return;
   }
@@ -2323,10 +2282,9 @@ async function deleteQuoteFromOverlay() {
   const quote = state.userQuotes[index];
   const text = String(quote?.text || "").trim();
   const preview = text.length > 60 ? `${text.slice(0, 60)}...` : text;
-  const confirmed = await askDeleteConfirmation({
-    text: "Удалить цитату?",
-    subtext: preview ? `"${preview}"` : "Будет удалена текущая пользовательская цитата.",
-  });
+  const confirmed = window.confirm(
+    preview ? `Удалить цитату?\n\n"${preview}"` : "Удалить текущую пользовательскую цитату?"
+  );
   if (!confirmed) {
     return;
   }
@@ -3122,10 +3080,9 @@ async function deleteSelectedRecords() {
   if (!state.recordsEditMode || state.selectedRecordExercises.size === 0) {
     return;
   }
-  const confirmed = await askDeleteConfirmation({
-    text: `Удалить выбранные рекорды: ${state.selectedRecordExercises.size} шт.?`,
-    subtext: "Будут удалены только отмеченные записи.",
-  });
+  const confirmed = window.confirm(
+    `Удалить выбранные рекорды: ${state.selectedRecordExercises.size} шт.?`
+  );
   if (!confirmed) {
     return;
   }
@@ -3161,10 +3118,7 @@ async function deleteAllRecords() {
   if (!records.length) {
     return;
   }
-  const confirmed = await askDeleteConfirmation({
-    text: `Удалить все рекорды (${records.length})?`,
-    subtext: "Это действие нельзя отменить.",
-  });
+  const confirmed = window.confirm(`Удалить все рекорды (${records.length})?`);
   if (!confirmed) {
     return;
   }

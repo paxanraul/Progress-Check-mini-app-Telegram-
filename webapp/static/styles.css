@@ -5384,7 +5384,10 @@ textarea {
   color: var(--ui-text-main);
   font-size: var(--scale-body);
   font-weight: 500;
+  line-height: var(--scale-control-height);
   text-align: center;
+  text-align-last: center;
+  vertical-align: middle;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 

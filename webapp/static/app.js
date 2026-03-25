@@ -1728,10 +1728,9 @@ async function deleteSelectedHistoryWorkouts() {
   if (!state.historyEditMode || state.selectedWorkoutSessions.size === 0) {
     return;
   }
-  const confirmed = await askDeleteConfirmation({
-    text: "Вы уверены, что хотите удалить?",
-    subtext: `Будут удалены выбранные тренировки: ${state.selectedWorkoutSessions.size} шт.`,
-  });
+  const confirmed = window.confirm(
+    `Удалить выбранные тренировки: ${state.selectedWorkoutSessions.size} шт.?`
+  );
   if (!confirmed) {
     return;
   }
@@ -1768,10 +1767,7 @@ async function deleteAllHistoryWorkouts() {
     return;
   }
   const count = (state.payload?.history || []).length;
-  const confirmed = await askDeleteConfirmation({
-    text: "Вы уверены, что хотите удалить?",
-    subtext: `Будут удалены все тренировки (${count}).`,
-  });
+  const confirmed = window.confirm(`Удалить все тренировки (${count})?`);
   if (!confirmed) {
     return;
   }
@@ -2966,10 +2962,7 @@ async function handleDeleteWorkoutDay() {
   if (state.workoutFlow.saving) {
     return;
   }
-  const confirmed = await askDeleteConfirmation({
-    text: `Удалить тренировку за ${formatDate(state.workoutFlow.sourceDate)}?`,
-    subtext: "Это действие нельзя отменить.",
-  });
+  const confirmed = window.confirm(`Удалить тренировку за ${formatDate(state.workoutFlow.sourceDate)}?`);
   if (!confirmed) {
     return;
   }

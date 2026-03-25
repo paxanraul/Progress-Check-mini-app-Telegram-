@@ -95,6 +95,7 @@ const workoutModal = document.querySelector(".workout-modal");
 const recordModal = document.querySelector(".record-modal");
 const recordExerciseInput = document.getElementById("record-exercise-input");
 const recordWeightInput = document.getElementById("record-weight-input");
+const recordWeightDisplay = document.getElementById("record-weight-display");
 const recordDateInput = document.getElementById("record-date-input");
 const recordDateDisplay = document.getElementById("record-date-display");
 const profileEditNameInput = document.getElementById("profile-edit-name");
@@ -1305,8 +1306,11 @@ registerEnterFieldBehavior(wellbeingNoteInput);
 registerEnterFieldBehavior(recordExerciseInput);
 registerEnterFieldBehavior(recordWeightInput);
 registerEnterFieldBehavior(recordDateInput);
+recordWeightInput?.addEventListener("change", syncRecordWeightDisplay);
+recordWeightInput?.addEventListener("input", syncRecordWeightDisplay);
 recordDateInput?.addEventListener("change", syncRecordDateDisplay);
 recordDateInput?.addEventListener("input", syncRecordDateDisplay);
+syncRecordWeightDisplay();
 syncRecordDateDisplay();
 registerEnterFieldBehavior(quoteInput, {
   submit: () => {
@@ -2962,6 +2966,7 @@ function openRecordFlow() {
   if (recordDateInput) {
     recordDateInput.value = todayValue();
   }
+  syncRecordWeightDisplay();
   syncRecordDateDisplay();
   setBodyScrollLock(true);
   recordOverlay.hidden = false;
@@ -3181,6 +3186,15 @@ function syncRecordDateDisplay() {
   }
   const value = String(recordDateInput?.value || "").trim();
   recordDateDisplay.textContent = value ? formatDate(value) : "сегодня";
+}
+
+function syncRecordWeightDisplay() {
+  if (!recordWeightDisplay) {
+    return;
+  }
+  const value = String(recordWeightInput?.value || "").trim();
+  recordWeightDisplay.textContent = value || "100";
+  recordWeightDisplay.classList.toggle("is-placeholder", !value);
 }
 
 function todayValue() {

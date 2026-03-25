@@ -1,17 +1,4 @@
 ﻿const telegram = window.Telegram?.WebApp;
-const canRequestTelegramFullscreen = typeof telegram?.requestFullscreen === "function";
-
-function requestTelegramFullscreen() {
-  if (!canRequestTelegramFullscreen) {
-    return;
-  }
-
-  try {
-    telegram.requestFullscreen();
-  } catch (error) {
-    console.warn("telegram fullscreen failed", error);
-  }
-}
 
 if (telegram) {
   telegram.ready();
@@ -20,17 +7,6 @@ if (telegram) {
   } catch (error) {
     console.warn("telegram expand failed", error);
   }
-  requestTelegramFullscreen();
-}
-
-if (canRequestTelegramFullscreen) {
-  document.addEventListener(
-    "pointerdown",
-    () => {
-      requestTelegramFullscreen();
-    },
-    { once: true, passive: true }
-  );
 }
 
 const state = {

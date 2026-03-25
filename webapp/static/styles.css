@@ -5410,6 +5410,19 @@ textarea {
   text-align: center;
 }
 
+.record-modal #record-weight-input,
+.record-modal #record-date-input {
+  text-align: center;
+}
+
+.record-modal #record-date-input {
+  text-align-last: center;
+}
+
+.record-modal #record-date-input::-webkit-date-and-time-value {
+  text-align: center;
+}
+
 .streak-badge,
 .fire {
   font-size: calc(var(--scale-unit) * 2.05) !important;

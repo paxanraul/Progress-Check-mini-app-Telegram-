@@ -6,6 +6,7 @@
   --card-soft: linear-gradient(180deg, rgba(34, 35, 42, 0.94), rgba(21, 22, 28, 0.96));
   --line: rgba(255, 255, 255, 0.09);
   --line-strong: rgba(255, 255, 255, 0.18);
+  --ui-text-main: #f5f5f7;
   --text: #f5f5f7;
   --muted: #8f9199;
   --gold: #d0a528;
@@ -5454,9 +5455,9 @@ textarea {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 18px;
+  padding: 0 8px;
   color: var(--ui-text-main);
-  font-size: var(--scale-body);
+  font-size: clamp(11px, 3.5vw, 15px);
   font-weight: 500;
   pointer-events: none;
   text-align: center;
@@ -5552,8 +5553,8 @@ textarea {
   }
 
   .record-date-display {
-    padding-inline: 10px;
-    font-size: 12px;
+    padding-inline: 6px;
+    font-size: clamp(10px, 3vw, 13px);
     justify-content: center;
   }
 }

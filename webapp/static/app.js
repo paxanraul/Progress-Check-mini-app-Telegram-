@@ -136,18 +136,6 @@ let profileSaving = false;
 let confirmResolver = null;
 
 const enterFieldBehaviors = new WeakMap();
-const ENTER_HIDDEN_FIELD_CLASS = "is-enter-hidden";
-const ENTER_HIDE_TARGET_SELECTORS = [
-  ".field-card",
-  ".date-card",
-  ".metric-big",
-  ".profile-number-field",
-  ".profile-field",
-  ".quote-field",
-  ".note-card",
-  ".workout-comment-card",
-  ".search-shell",
-].join(", ");
 
 const handleWorkoutBottomButtonClick = () => {
   if (state.workoutFlow.step === "form") {
@@ -174,28 +162,6 @@ function blurSubmittedField(node) {
     node.blur();
   }
   freezeViewportFor(220);
-}
-
-function revealSubmittedField(node) {
-  const target = getEnterHideTarget(node);
-  if (target) {
-    target.classList.remove(ENTER_HIDDEN_FIELD_CLASS);
-  }
-}
-
-function hideSubmittedField(node) {
-  const target = getEnterHideTarget(node);
-  if (target) {
-    target.classList.add(ENTER_HIDDEN_FIELD_CLASS);
-  }
-}
-
-function getEnterHideTarget(node) {
-  if (!(node instanceof HTMLElement)) {
-    return null;
-  }
-  const target = node.closest(ENTER_HIDE_TARGET_SELECTORS);
-  return target instanceof HTMLElement ? target : node;
 }
 
 function registerEnterFieldBehavior(node, behavior = {}) {
@@ -244,14 +210,12 @@ async function handleEnterFieldKeydown(event) {
   }
 
   blurSubmittedField(field);
-  hideSubmittedField(field);
 }
 
 function focusWithoutScroll(node) {
   if (!node || typeof node.focus !== "function") {
     return;
   }
-  revealSubmittedField(node);
   try {
     node.focus({ preventScroll: true });
   } catch (error) {
@@ -1370,16 +1334,6 @@ document.addEventListener(
   "keydown",
   (event) => {
     void handleEnterFieldKeydown(event);
-  },
-  true
-);
-
-document.addEventListener(
-  "focusin",
-  (event) => {
-    if (isEnterManagedField(event.target)) {
-      revealSubmittedField(event.target);
-    }
   },
   true
 );

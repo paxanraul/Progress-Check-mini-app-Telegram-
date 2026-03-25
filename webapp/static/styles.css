@@ -5428,6 +5428,8 @@ textarea {
 
 .record-date-field {
   position: relative;
+  width: 100%;
+  min-width: 0;
 }
 
 .record-date-field #record-date-input {
@@ -5458,6 +5460,11 @@ textarea {
   font-weight: 500;
   pointer-events: none;
   text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-sizing: border-box;
+  min-width: 0;
 }
 
 .streak-badge,
@@ -5546,6 +5553,7 @@ textarea {
 
   .record-date-display {
     padding-inline: 10px;
-    font-size: 15px;
+    font-size: 12px;
+    justify-content: center;
   }
 }

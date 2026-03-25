@@ -22,7 +22,7 @@
 }
 
 .is-enter-hidden {
-  opacity: 0;
+  display: none !important;
 }
 
 html,

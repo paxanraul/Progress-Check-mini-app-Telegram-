@@ -63,6 +63,16 @@ FAQ_DATA = {
 }
 
 
+@web.middleware
+async def no_cache_static_middleware(request: web.Request, handler):
+    response = await handler(request)
+    if request.path in {"/", "/app"} or request.path.startswith("/static/"):
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    return response
+
+
 def json_error(message: str, status: int = 400) -> web.Response:
     return web.json_response({"error": message}, status=status)
 
@@ -675,7 +685,7 @@ async def delete_record(request: web.Request) -> web.Response:
 
 
 def create_web_app() -> web.Application:
-    app = web.Application()
+    app = web.Application(middlewares=[no_cache_static_middleware])
     app.router.add_get("/", index)
     app.router.add_get("/app", index)
     app.router.add_get("/api/app-data", app_data)

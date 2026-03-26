@@ -55,7 +55,6 @@ const QUOTE_TYPING_MAX_STEP_MS = 34;
 const QUOTE_TYPING_TARGET_DURATION_MS = 1600;
 
 const TELEGRAM_BUTTON_ICON_ID = "5334882760735598374";
-const telegramButtonState = new WeakMap();
 const navButtons = [...document.querySelectorAll(".nav-btn")];
 const bottomNav = document.getElementById("bottom-nav");
 const navPill = document.getElementById("nav-pill");
@@ -93,12 +92,6 @@ const deleteSelectedQuoteBtn = document.getElementById("delete-selected-quote-ov
 const saveQuoteBtn = document.getElementById("save-quote-overlay");
 const workoutModal = document.querySelector(".workout-modal");
 const recordModal = document.querySelector(".record-modal");
-const workoutFlowActions = document.getElementById("workout-flow-actions");
-const workoutPrimaryActionBtn = document.getElementById("workout-primary-action");
-const workoutSecondaryActionBtn = document.getElementById("workout-secondary-action");
-const recordFlowActions = document.getElementById("record-flow-actions");
-const recordPrimaryActionBtn = document.getElementById("record-primary-action");
-const recordSecondaryActionBtn = document.getElementById("record-secondary-action");
 const recordExerciseInput = document.getElementById("record-exercise-input");
 const recordWeightInput = document.getElementById("record-weight-input");
 const recordWeightDisplay = document.getElementById("record-weight-display");
@@ -125,6 +118,9 @@ const motionAnimate = typeof motionApi?.animate === "function" ? motionApi.anima
 const motionStagger = typeof motionApi?.stagger === "function" ? motionApi.stagger : null;
 const telegramMainButton = telegram?.MainButton || null;
 const telegramSecondaryButton = telegram?.SecondaryButton || null;
+const supportsTelegramButtonEmoji =
+  typeof telegram?.isVersionAtLeast === "function" ? telegram.isVersionAtLeast("9.5") : false;
+
 let stableViewportHeight = 0;
 let wellbeingNoteSaving = false;
 let lastWorkoutStep = "";
@@ -279,20 +275,10 @@ function setBottomButtonParams(button, params) {
     return;
   }
   const nextParams = { ...params };
-  const runtime = getTelegramButtonState(button);
-  const nextKey = JSON.stringify(
-    Object.keys(nextParams)
-      .sort()
-      .reduce((accumulator, key) => {
-        accumulator[key] = nextParams[key];
-        return accumulator;
-      }, {})
-  );
-  if (runtime.paramsKey === nextKey) {
-    return;
+  if (!supportsTelegramButtonEmoji) {
+    delete nextParams.icon_custom_emoji_id;
   }
   button.setParams(nextParams);
-  runtime.paramsKey = nextKey;
 }
 
 function hideButtonProgress(button) {
@@ -307,187 +293,31 @@ function showButtonProgress(button) {
   }
 }
 
-function getTelegramButtonState(button) {
-  let runtime = telegramButtonState.get(button);
-  if (!runtime) {
-    runtime = {
-      paramsKey: null,
-      clickHandler: null,
-      visible: null,
-      enabled: null,
-      progressVisible: null,
-    };
-    telegramButtonState.set(button, runtime);
-  }
-  return runtime;
-}
-
-function setBottomButtonClickHandler(button, handler) {
-  if (!button) {
-    return;
-  }
-  const runtime = getTelegramButtonState(button);
-  if (runtime.clickHandler === handler) {
-    return;
-  }
-  if (runtime.clickHandler && typeof button.offClick === "function") {
-    button.offClick(runtime.clickHandler);
-  }
-  if (handler && typeof button.onClick === "function") {
-    button.onClick(handler);
-  }
-  runtime.clickHandler = handler || null;
-}
-
-function setBottomButtonProgressVisibility(button, visible) {
-  if (!button) {
-    return;
-  }
-  const runtime = getTelegramButtonState(button);
-  if (runtime.progressVisible === visible) {
-    return;
-  }
-  if (visible) {
-    showButtonProgress(button);
-  } else {
-    hideButtonProgress(button);
-  }
-  runtime.progressVisible = visible;
-}
-
-function setBottomButtonEnabled(button, enabled) {
-  if (!button) {
-    return;
-  }
-  const runtime = getTelegramButtonState(button);
-  if (runtime.enabled === enabled) {
-    return;
-  }
-  if (enabled) {
-    button.enable();
-  } else {
-    button.disable();
-  }
-  runtime.enabled = enabled;
-}
-
-function setBottomButtonVisibility(button, visible) {
-  if (!button) {
-    return;
-  }
-  const runtime = getTelegramButtonState(button);
-  if (runtime.visible === visible) {
-    return;
-  }
-  if (visible) {
-    button.show();
-  } else {
-    button.hide();
-    runtime.enabled = null;
-    runtime.progressVisible = false;
-  }
-  runtime.visible = visible;
-}
-
-function applyBottomButtonState(button, config) {
-  if (!button) {
-    return;
-  }
-
-  if (!config || config.visible === false) {
-    setBottomButtonClickHandler(button, null);
-    setBottomButtonProgressVisibility(button, false);
-    setBottomButtonVisibility(button, false);
-    return;
-  }
-
-  setBottomButtonParams(button, config.params || {});
-  setBottomButtonClickHandler(button, config.onClick || null);
-  setBottomButtonEnabled(button, Boolean(config.enabled));
-  setBottomButtonVisibility(button, true);
-  setBottomButtonProgressVisibility(button, Boolean(config.progressVisible));
-}
-
 function hideTelegramBottomButtons() {
-  applyBottomButtonState(telegramMainButton, { visible: false });
-  applyBottomButtonState(telegramSecondaryButton, { visible: false });
-}
-
-function setInlineButtonLoading(button, loading) {
-  if (!button) {
-    return;
-  }
-  button.classList.toggle("is-loading", Boolean(loading));
-  button.setAttribute("aria-busy", loading ? "true" : "false");
-}
-
-function syncInlineBottomButtons() {
-  const workoutVisible = Boolean(state.workoutFlow.open && overlay && !overlay.hidden);
-  if (workoutFlowActions && workoutPrimaryActionBtn && workoutSecondaryActionBtn) {
-    workoutFlowActions.hidden = !workoutVisible;
-    if (workoutVisible) {
-      const workoutButtonText =
-        state.workoutFlow.step === "form"
-          ? "Сохранить упр."
-          : state.workoutFlow.step === "date"
-            ? "Сохранить"
-            : state.workoutFlow.step === "done"
-              ? "Готово"
-              : "Далее";
-      const workoutButtonDisabled =
-        state.workoutFlow.saving ||
-        (state.workoutFlow.step === "list" && !state.workoutFlow.items.length);
-
-      workoutSecondaryActionBtn.textContent = "Назад";
-      workoutSecondaryActionBtn.disabled = state.workoutFlow.saving;
-      workoutPrimaryActionBtn.textContent = workoutButtonText;
-      workoutPrimaryActionBtn.disabled = workoutButtonDisabled;
-      setInlineButtonLoading(workoutPrimaryActionBtn, state.workoutFlow.saving);
-      setInlineButtonLoading(workoutSecondaryActionBtn, false);
+  if (telegramMainButton) {
+    if (typeof telegramMainButton.offClick === "function") {
+      telegramMainButton.offClick(handleWorkoutBottomButtonClick);
+      telegramMainButton.offClick(handleRecordBottomButtonClick);
     }
+    hideButtonProgress(telegramMainButton);
+    telegramMainButton.hide();
   }
-
-  const recordVisible = Boolean(recordOverlay && !recordOverlay.hidden);
-  if (recordFlowActions && recordPrimaryActionBtn && recordSecondaryActionBtn) {
-    recordFlowActions.hidden = !recordVisible;
-    if (recordVisible) {
-      recordSecondaryActionBtn.textContent = "Отмена";
-      recordSecondaryActionBtn.disabled = recordFlowSaving;
-      recordPrimaryActionBtn.textContent = "Сохранить";
-      recordPrimaryActionBtn.disabled = recordFlowSaving;
-      setInlineButtonLoading(recordPrimaryActionBtn, recordFlowSaving);
-      setInlineButtonLoading(recordSecondaryActionBtn, false);
+  if (telegramSecondaryButton) {
+    if (typeof telegramSecondaryButton.offClick === "function") {
+      telegramSecondaryButton.offClick(handleWorkoutSecondaryButtonClick);
+      telegramSecondaryButton.offClick(handleRecordSecondaryButtonClick);
     }
+    hideButtonProgress(telegramSecondaryButton);
+    telegramSecondaryButton.hide();
   }
 }
 
 function syncTelegramBottomButtons() {
-  syncInlineBottomButtons();
-
-  const workoutHandledInline = Boolean(
-    state.workoutFlow.open &&
-      overlay &&
-      !overlay.hidden &&
-      workoutFlowActions &&
-      workoutPrimaryActionBtn &&
-      workoutSecondaryActionBtn
-  );
-  const recordHandledInline = Boolean(
-    recordOverlay &&
-      !recordOverlay.hidden &&
-      recordFlowActions &&
-      recordPrimaryActionBtn &&
-      recordSecondaryActionBtn
-  );
-
-  if (workoutHandledInline || recordHandledInline) {
-    hideTelegramBottomButtons();
-    return;
-  }
-
   if (!telegramMainButton || !telegramSecondaryButton) {
     return;
   }
+
+  hideTelegramBottomButtons();
 
   if (state.workoutFlow.open) {
     const workoutButtonText =
@@ -502,56 +332,62 @@ function syncTelegramBottomButtons() {
       state.workoutFlow.saving ||
       (state.workoutFlow.step === "list" && !state.workoutFlow.items.length);
 
-    applyBottomButtonState(telegramMainButton, {
-      visible: true,
-      params: {
-        text: workoutButtonText,
-        has_shine_effect: !workoutButtonDisabled,
-        icon_custom_emoji_id: TELEGRAM_BUTTON_ICON_ID,
-      },
-      onClick: handleWorkoutBottomButtonClick,
-      enabled: !workoutButtonDisabled && !state.workoutFlow.saving,
-      progressVisible: state.workoutFlow.saving,
+    setBottomButtonParams(telegramMainButton, {
+      text: workoutButtonText,
+      has_shine_effect: !workoutButtonDisabled,
+      icon_custom_emoji_id: TELEGRAM_BUTTON_ICON_ID,
     });
-    applyBottomButtonState(telegramSecondaryButton, {
-      visible: true,
-      params: {
-        text: "Назад",
-        position: "left",
-      },
-      onClick: handleWorkoutSecondaryButtonClick,
-      enabled: true,
-      progressVisible: false,
+    telegramMainButton.onClick(handleWorkoutBottomButtonClick);
+    if (state.workoutFlow.saving) {
+      telegramMainButton.disable();
+      showButtonProgress(telegramMainButton);
+    } else if (workoutButtonDisabled) {
+      hideButtonProgress(telegramMainButton);
+      telegramMainButton.disable();
+    } else {
+      hideButtonProgress(telegramMainButton);
+      telegramMainButton.enable();
+    }
+    telegramMainButton.show();
+
+    setBottomButtonParams(telegramSecondaryButton, {
+      text: "Назад",
+      position: "left",
     });
+    telegramSecondaryButton.onClick(handleWorkoutSecondaryButtonClick);
+    telegramSecondaryButton.enable();
+    telegramSecondaryButton.show();
     return;
   }
 
   if (recordOverlay && !recordOverlay.hidden) {
-    applyBottomButtonState(telegramMainButton, {
-      visible: true,
-      params: {
-        text: "Сохранить",
-        has_shine_effect: !recordFlowSaving,
-        icon_custom_emoji_id: TELEGRAM_BUTTON_ICON_ID,
-      },
-      onClick: handleRecordBottomButtonClick,
-      enabled: !recordFlowSaving,
-      progressVisible: recordFlowSaving,
+    setBottomButtonParams(telegramMainButton, {
+      text: "Сохранить",
+      has_shine_effect: !recordFlowSaving,
+      icon_custom_emoji_id: TELEGRAM_BUTTON_ICON_ID,
     });
-    applyBottomButtonState(telegramSecondaryButton, {
-      visible: true,
-      params: {
-        text: "Отмена",
-        position: "left",
-      },
-      onClick: handleRecordSecondaryButtonClick,
-      enabled: !recordFlowSaving,
-      progressVisible: false,
-    });
-    return;
-  }
+    telegramMainButton.onClick(handleRecordBottomButtonClick);
+    if (recordFlowSaving) {
+      telegramMainButton.disable();
+      showButtonProgress(telegramMainButton);
+    } else {
+      hideButtonProgress(telegramMainButton);
+      telegramMainButton.enable();
+    }
+    telegramMainButton.show();
 
-  hideTelegramBottomButtons();
+    setBottomButtonParams(telegramSecondaryButton, {
+      text: "Отмена",
+      position: "left",
+    });
+    telegramSecondaryButton.onClick(handleRecordSecondaryButtonClick);
+    if (recordFlowSaving) {
+      telegramSecondaryButton.disable();
+    } else {
+      telegramSecondaryButton.enable();
+    }
+    telegramSecondaryButton.show();
+  }
 }
 
 function clearQuoteLoopTimer() {
@@ -1300,15 +1136,11 @@ bindClick("close-workout-flow", closeWorkoutFlow);
 bindClick("add-draft-item", openDraftFormForCreate);
 bindClick("confirm-draft-item", saveDraftItem);
 bindClick("save-workout-flow", handleSaveFlowButton);
-bindClick("workout-primary-action", handleSaveFlowButton);
-bindClick("workout-secondary-action", handleWorkoutSecondaryButtonClick);
 bindClick("history-manage-toggle", toggleHistoryManageMode);
 bindClick("history-manage-cancel", disableHistoryManageMode);
 bindClick("history-delete-selected", deleteSelectedHistoryWorkouts);
 bindClick("history-delete-all", deleteAllHistoryWorkouts);
 bindClick("save-record-flow", submitRecordFlow);
-bindClick("record-primary-action", handleRecordBottomButtonClick);
-bindClick("record-secondary-action", handleRecordSecondaryButtonClick);
 bindClick("records-delete-selected", deleteSelectedRecords);
 bindClick("records-delete-all", deleteAllRecords);
 bindClick("records-manage-cancel", disableRecordsManageMode);
@@ -1331,7 +1163,6 @@ deleteWorkoutDayBtn?.addEventListener("click", handleDeleteWorkoutDay);
 addRecordBtn?.addEventListener("click", openRecordFlow);
 removeRecordBtn?.addEventListener("click", toggleRecordsManageMode);
 preventTapFocusShift(document.getElementById("open-workout-flow"));
-hideTelegramBottomButtons();
 
 recordOverlay?.addEventListener("click", (event) => {
   if (event.target === recordOverlay) {
@@ -2514,6 +2345,7 @@ function openWorkoutFlow() {
   overlay.hidden = false;
   animateModalOpen();
   renderWorkoutFlow();
+  syncTelegramBottomButtons();
 }
 
 async function closeWorkoutFlow() {
@@ -2583,6 +2415,7 @@ function openEditWorkoutFlow(sourceSessionKey, sourceDate = "") {
   overlay.hidden = false;
   animateModalOpen();
   renderWorkoutFlow();
+  syncTelegramBottomButtons();
 }
 
 function resetWorkoutFlowForNewEntry() {
@@ -3449,4 +3282,4 @@ function decodeHtml(value) {
   const textarea = document.createElement("textarea");
   textarea.innerHTML = value;
   return textarea.value;
-}///пенис 
+}

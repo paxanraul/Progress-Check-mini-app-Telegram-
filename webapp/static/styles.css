@@ -668,85 +668,6 @@ color: #d3d4da;
   touch-action: pan-y;
 }
 
-.workout-modal.with-bottom-actions {
-  display: flex;
-  flex-direction: column;
-}
-
-.workout-modal.with-bottom-actions .modal-step.active {
-  flex: 1 1 auto;
-  min-height: 0;
-}
-
-.modal-bottom-actions {
-  position: sticky;
-  bottom: 0;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  align-items: stretch;
-  width: 100%;
-  margin-top: auto;
-  padding-top: 14px;
-  padding-bottom: calc(4px + env(safe-area-inset-bottom, 0px));
-  background:
-    linear-gradient(
-      180deg,
-      rgba(8, 8, 12, 0),
-      rgba(8, 8, 12, 0.88) 28%,
-      rgba(8, 8, 12, 0.98)
-    );
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  z-index: 4;
-}
-
-.modal-bottom-actions[hidden] {
-  display: none !important;
-}
-
-.modal-bottom-actions .history-bulk-btn {
-  position: relative;
-  min-width: 0;
-  width: 100%;
-  max-width: 100%;
-  min-height: 56px;
-  padding-inline: 16px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  box-sizing: border-box;
-  transform: none !important;
-}
-
-.modal-bottom-actions .history-bulk-btn:active {
-  transform: translateY(1px) !important;
-}
-
-.modal-bottom-actions .history-bulk-btn.is-loading {
-  color: transparent;
-  pointer-events: none;
-}
-
-.modal-bottom-actions .history-bulk-btn.is-loading::after {
-  content: "";
-  position: absolute;
-  inset: 50% auto auto 50%;
-  width: 18px;
-  height: 18px;
-  margin: -9px 0 0 -9px;
-  border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.32);
-  border-top-color: rgba(255, 255, 255, 0.96);
-  animation: button-spinner 0.78s linear infinite;
-}
-
-@keyframes button-spinner {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
 html.modal-open,
 body.modal-open {
   overflow: hidden;
@@ -5621,27 +5542,6 @@ textarea {
 }
 
 @media (max-width: 420px) {
-  .workout-overlay {
-    padding: 12px;
-  }
-
-  .workout-modal.with-bottom-actions {
-    max-height: calc(var(--app-vh) - 24px);
-    padding-bottom: 12px;
-  }
-
-  .modal-bottom-actions {
-    gap: 10px;
-    padding-top: 12px;
-    padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px));
-  }
-
-  .modal-bottom-actions .history-bulk-btn {
-    min-height: 54px;
-    padding-inline: 12px;
-    font-size: 16px;
-  }
-
   .record-modal .modal-head p {
     font-size: clamp(24px, 8.8vw, 32px);
     line-height: 1.05;

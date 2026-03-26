@@ -317,11 +317,6 @@ function syncTelegramBottomButtons() {
     return;
   }
 
-function syncTelegramBottomButtons() {
-  if (!telegramMainButton || !telegramSecondaryButton) {
-    return;
-  }
-
   hideTelegramBottomButtons();
 
   if (state.workoutFlow.open) {
@@ -3287,4 +3282,4 @@ function decodeHtml(value) {
   const textarea = document.createElement("textarea");
   textarea.innerHTML = value;
   return textarea.value;
-}///пенис 
+}

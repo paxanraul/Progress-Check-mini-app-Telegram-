@@ -12,7 +12,7 @@
   <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
 
   <!-- Подключение основных стилей приложения -->
-  <link rel="stylesheet" href="/static/styles.css?v=91">
+  <link rel="stylesheet" href="/static/styles.css?v=92">
 </head>
 <body>
   <!-- Внешняя рамка интерфейса -->
@@ -188,7 +188,7 @@
 
   <!-- Модальное окно добавления и редактирования тренировки -->
   <div class="workout-overlay" id="workout-overlay" hidden>
-    <div class="workout-modal">
+    <div class="workout-modal with-bottom-actions">
       <!-- Верхняя панель модального окна тренировки -->
       <div class="modal-head">
         <!-- Кнопка закрытия модального окна -->
@@ -291,12 +291,17 @@
           <p id="saved-summary">Все упражнения добавлены.</p>
         </div>
       </section>
+
+      <div class="modal-bottom-actions" id="workout-flow-actions" hidden>
+        <button class="history-bulk-btn subtle" id="workout-secondary-action" type="button">Назад</button>
+        <button class="history-bulk-btn" id="workout-primary-action" type="button">Далее</button>
+      </div>
     </div>
   </div>
 
   <!-- Модальное окно добавления рекорда -->
   <div class="workout-overlay" id="record-overlay" hidden>
-    <div class="workout-modal record-modal">
+    <div class="workout-modal record-modal with-bottom-actions">
       <!-- Верхняя панель модального окна рекорда -->
       <div class="modal-head">
         <!-- Декоративный отступ для балансировки заголовка -->
@@ -336,6 +341,11 @@
           </div>
         </div>
       </section>
+
+      <div class="modal-bottom-actions" id="record-flow-actions" hidden>
+        <button class="history-bulk-btn subtle" id="record-secondary-action" type="button">Отмена</button>
+        <button class="history-bulk-btn" id="record-primary-action" type="button">Сохранить</button>
+      </div>
     </div>
   </div>
 
@@ -490,7 +500,7 @@
   <script src="https://unpkg.com/motion@11.11.13/dist/motion.js"></script>
 
   <!-- Подключение основного JavaScript-файла приложения -->
-  <script src="/static/app.js?v=62"></script>
+  <script src="/static/app.js?v=64"></script>
 </body>
 </html>
 

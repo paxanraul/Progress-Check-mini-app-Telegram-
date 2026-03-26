@@ -54,8 +54,6 @@ const QUOTE_TYPING_MIN_STEP_MS = 12;
 const QUOTE_TYPING_MAX_STEP_MS = 34;
 const QUOTE_TYPING_TARGET_DURATION_MS = 1600;
 
-const TELEGRAM_BUTTON_ICON_ID = "5334882760735598374";
-
 const navButtons = [...document.querySelectorAll(".nav-btn")];
 const bottomNav = document.getElementById("bottom-nav");
 const navPill = document.getElementById("nav-pill");
@@ -93,6 +91,12 @@ const deleteSelectedQuoteBtn = document.getElementById("delete-selected-quote-ov
 const saveQuoteBtn = document.getElementById("save-quote-overlay");
 const workoutModal = document.querySelector(".workout-modal");
 const recordModal = document.querySelector(".record-modal");
+const workoutFlowActions = document.getElementById("workout-flow-actions");
+const workoutPrimaryActionBtn = document.getElementById("workout-primary-action");
+const workoutSecondaryActionBtn = document.getElementById("workout-secondary-action");
+const recordFlowActions = document.getElementById("record-flow-actions");
+const recordPrimaryActionBtn = document.getElementById("record-primary-action");
+const recordSecondaryActionBtn = document.getElementById("record-secondary-action");
 const recordExerciseInput = document.getElementById("record-exercise-input");
 const recordWeightInput = document.getElementById("record-weight-input");
 const recordWeightDisplay = document.getElementById("record-weight-display");
@@ -119,9 +123,6 @@ const motionAnimate = typeof motionApi?.animate === "function" ? motionApi.anima
 const motionStagger = typeof motionApi?.stagger === "function" ? motionApi.stagger : null;
 const telegramMainButton = telegram?.MainButton || null;
 const telegramSecondaryButton = telegram?.SecondaryButton || null;
-const supportsTelegramButtonEmoji =
-  typeof telegram?.isVersionAtLeast === "function" ? telegram.isVersionAtLeast("9.5") : false;
-
 let stableViewportHeight = 0;
 let wellbeingNoteSaving = false;
 let lastWorkoutStep = "";
@@ -275,11 +276,7 @@ function setBottomButtonParams(button, params) {
   if (!button || typeof button.setParams !== "function") {
     return;
   }
-  const nextParams = { ...params };
-  if (!supportsTelegramButtonEmoji) {
-    delete nextParams.icon_custom_emoji_id;
-  }
-  button.setParams(nextParams);
+  button.setParams({ ...params });
 }
 
 function hideButtonProgress(button) {
@@ -313,82 +310,57 @@ function hideTelegramBottomButtons() {
   }
 }
 
+function setInlineButtonLoading(button, loading) {
+  if (!button) {
+    return;
+  }
+  button.classList.toggle("is-loading", Boolean(loading));
+  button.setAttribute("aria-busy", loading ? "true" : "false");
+}
+
+function syncInlineBottomButtons() {
+  const workoutVisible = Boolean(state.workoutFlow.open && overlay && !overlay.hidden);
+  if (workoutFlowActions && workoutPrimaryActionBtn && workoutSecondaryActionBtn) {
+    workoutFlowActions.hidden = !workoutVisible;
+    if (workoutVisible) {
+      const workoutButtonText =
+        state.workoutFlow.step === "form"
+          ? "Сохранить упр."
+          : state.workoutFlow.step === "date"
+            ? "Сохранить"
+            : state.workoutFlow.step === "done"
+              ? "Готово"
+              : "Далее";
+      const workoutButtonDisabled =
+        state.workoutFlow.saving ||
+        (state.workoutFlow.step === "list" && !state.workoutFlow.items.length);
+
+      workoutSecondaryActionBtn.textContent = "Назад";
+      workoutSecondaryActionBtn.disabled = state.workoutFlow.saving;
+      workoutPrimaryActionBtn.textContent = workoutButtonText;
+      workoutPrimaryActionBtn.disabled = workoutButtonDisabled;
+      setInlineButtonLoading(workoutPrimaryActionBtn, state.workoutFlow.saving);
+      setInlineButtonLoading(workoutSecondaryActionBtn, false);
+    }
+  }
+
+  const recordVisible = Boolean(recordOverlay && !recordOverlay.hidden);
+  if (recordFlowActions && recordPrimaryActionBtn && recordSecondaryActionBtn) {
+    recordFlowActions.hidden = !recordVisible;
+    if (recordVisible) {
+      recordSecondaryActionBtn.textContent = "Отмена";
+      recordSecondaryActionBtn.disabled = recordFlowSaving;
+      recordPrimaryActionBtn.textContent = "Сохранить";
+      recordPrimaryActionBtn.disabled = recordFlowSaving;
+      setInlineButtonLoading(recordPrimaryActionBtn, recordFlowSaving);
+      setInlineButtonLoading(recordSecondaryActionBtn, false);
+    }
+  }
+}
+
 function syncTelegramBottomButtons() {
-  if (!telegramMainButton || !telegramSecondaryButton) {
-    return;
-  }
-
   hideTelegramBottomButtons();
-
-  if (state.workoutFlow.open) {
-    const workoutButtonText =
-      state.workoutFlow.step === "form"
-        ? "Сохранить упр."
-        : state.workoutFlow.step === "date"
-          ? "Сохранить"
-          : state.workoutFlow.step === "done"
-            ? "Готово"
-            : "Далее";
-    const workoutButtonDisabled =
-      state.workoutFlow.saving ||
-      (state.workoutFlow.step === "list" && !state.workoutFlow.items.length);
-
-    setBottomButtonParams(telegramMainButton, {
-      text: workoutButtonText,
-      has_shine_effect: !workoutButtonDisabled,
-      icon_custom_emoji_id: TELEGRAM_BUTTON_ICON_ID,
-    });
-    telegramMainButton.onClick(handleWorkoutBottomButtonClick);
-    if (state.workoutFlow.saving) {
-      telegramMainButton.disable();
-      showButtonProgress(telegramMainButton);
-    } else if (workoutButtonDisabled) {
-      hideButtonProgress(telegramMainButton);
-      telegramMainButton.disable();
-    } else {
-      hideButtonProgress(telegramMainButton);
-      telegramMainButton.enable();
-    }
-    telegramMainButton.show();
-
-    setBottomButtonParams(telegramSecondaryButton, {
-      text: "Назад",
-      position: "left",
-    });
-    telegramSecondaryButton.onClick(handleWorkoutSecondaryButtonClick);
-    telegramSecondaryButton.enable();
-    telegramSecondaryButton.show();
-    return;
-  }
-
-  if (recordOverlay && !recordOverlay.hidden) {
-    setBottomButtonParams(telegramMainButton, {
-      text: "Сохранить",
-      has_shine_effect: !recordFlowSaving,
-      icon_custom_emoji_id: TELEGRAM_BUTTON_ICON_ID,
-    });
-    telegramMainButton.onClick(handleRecordBottomButtonClick);
-    if (recordFlowSaving) {
-      telegramMainButton.disable();
-      showButtonProgress(telegramMainButton);
-    } else {
-      hideButtonProgress(telegramMainButton);
-      telegramMainButton.enable();
-    }
-    telegramMainButton.show();
-
-    setBottomButtonParams(telegramSecondaryButton, {
-      text: "Отмена",
-      position: "left",
-    });
-    telegramSecondaryButton.onClick(handleRecordSecondaryButtonClick);
-    if (recordFlowSaving) {
-      telegramSecondaryButton.disable();
-    } else {
-      telegramSecondaryButton.enable();
-    }
-    telegramSecondaryButton.show();
-  }
+  syncInlineBottomButtons();
 }
 
 function clearQuoteLoopTimer() {
@@ -1137,11 +1109,15 @@ bindClick("close-workout-flow", closeWorkoutFlow);
 bindClick("add-draft-item", openDraftFormForCreate);
 bindClick("confirm-draft-item", saveDraftItem);
 bindClick("save-workout-flow", handleSaveFlowButton);
+bindClick("workout-primary-action", handleSaveFlowButton);
+bindClick("workout-secondary-action", handleWorkoutSecondaryButtonClick);
 bindClick("history-manage-toggle", toggleHistoryManageMode);
 bindClick("history-manage-cancel", disableHistoryManageMode);
 bindClick("history-delete-selected", deleteSelectedHistoryWorkouts);
 bindClick("history-delete-all", deleteAllHistoryWorkouts);
 bindClick("save-record-flow", submitRecordFlow);
+bindClick("record-primary-action", handleRecordBottomButtonClick);
+bindClick("record-secondary-action", handleRecordSecondaryButtonClick);
 bindClick("records-delete-selected", deleteSelectedRecords);
 bindClick("records-delete-all", deleteAllRecords);
 bindClick("records-manage-cancel", disableRecordsManageMode);
@@ -1164,6 +1140,7 @@ deleteWorkoutDayBtn?.addEventListener("click", handleDeleteWorkoutDay);
 addRecordBtn?.addEventListener("click", openRecordFlow);
 removeRecordBtn?.addEventListener("click", toggleRecordsManageMode);
 preventTapFocusShift(document.getElementById("open-workout-flow"));
+hideTelegramBottomButtons();
 
 recordOverlay?.addEventListener("click", (event) => {
   if (event.target === recordOverlay) {

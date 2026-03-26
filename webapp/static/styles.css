@@ -5602,3 +5602,687 @@ textarea {
     font-size: inherit;
   }
 }
+
+/* Final UI polish layer */
+:root {
+  --polish-space-xs: clamp(8px, 2vw, 10px);
+  --polish-space-sm: clamp(10px, 2.8vw, 12px);
+  --polish-space-md: clamp(14px, 3.6vw, 16px);
+  --polish-space-lg: clamp(18px, 4.8vw, 22px);
+  --polish-space-xl: clamp(22px, 5.5vw, 28px);
+  --polish-radius-card: 24px;
+  --polish-radius-control: 18px;
+  --polish-radius-pill: 999px;
+  --polish-control-height: clamp(52px, 12vw, 58px);
+  --polish-border: 1px solid rgba(255, 255, 255, 0.1);
+  --polish-surface: rgba(255, 255, 255, 0.055);
+  --polish-surface-strong: rgba(255, 255, 255, 0.075);
+  --polish-shadow:
+    0 14px 34px rgba(0, 0, 0, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.topbar {
+  padding: clamp(18px, 4.8vw, 24px) clamp(18px, 5vw, 24px) 10px;
+}
+
+#screen-title {
+  max-width: 9ch;
+  font-size: clamp(32px, 8.8vw, 40px);
+  line-height: 0.98;
+  font-weight: 650;
+  letter-spacing: -0.055em;
+  text-wrap: balance;
+}
+
+.content {
+  padding: 0 clamp(18px, 5vw, 24px) calc(116px + env(safe-area-inset-bottom, 0px));
+}
+
+.panel {
+  display: grid;
+  align-content: start;
+  gap: var(--polish-space-md);
+  padding-bottom: var(--polish-space-sm);
+}
+
+.hero-row {
+  margin-bottom: 0;
+}
+
+.section-block {
+  display: grid;
+  gap: var(--polish-space-md);
+}
+
+.action-card,
+.profile-card,
+.history-card,
+.record-card,
+.faq-card,
+.field-card,
+.metrics-card,
+.date-card,
+.note-card,
+.result-card,
+.quote-live-card,
+.quote-library-item,
+.quote-library-empty,
+.search-shell,
+.history-bulk-actions,
+.records-toolbar,
+.workout-modal,
+.record-modal,
+.quote-modal,
+.profile-modal,
+.confirm-modal {
+  border-radius: var(--polish-radius-card);
+}
+
+.action-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--polish-space-md);
+  min-height: clamp(66px, 14vw, 74px);
+  padding: 0 clamp(18px, 4.6vw, 22px);
+  margin-bottom: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.04));
+  border: var(--polish-border);
+  box-shadow: var(--polish-shadow);
+}
+
+.action-card span:first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: clamp(17px, 4.6vw, 21px);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  text-align: left;
+  text-wrap: balance;
+}
+
+.action-card .plus,
+.action-card .plusik,
+.action-card .pluss {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  transform: none;
+  top: auto;
+  font-size: 34px;
+  line-height: 1;
+}
+
+.quote-section-card {
+  min-height: 196px;
+  padding: 12px;
+}
+
+.quote-manage-btn,
+.profile-manage-btn,
+.section-title .history-manage-btn:not(.is-text-mode),
+.history-head-right .history-edit-btn {
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  border-radius: 14px;
+}
+
+.quote-live-card {
+  min-height: clamp(168px, 40vw, 208px);
+  padding: clamp(28px, 7vw, 38px) clamp(22px, 5.5vw, 30px);
+}
+
+.quote-live-card .quote-line {
+  min-height: clamp(108px, 24vw, 136px);
+  display: flex;
+  justify-content: center;
+}
+
+.quote-live-card #quote-text {
+  max-width: 100%;
+  font-size: clamp(30px, 7vw, 40px);
+  line-height: 1.14;
+  letter-spacing: -0.05em;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+}
+
+.profile-card {
+  padding: clamp(18px, 4.8vw, 24px);
+}
+
+.profile-card-head {
+  align-items: flex-start;
+  margin-bottom: 16px;
+  padding-right: 52px;
+}
+
+.profile-card h2,
+.section-title h2 {
+  font-size: clamp(20px, 5.2vw, 24px);
+  line-height: 1.08;
+  letter-spacing: -0.035em;
+}
+
+.profile-list {
+  display: grid;
+  gap: 0;
+}
+
+.profile-line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.profile-line:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.profile-line span {
+  min-width: 0;
+  font-size: 13px;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+.profile-line strong {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  text-align: right;
+}
+
+.section-title,
+.records-toolbar {
+  align-items: center;
+  gap: var(--polish-space-sm);
+  margin-bottom: 0;
+}
+
+.records-toolbar {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.records-toolbar .records-tool-btn,
+.history-bulk-btn,
+.quote-manager-actions .history-bulk-btn,
+.quote-modal-actions .history-bulk-btn,
+.profile-modal-actions .history-bulk-btn,
+.profile-modal-actions-right .history-bulk-btn {
+  min-height: var(--polish-control-height);
+  padding: 0 16px;
+  border-radius: var(--polish-radius-control);
+  font-size: clamp(15px, 3.8vw, 17px);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.history-bulk-actions,
+.records-bulk-actions,
+.quote-manager-actions,
+.quote-modal-actions,
+.profile-modal-actions-right,
+.confirm-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--polish-space-sm);
+}
+
+.history-bulk-actions,
+.records-bulk-actions {
+  padding: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.history-card,
+.record-card,
+.faq-card {
+  padding: clamp(16px, 4vw, 20px);
+}
+
+.history-head,
+.record-main {
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.history-main,
+.record-title {
+  font-size: clamp(18px, 4.8vw, 22px);
+  line-height: 1.1;
+  font-weight: 650;
+  letter-spacing: -0.035em;
+}
+
+.history-head-right {
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.history-head-right .history-date,
+.record-date {
+  font-size: 13px;
+  line-height: 1.3;
+  letter-spacing: -0.015em;
+}
+
+.exercise-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.exercise-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.exercise-row span:first-child {
+  min-width: 0;
+  font-size: 15px;
+  line-height: 1.28;
+}
+
+.exercise-row span:last-child {
+  font-size: 13px;
+  line-height: 1.25;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.history-note {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.record-card {
+  padding: clamp(16px, 4vw, 20px);
+}
+
+.record-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.record-weight {
+  font-size: clamp(22px, 5.4vw, 28px);
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  text-align: right;
+}
+
+.chip-row {
+  gap: 10px;
+}
+
+.chip {
+  min-height: 42px;
+  padding: 0 16px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+.faq-card summary {
+  font-size: 16px;
+  line-height: 1.24;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.faq-card p {
+  margin-top: 10px;
+  line-height: 1.5;
+}
+
+.workout-modal,
+.record-modal,
+.quote-modal,
+.profile-modal,
+.confirm-modal {
+  padding: clamp(16px, 4vw, 20px);
+  background: rgba(18, 18, 26, 0.84);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow:
+    0 28px 70px rgba(0, 0, 0, 0.46),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.modal-head {
+  padding: 4px 4px 14px;
+  margin-bottom: 2px;
+}
+
+.modal-head p,
+#modal-title,
+.record-modal .modal-head p,
+.profile-modal .modal-head p,
+.confirm-modal .modal-head p {
+  font-size: clamp(24px, 7vw, 34px);
+  line-height: 1.04;
+  font-weight: 700;
+  letter-spacing: -0.05em;
+}
+
+.modal-close-btn,
+.icon-btn,
+.counter-btn {
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  border-radius: 14px;
+}
+
+.field-card,
+.metrics-card,
+.date-card,
+.note-card,
+.result-card {
+  padding: clamp(14px, 3.8vw, 18px);
+}
+
+.field-card input,
+.metrics-card input,
+.date-card input,
+#wellbeing-note,
+#faq-search,
+#quote-input,
+#quote-author-input,
+#profile-edit-name,
+#profile-edit-weight,
+#profile-edit-height,
+#profile-edit-experience,
+#record-exercise-input,
+#exercise-name-input,
+#exercise-weight-input,
+#workout-name-input,
+#workout-date-input {
+  min-height: var(--polish-control-height);
+  padding: 0 16px;
+  border-radius: var(--polish-radius-control);
+  font-size: 16px;
+  line-height: 1.2;
+}
+
+#wellbeing-note,
+#quote-input {
+  min-height: 140px;
+  padding: 16px;
+}
+
+.profile-metrics {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.profile-number-field,
+.profile-field,
+.metric-big,
+.quote-field {
+  gap: 8px;
+}
+
+.profile-modal-step,
+.quote-modal-step,
+.confirm-modal-step,
+.record-modal .modal-step,
+.workout-modal .modal-step {
+  gap: 14px;
+}
+
+.profile-modal-actions {
+  display: grid;
+  gap: 12px;
+}
+
+.profile-modal-actions > .history-bulk-btn {
+  width: 100%;
+}
+
+.quote-library {
+  gap: 10px;
+}
+
+.quote-library-item,
+.quote-library-empty {
+  padding: 16px;
+}
+
+.quote-library-text {
+  line-height: 1.32;
+}
+
+.quote-form-hint,
+.profile-form-hint {
+  margin-top: 2px;
+  line-height: 1.45;
+}
+
+.bottom-nav {
+  left: clamp(12px, 3vw, 16px);
+  right: clamp(12px, 3vw, 16px);
+  bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+  padding: 8px;
+  gap: 8px;
+  border-radius: 30px;
+}
+
+.nav-pill {
+  top: 7px;
+  bottom: 7px;
+  left: 7px;
+  border-radius: 22px;
+}
+
+.nav-btn {
+  min-height: 62px;
+  padding: 10px 8px 9px;
+  gap: 5px;
+}
+
+.nav-icon {
+  font-size: 22px;
+}
+
+.nav-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+@media (max-width: 420px) {
+  .content {
+    padding: 0 16px calc(108px + env(safe-area-inset-bottom, 0px));
+  }
+
+  #screen-title {
+    font-size: clamp(28px, 9vw, 34px);
+    max-width: none;
+  }
+
+  .action-card {
+    min-height: 64px;
+    padding-inline: 16px;
+  }
+
+  .action-card span:first-child {
+    font-size: 16px;
+  }
+
+  .quote-section-card {
+    min-height: 176px;
+    padding: 10px;
+  }
+
+  .quote-live-card {
+    min-height: 150px;
+    padding: 24px 18px 22px;
+  }
+
+  .quote-live-card .quote-line {
+    min-height: 96px;
+  }
+
+  .quote-live-card #quote-text {
+    font-size: clamp(25px, 7.4vw, 31px);
+  }
+
+  .profile-card,
+  .history-card,
+  .record-card,
+  .faq-card,
+  .field-card,
+  .metrics-card,
+  .date-card,
+  .note-card,
+  .result-card {
+    padding: 14px;
+  }
+
+  .profile-card {
+    padding: 16px;
+  }
+
+  .profile-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  #profile-edit-weight,
+  #profile-edit-height,
+  #profile-edit-experience {
+    padding-inline: 10px;
+    font-size: 15px;
+  }
+
+  .history-bulk-actions,
+  .records-bulk-actions,
+  .quote-manager-actions,
+  .quote-modal-actions,
+  .profile-modal-actions-right,
+  .confirm-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .records-toolbar {
+    gap: 10px;
+  }
+
+  .records-toolbar .records-tool-btn,
+  .history-bulk-btn,
+  .quote-manager-actions .history-bulk-btn,
+  .quote-modal-actions .history-bulk-btn,
+  .profile-modal-actions .history-bulk-btn,
+  .profile-modal-actions-right .history-bulk-btn {
+    font-size: 15px;
+  }
+
+  .history-head,
+  .record-main {
+    gap: 10px;
+  }
+
+  .history-head-right {
+    gap: 8px;
+  }
+
+  .history-head-right .history-date,
+  .record-date {
+    font-size: 12px;
+  }
+
+  .record-weight {
+    font-size: 20px;
+  }
+
+  .exercise-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+
+  .exercise-row span:last-child {
+    text-align: left;
+    white-space: normal;
+  }
+
+  .workout-modal,
+  .record-modal,
+  .quote-modal,
+  .profile-modal,
+  .confirm-modal {
+    padding: 14px;
+    border-radius: 24px;
+  }
+
+  .modal-head {
+    padding: 2px 2px 12px;
+  }
+
+  .modal-head p,
+  #modal-title,
+  .record-modal .modal-head p,
+  .profile-modal .modal-head p,
+  .confirm-modal .modal-head p {
+    font-size: clamp(22px, 8vw, 30px);
+  }
+
+  .field-card input,
+  .metrics-card input,
+  .date-card input,
+  #wellbeing-note,
+  #faq-search,
+  #quote-input,
+  #quote-author-input,
+  #profile-edit-name,
+  #profile-edit-weight,
+  #profile-edit-height,
+  #profile-edit-experience,
+  #record-exercise-input,
+  #exercise-name-input,
+  #exercise-weight-input,
+  #workout-name-input,
+  #workout-date-input {
+    min-height: 50px;
+    padding-inline: 14px;
+    font-size: 15px;
+  }
+
+  .bottom-nav {
+    left: 10px;
+    right: 10px;
+    bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    padding: 7px;
+  }
+
+  .nav-btn {
+    min-height: 58px;
+    padding-inline: 6px;
+  }
+
+  .nav-label {
+    font-size: 11px;
+  }
+}

@@ -4847,7 +4847,7 @@ body {
 }
 
 .quote-live-card .quote-cursor {
-  display: inline-block !important;
+  display: none !important;
 }
 
 .quote-section-card {
@@ -4888,6 +4888,7 @@ body {
 }
 
 .quote-live-card #quote-text {
+  display: inline;
   max-width: 460px;
   margin: 0 auto;
   font-size: clamp(26px, 5.8vw, 34px);
@@ -4899,6 +4900,23 @@ body {
     opacity 0.32s ease,
     transform 0.32s cubic-bezier(0.22, 1, 0.36, 1),
     filter 0.32s ease;
+}
+
+.quote-live-card #quote-text::after {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 1.02em;
+  margin-left: 3px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(110, 194, 255, 0.82));
+  vertical-align: -0.1em;
+  animation: quote-cursor-blink 1s steps(1) infinite;
+}
+
+.quote-live-card #quote-text:empty::after,
+.quote-live-card #quote-text.is-transitioning::after {
+  display: none;
 }
 
 .quote-live-card #quote-text.is-transitioning {

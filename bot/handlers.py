@@ -114,8 +114,7 @@ async def cmd_start(message: Message, state: FSMContext) -> None:
 
     await state.set_state(ProfileForm.name)
     await message.answer(
-        "Добро пожаловать в ProgressCheck.\n"
-        "Для полного использования бота открой mini app через кнопку Menu рядом с полем ввода.\n\n"
+        "Добро пожаловать в ProgressCheck🏋️‍♂️\n\n"
         "Сначала заполним профиль для старта.\n"
         "Введи имя:",
         parse_mode="HTML",

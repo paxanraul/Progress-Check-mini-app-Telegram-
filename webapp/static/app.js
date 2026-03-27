@@ -145,6 +145,11 @@ const handleWorkoutBottomButtonClick = () => {
 };
 
 const handleWorkoutSecondaryButtonClick = () => {
+  const previousStep = previousWorkoutStep(state.workoutFlow.step);
+  if (previousStep) {
+    setWorkoutStep(previousStep);
+    return;
+  }
   void closeWorkoutFlow();
 };
 
@@ -2317,6 +2322,14 @@ function titleForTab(tab) {
   if (tab === "records") return "Рекорды";
   if (tab === "faq") return "Вопросы";
   return "Главная";
+}
+
+
+function previousWorkoutStep(step) {
+  if (step === "form") return "list";
+  if (step === "comment") return "list";
+  if (step === "date") return "comment";
+  return "";
 }
 
 

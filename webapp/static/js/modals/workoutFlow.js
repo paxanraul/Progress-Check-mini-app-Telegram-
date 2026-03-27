@@ -7,6 +7,19 @@ function cloneDefaultDraft() {
   return { ...DEFAULT_WORKOUT_DRAFT };
 }
 
+function previousWorkoutStep(step) {
+  if (step === "form") {
+    return "list";
+  }
+  if (step === "comment") {
+    return "list";
+  }
+  if (step === "date") {
+    return "comment";
+  }
+  return "";
+}
+
 export function createWorkoutFlowModal({
   state,
   dom,
@@ -539,6 +552,11 @@ export function createWorkoutFlowModal({
       void handlePrimaryAction();
     });
     dom.modals.workout.secondaryActionButton?.addEventListener("click", () => {
+      const previousStep = previousWorkoutStep(state.workoutFlow.step);
+      if (previousStep) {
+        setStep(previousStep);
+        return;
+      }
       void close();
     });
     dom.modals.workout.deleteWorkoutDayButton?.addEventListener("click", () => {

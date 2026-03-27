@@ -2063,18 +2063,12 @@ function approveDeleteConfirmation() {
   closeConfirmOverlayWithResult(true);
 }
 
-function parseNumericProfileInput(value) {
-  const normalized = String(value || "").replace(",", ".").match(/\d+(?:\.\d+)?/);
-  return normalized ? normalized[0] : "";
-}
-
 function fillProfileOverlayForm() {
   const user = state.payload?.user || {};
   profileEditNameInput.value = user.name || "";
   profileEditWeightInput.value = user.weight ? String(user.weight).replace(",", ".") : "";
   profileEditHeightInput.value = user.height ? String(user.height).replace(",", ".") : "";
-  profileEditExperienceInput.value =
-    user.experience && user.experience !== "Не заполнено" ? parseNumericProfileInput(user.experience) : "";
+  profileEditExperienceInput.value = user.experience && user.experience !== "Не заполнено" ? String(user.experience) : "";
 }
 
 function openProfileOverlay() {
@@ -2131,8 +2125,7 @@ async function saveProfileOverlay() {
   const name = String(profileEditNameInput?.value || "").trim();
   const weight = Number(String(profileEditWeightInput?.value || "").replace(",", "."));
   const height = Number(String(profileEditHeightInput?.value || "").replace(",", "."));
-  const experienceRaw = String(profileEditExperienceInput?.value || "").replace(",", ".").trim();
-  const experienceValue = experienceRaw ? Number(experienceRaw) : NaN;
+  const experience = String(profileEditExperienceInput?.value || "").trim();
 
   if (!name) {
     showToast("Введите имя");
@@ -2149,14 +2142,6 @@ async function saveProfileOverlay() {
     focusWithoutScroll(profileEditHeightInput);
     return false;
   }
-  if (experienceRaw && (!Number.isFinite(experienceValue) || experienceValue < 0)) {
-    showToast("Введите корректный стаж");
-    focusWithoutScroll(profileEditExperienceInput);
-    return false;
-  }
-
-  const experience = experienceRaw ? `${experienceRaw} лет` : "";
-
   try {
     profileSaving = true;
     const response = await fetch("/api/profile", {

@@ -212,7 +212,7 @@ async def profile_height(message: Message, state: FSMContext) -> None:
 
     await state.update_data(height=value)
     await state.set_state(ProfileForm.experience)
-    await message.answer("Стаж тренировок (например: 1 год):")
+    await message.answer("Стаж тренировок (например: 1 год или 3 месяца):")
 
 
 @router.message(ProfileForm.experience)

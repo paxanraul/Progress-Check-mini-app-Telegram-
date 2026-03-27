@@ -1,10 +1,5 @@
 import { closeOverlay, openOverlay } from "../ui/modalBase.js";
 
-function parseNumericProfileInput(value) {
-  const normalized = String(value || "").replace(",", ".").match(/\d+(?:\.\d+)?/);
-  return normalized ? normalized[0] : "";
-}
-
 export function createProfileModal({
   state,
   dom,
@@ -35,7 +30,7 @@ export function createProfileModal({
     if (dom.modals.profile.experienceInput) {
       dom.modals.profile.experienceInput.value =
         user.experience && user.experience !== "Не заполнено"
-          ? parseNumericProfileInput(user.experience)
+          ? String(user.experience)
           : "";
     }
   }
@@ -82,10 +77,7 @@ export function createProfileModal({
     const name = String(dom.modals.profile.nameInput?.value || "").trim();
     const weight = Number(String(dom.modals.profile.weightInput?.value || "").replace(",", "."));
     const height = Number(String(dom.modals.profile.heightInput?.value || "").replace(",", "."));
-    const experienceRaw = String(dom.modals.profile.experienceInput?.value || "")
-      .replace(",", ".")
-      .trim();
-    const experienceValue = experienceRaw ? Number(experienceRaw) : Number.NaN;
+    const experience = String(dom.modals.profile.experienceInput?.value || "").trim();
 
     if (!name) {
       showToast("Введите имя");
@@ -102,13 +94,6 @@ export function createProfileModal({
       interaction.focusWithoutScroll(dom.modals.profile.heightInput);
       return false;
     }
-    if (experienceRaw && (!Number.isFinite(experienceValue) || experienceValue < 0)) {
-      showToast("Введите корректный стаж");
-      interaction.focusWithoutScroll(dom.modals.profile.experienceInput);
-      return false;
-    }
-
-    const experience = experienceRaw ? `${experienceRaw} лет` : "";
 
     try {
       profileSaving = true;

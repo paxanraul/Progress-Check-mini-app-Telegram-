@@ -1,12 +1,13 @@
 import os
 from datetime import date, datetime
+from pathlib import Path
 
 from aiogram import F, Router
 from aiogram import BaseMiddleware
 from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, FSInputFile, Message
 
 
 from bot.db import (
@@ -27,6 +28,7 @@ from bot.keyboards import workout_date_keyboard, workout_next_step_keyboard
 
 
 router = Router()
+START_NAME_PHOTO = FSInputFile(Path(__file__).resolve().parent / "assets" / "start_name_photo.jpeg")
 
 
 class TrackUserActivityMiddleware(BaseMiddleware):
@@ -113,7 +115,9 @@ async def cmd_start(message: Message, state: FSMContext) -> None:
         return
 
     await state.set_state(ProfileForm.name)
-    await message.answer(
+    await message.answer_photo(
+        photo=START_NAME_PHOTO,
+        caption=
         "Добро пожаловать в ProgressCheck🏋️‍♂️\n\n"
         "Сначала заполним профиль для старта.\n"
         "Введи имя:",

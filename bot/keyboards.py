@@ -105,3 +105,29 @@ def faq_keyboard() -> InlineKeyboardMarkup:
             ],
         ]
     )
+
+
+def admin_panel_keyboard(current_section: str = "overview") -> InlineKeyboardMarkup:
+    def label(section: str, text: str) -> str:
+        return f"• {text}" if current_section == section else text
+
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text=label("overview", "Обзор"), callback_data="admin:overview"),
+                InlineKeyboardButton(text=label("users", "Пользователи"), callback_data="admin:users"),
+            ],
+            [
+                InlineKeyboardButton(text=label("workouts", "Тренировки"), callback_data="admin:workouts"),
+                InlineKeyboardButton(text=label("records", "Рекорды"), callback_data="admin:records"),
+            ],
+            [
+                InlineKeyboardButton(text=label("diagnostics", "Диагностика"), callback_data="admin:diagnostics"),
+                InlineKeyboardButton(text=label("broadcast", "Рассылка"), callback_data="admin:broadcast"),
+            ],
+            [
+                InlineKeyboardButton(text="Обновить", callback_data=f"admin:refresh:{current_section}"),
+                InlineKeyboardButton(text="Закрыть", callback_data="admin:close"),
+            ],
+        ]
+    )

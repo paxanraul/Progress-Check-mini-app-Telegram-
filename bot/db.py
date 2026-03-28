@@ -244,6 +244,14 @@ def get_started_users_count() -> int:
         return int(row["total"]) if row else 0
 
 
+def get_profiles_count() -> int:
+    with closing(get_connection()) as connection:
+        cursor = connection.cursor()
+        cursor.execute("SELECT COUNT(*) AS total FROM users")
+        row = cursor.fetchone()
+        return int(row["total"]) if row else 0
+
+
 def get_started_users(limit: int = 100) -> list[sqlite3.Row]:
     with closing(get_connection()) as connection:
         cursor = connection.cursor()
@@ -271,6 +279,80 @@ def get_started_user(user_id: int) -> sqlite3.Row | None:
             (user_id,),
         )
         return cursor.fetchone()
+
+
+def get_active_started_users_since(days: int) -> int:
+    with closing(get_connection()) as connection:
+        cursor = connection.cursor()
+        cursor.execute(
+            """
+            SELECT COUNT(*) AS total
+            FROM started_users
+            WHERE datetime(last_start_at) >= datetime('now', ?)
+            """,
+            (f"-{max(days, 0)} days",),
+        )
+        row = cursor.fetchone()
+        return int(row["total"]) if row else 0
+
+
+def get_total_workout_entries_count() -> int:
+    with closing(get_connection()) as connection:
+        cursor = connection.cursor()
+        cursor.execute("SELECT COUNT(*) AS total FROM workouts WHERE is_record = 0")
+        row = cursor.fetchone()
+        return int(row["total"]) if row else 0
+
+
+def get_total_records_count() -> int:
+    with closing(get_connection()) as connection:
+        cursor = connection.cursor()
+        cursor.execute("SELECT COUNT(*) AS total FROM workouts WHERE is_record = 1")
+        row = cursor.fetchone()
+        return int(row["total"]) if row else 0
+
+
+def get_recent_global_workouts(limit: int = 8) -> list[sqlite3.Row]:
+    with closing(get_connection()) as connection:
+        cursor = connection.cursor()
+        cursor.execute(
+            """
+            SELECT
+                user_id,
+                workout_date,
+                exercise,
+                weight,
+                sets,
+                reps,
+                workout_name
+            FROM workouts
+            WHERE is_record = 0
+            ORDER BY workout_date DESC, id DESC
+            LIMIT ?
+            """,
+            (limit,),
+        )
+        return cursor.fetchall()
+
+
+def get_recent_global_records(limit: int = 8) -> list[sqlite3.Row]:
+    with closing(get_connection()) as connection:
+        cursor = connection.cursor()
+        cursor.execute(
+            """
+            SELECT
+                user_id,
+                workout_date,
+                exercise,
+                weight AS best_weight
+            FROM workouts
+            WHERE is_record = 1
+            ORDER BY workout_date DESC, id DESC
+            LIMIT ?
+            """,
+            (limit,),
+        )
+        return cursor.fetchall()
 
 
 def get_workout_days(user_id: int, limit: int = 10) -> list[sqlite3.Row]:

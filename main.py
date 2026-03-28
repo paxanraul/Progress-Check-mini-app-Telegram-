@@ -17,7 +17,7 @@ async def main():
     load_dotenv(env_path)
     token = os.getenv("BOT_TOKEN")
     if not token:
-        raise RuntimeError("Set BOT_TOKEN environment variable before running the bot.")
+        raise RuntimeError("Неверный токен.")
 
     init_db()
     bot = Bot(token=token)

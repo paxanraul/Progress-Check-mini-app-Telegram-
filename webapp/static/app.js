@@ -1,4 +1,4 @@
-﻿const telegram = window.Telegram?.WebApp;
+const telegram = window.Telegram?.WebApp;
 
 if (telegram) {
   telegram.ready();
@@ -16,6 +16,7 @@ const state = {
   userQuotes: [],
   quoteOverlayOpen: false,
   quoteEditor: { mode: "create", editingIndex: -1 },
+  myDataOverlayOpen: false,
   profileOverlayOpen: false,
   confirmOverlayOpen: false,
   recordsEditMode: false,
@@ -64,7 +65,8 @@ const faqList = document.getElementById("faq-list");
 const faqSearch = document.getElementById("faq-search");
 const overlay = document.getElementById("workout-overlay");
 const recordOverlay = document.getElementById("record-overlay");
-const modalSteps = [...document.querySelectorAll(".modal-step")];
+// Шаги workout-flow ограничиваем только его overlay, чтобы другие модалки не теряли `.active`.
+const modalSteps = [...(overlay?.querySelectorAll(".modal-step[data-step]") || [])];
 const modalTitle = document.getElementById("modal-title");
 const dateInput = document.getElementById("workout-date-input");
 const workoutNameInput = document.getElementById("workout-name-input");
@@ -79,6 +81,8 @@ const quoteLiveCard = document.getElementById("quote-live-card");
 const quoteOverlay = document.getElementById("quote-overlay");
 const quoteModal = document.querySelector(".quote-modal");
 const quoteModalTitle = document.getElementById("quote-modal-title");
+const myDataOverlay = document.getElementById("my-data-overlay");
+const myDataModal = document.querySelector(".my-data-modal");
 const profileOverlay = document.getElementById("profile-overlay");
 const profileModal = document.querySelector(".profile-modal");
 const confirmOverlay = document.getElementById("confirm-overlay");
@@ -112,6 +116,10 @@ const recordsBulkActions = document.getElementById("records-bulk-actions");
 const recordsDeleteSelectedBtn = document.getElementById("records-delete-selected");
 const recordsDeleteAllBtn = document.getElementById("records-delete-all");
 const recordsManageCancelBtn = document.getElementById("records-manage-cancel");
+// Общие элементы аватара в шапке. Они живут вне экранов, поэтому доступны на всех вкладках.
+const topbarUser = document.getElementById("topbar-user");
+const topbarAvatar = document.getElementById("topbar-avatar");
+const topbarAvatarFallback = document.getElementById("topbar-avatar-fallback");
 
 const motionApi = window.Motion;
 const motionAnimate = typeof motionApi?.animate === "function" ? motionApi.animate : null;
@@ -1110,7 +1118,7 @@ document.addEventListener(
       return;
     }
     const tappable = target.closest(
-      "button, [role='button'], .nav-btn, .action-card, .draft-action-btn, .history-edit-btn, .chip"
+      "button, [role='button'], .nav-btn, .action-card, .draft-action-btn, .history-edit-btn, .chip, .topbar-user"
     );
     if (!tappable) {
       return;
@@ -1149,13 +1157,15 @@ bindClick("save-record-flow", submitRecordFlow);
 bindClick("records-delete-selected", deleteSelectedRecords);
 bindClick("records-delete-all", deleteAllRecords);
 bindClick("records-manage-cancel", disableRecordsManageMode);
+bindClick("topbar-user", openMyDataOverlay);
+bindClick("close-my-data-overlay", closeMyDataOverlay);
 bindClick("open-quote-overlay", openQuoteOverlay);
 bindClick("close-quote-overlay", closeQuoteOverlay);
 bindClick("cancel-quote-overlay", closeQuoteOverlay);
 bindClick("add-quote-overlay", startCreateCustomQuote);
 bindClick("delete-selected-quote-overlay", deleteQuoteFromOverlay);
 bindClick("save-quote-overlay", saveCustomQuote);
-bindClick("open-profile-overlay", openProfileOverlay);
+bindClick("open-profile-overlay", openProfileEditorFromMyData);
 bindClick("close-profile-overlay", closeProfileOverlay);
 bindClick("cancel-profile-overlay", closeProfileOverlay);
 bindClick("save-profile-overlay", saveProfileOverlay);
@@ -1168,6 +1178,7 @@ deleteWorkoutDayBtn?.addEventListener("click", handleDeleteWorkoutDay);
 addRecordBtn?.addEventListener("click", openRecordFlow);
 removeRecordBtn?.addEventListener("click", toggleRecordsManageMode);
 preventTapFocusShift(document.getElementById("open-workout-flow"));
+preventTapFocusShift(topbarUser);
 
 recordOverlay?.addEventListener("click", (event) => {
   if (event.target === recordOverlay) {
@@ -1189,6 +1200,12 @@ quoteLiveCard?.addEventListener("pointerenter", () => {
 quoteLiveCard?.addEventListener("pointerleave", () => {
   quoteRotationPaused = false;
   syncQuoteLoop();
+});
+
+myDataOverlay?.addEventListener("click", (event) => {
+  if (event.target === myDataOverlay) {
+    closeMyDataOverlay();
+  }
 });
 
 profileOverlay?.addEventListener("click", (event) => {
@@ -1224,6 +1241,16 @@ recordOverlay?.addEventListener(
 );
 
 quoteOverlay?.addEventListener(
+  "pointerdown",
+  (event) => {
+    if (shouldDismissKeyboard(event.target)) {
+      blurActiveField();
+    }
+  },
+  { passive: true }
+);
+
+myDataOverlay?.addEventListener(
   "pointerdown",
   (event) => {
     if (shouldDismissKeyboard(event.target)) {
@@ -1363,6 +1390,8 @@ async function bootstrap() {
     return;
   }
   state.userId = userId;
+  // Рисуем avatar сразу по данным Telegram, чтобы верхняя шапка не была пустой до ответа API.
+  renderTelegramAvatar();
   state.userQuotes = loadCustomQuotes();
   renderQuotesSection({ resetLoop: true });
 
@@ -1385,6 +1414,8 @@ async function bootstrap() {
     throw new Error("invalid app-data json");
   }
   state.payload = payload;
+  // После загрузки payload уточняем fallback-букву уже с учётом имени из профиля.
+  renderTelegramAvatar(payload.user || null);
 
   if (!payload.ready) {
     document.getElementById("profile-name").textContent = "Нет данных";
@@ -1394,7 +1425,7 @@ async function bootstrap() {
     document.getElementById("workouts-value").textContent = "0";
     document.getElementById("history-list").innerHTML = emptyCard(payload.message || "Сначала открой бота и заполни профиль.");
     document.getElementById("records-list").innerHTML = emptyCard("Рекорды появятся после первых тренировок.");
-    switchTab("profile");
+    switchTab("home");
     return;
   }
 
@@ -1403,7 +1434,6 @@ async function bootstrap() {
 
 function renderApp(payload) {
   renderProfile(payload.user);
-  renderDailyFireState(payload.history || []);
   renderHistory(payload.history);
   renderRecords(payload.records);
   renderFaqTabs(payload.faq);
@@ -1423,7 +1453,55 @@ function resolveUserId() {
   return tgUserId ? String(tgUserId) : "";
 }
 
+// Если фото Telegram недоступно, используем первую букву имени как безопасный fallback.
+function avatarFallbackLetter(profileUser = null) {
+  const telegramUser = telegram?.initDataUnsafe?.user;
+  const candidate = String(
+    telegramUser?.first_name ||
+      telegramUser?.username ||
+      profileUser?.name ||
+      "U"
+  ).trim();
+
+  return (candidate[0] || "U").toUpperCase();
+}
+
+// Аватар читаем из Telegram Mini App (`photo_url`) и откатываемся к буквенной заглушке при любом сбое.
+function renderTelegramAvatar(profileUser = null) {
+  if (!topbarAvatar || !topbarAvatarFallback) {
+    return;
+  }
+
+  const telegramUser = telegram?.initDataUnsafe?.user;
+  const photoUrl = String(telegramUser?.photo_url || "").trim();
+
+  topbarAvatarFallback.textContent = avatarFallbackLetter(profileUser);
+  topbarAvatarFallback.hidden = false;
+
+  // В privacy-сценарии Telegram может не прислать фото, поэтому прячем img и оставляем fallback.
+  if (!photoUrl) {
+    topbarAvatar.hidden = true;
+    topbarAvatar.removeAttribute("src");
+    topbarAvatar.onload = null;
+    topbarAvatar.onerror = null;
+    return;
+  }
+
+  // Скрываем fallback только после успешной загрузки изображения; при ошибке возвращаем заглушку.
+  topbarAvatar.onload = () => {
+    topbarAvatarFallback.hidden = true;
+  };
+  topbarAvatar.onerror = () => {
+    topbarAvatar.hidden = true;
+    topbarAvatar.removeAttribute("src");
+    topbarAvatarFallback.hidden = false;
+  };
+  topbarAvatar.src = photoUrl;
+  topbarAvatar.hidden = false;
+}
+
 function renderProfile(user) {
+  // Поля профиля больше не живут на отдельной вкладке: они обновляют summary-overlay, открываемый по аватару.
   document.getElementById("profile-name").textContent = user.name || "Пользователь";
   document.getElementById("weight-value").textContent = user.weight ? `${user.weight} кг` : "—";
   document.getElementById("height-value").textContent = user.height ? `${user.height} см` : "—";
@@ -1431,125 +1509,9 @@ function renderProfile(user) {
   document.getElementById("workouts-value").textContent = String(user.workout_days ?? 0);
 }
 
-function renderDailyFireState(history) {
-  const fireNode = document.querySelector(".fire");
-  const streakNode = document.querySelector(".streak-badge");
-  const streakValueNode = document.getElementById("streak-value");
-  if (!fireNode || !streakNode) {
-    return;
-  }
-  if (!streakValueNode) {
-    return;
-  }
-
-  const { value, active } = computeFireStreakStableForDay(history);
-  streakValueNode.textContent = String(value);
-  fireNode.classList.toggle("fire-inactive", !active);
-  streakNode.classList.toggle("streak-inactive", !active);
-}
-
-function computeFireStreakStableForDay(history) {
-  const raw = computeFireStreak(history);
-  const today = todayValue();
-  const cacheKey = `fire_state:${state.userId || "unknown"}`;
-
-  let cached = null;
-  try {
-    const rawCached = localStorage.getItem(cacheKey);
-    if (rawCached) {
-      cached = JSON.parse(rawCached);
-    }
-  } catch (error) {
-    cached = null;
-  }
-
-  if (!cached || cached.day !== today) {
-    try {
-      localStorage.setItem(cacheKey, JSON.stringify({ day: today, value: raw.value, active: raw.active }));
-    } catch (error) {
-      // ignore storage errors
-    }
-    return raw;
-  }
-
-  const cachedValue = Number(cached.value || 0);
-  const cachedActive = Boolean(cached.active);
-
-  // Do not decrease streak or switch to inactive within the same day
-  // just because a workout entry was edited/deleted.
-  if ((cachedActive && !raw.active) || raw.value < cachedValue) {
-    return { value: cachedValue, active: cachedActive };
-  }
-
-  try {
-    localStorage.setItem(cacheKey, JSON.stringify({ day: today, value: raw.value, active: raw.active }));
-  } catch (error) {
-    // ignore storage errors
-  }
-  return raw;
-}
-
-function computeFireStreak(history) {
-  const dates = new Set();
-  if (Array.isArray(history)) {
-    history.forEach((day) => {
-      if (day?.date && typeof day.date === "string") {
-        dates.add(day.date);
-      }
-    });
-  }
-
-  if (!dates.size) {
-    return { value: 0, active: false };
-  }
-
-  const today = todayValue();
-  if (dates.has(today)) {
-    return { value: countBackConsecutiveDays(dates, today), active: true };
-  }
-
-  const yesterday = shiftIsoDate(today, -1);
-  if (dates.has(yesterday)) {
-    return { value: countBackConsecutiveDays(dates, yesterday), active: false };
-  }
-
-  return { value: 0, active: false };
-}
-
-function countBackConsecutiveDays(dateSet, startIsoDate) {
-  let count = 0;
-  let current = startIsoDate;
-  while (dateSet.has(current)) {
-    count += 1;
-    current = shiftIsoDate(current, -1);
-  }
-  return count;
-}
-
-function shiftIsoDate(isoDate, deltaDays) {
-  const parts = String(isoDate).split("-");
-  if (parts.length !== 3) {
-    return isoDate;
-  }
-
-  const year = Number(parts[0]);
-  const month = Number(parts[1]);
-  const day = Number(parts[2]);
-  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) {
-    return isoDate;
-  }
-
-  const dateObj = new Date(year, month - 1, day);
-  dateObj.setDate(dateObj.getDate() + deltaDays);
-
-  const y = String(dateObj.getFullYear());
-  const m = String(dateObj.getMonth() + 1).padStart(2, "0");
-  const d = String(dateObj.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-}
-
 function renderHistory(history, options = {}) {
   const { animate = true } = options;
+  // История тренировок теперь рендерится в Home-секцию, но id контейнера оставлен прежним для переиспользования логики.
   const root = document.getElementById("history-list");
   root.innerHTML = "";
   updateHistoryManageControls();
@@ -1941,7 +1903,7 @@ function switchTab(tab) {
   if (!tab || state.activeTab === tab) {
     return;
   }
-  if (state.activeTab === "profile" && tab !== "profile" && state.historyEditMode) {
+  if (state.activeTab === "home" && tab !== "home" && state.historyEditMode) {
     disableHistoryManageMode(true);
   }
   if (state.activeTab === "records" && tab !== "records" && state.recordsEditMode) {
@@ -1958,6 +1920,7 @@ function switchTab(tab) {
   }
   if (tab === "home") {
     renderQuotesSection();
+    renderHistory(state.payload?.history || [], { animate: false });
   }
   syncQuoteLoop();
   animatePanelEnter(tab);
@@ -2016,13 +1979,66 @@ function closeQuoteOverlay() {
 }
 
 function hasVisibleBlockingOverlay() {
-  return [overlay, recordOverlay, quoteOverlay, profileOverlay, confirmOverlay].some(
+  return [overlay, recordOverlay, quoteOverlay, myDataOverlay, profileOverlay, confirmOverlay].some(
     (node) => node && !node.hidden
   );
 }
 
 function updateBodyScrollLockFromVisibleOverlays() {
   setBodyScrollLock(hasVisibleBlockingOverlay());
+}
+
+// Блок "Мои данные" больше не живёт на отдельном экране: аватар открывает этот summary-overlay.
+function openMyDataOverlay() {
+  if (!myDataOverlay || !myDataModal) {
+    return;
+  }
+  freezeViewportFor(280);
+  state.myDataOverlayOpen = true;
+  setBodyScrollLock(true);
+  myDataOverlay.hidden = false;
+  runMotion(myDataOverlay, { opacity: [0, 1] }, { duration: 0.18, easing: "ease-out" });
+  runMotion(
+    myDataModal,
+    { opacity: [0.6, 1], transform: ["translateY(18px) scale(0.985)", "translateY(0px) scale(1)"] },
+    { duration: 0.24, easing: [0.22, 1, 0.36, 1] }
+  );
+}
+
+function closeMyDataOverlay() {
+  if (!myDataOverlay || myDataOverlay.hidden) {
+    return;
+  }
+  state.myDataOverlayOpen = false;
+  freezeViewportFor(320);
+  const overlayAnimation = runMotion(myDataOverlay, { opacity: [1, 0] }, { duration: 0.14, easing: "ease-out" });
+  const modalAnimation = runMotion(
+    myDataModal,
+    { opacity: [1, 0.75], transform: ["translateY(0px) scale(1)", "translateY(12px) scale(0.99)"] },
+    { duration: 0.16, easing: "ease-in" }
+  );
+  if (overlayAnimation?.finished) {
+    overlayAnimation.finished.catch(() => undefined);
+  }
+  if (modalAnimation?.finished) {
+    modalAnimation.finished.catch(() => undefined);
+  }
+  setTimeout(() => {
+    myDataOverlay.hidden = true;
+    updateBodyScrollLockFromVisibleOverlays();
+  }, 170);
+}
+
+function openProfileEditorFromMyData() {
+  if (!state.userId) {
+    showToast("Сначала открой профиль в боте");
+    return;
+  }
+  if (myDataOverlay && !myDataOverlay.hidden) {
+    state.myDataOverlayOpen = false;
+    myDataOverlay.hidden = true;
+  }
+  openProfileOverlay();
 }
 
 function closeConfirmOverlayWithResult(confirmed) {
@@ -2318,7 +2334,6 @@ function syncNavPillPosition(tab, immediate) {
 }
 
 function titleForTab(tab) {
-  if (tab === "profile") return "Профиль";
   if (tab === "records") return "Рекорды";
   if (tab === "faq") return "Вопросы";
   return "Главная";

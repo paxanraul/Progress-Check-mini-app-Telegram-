@@ -1,7 +1,14 @@
+/*
+ * Тонкий слой общения с backend API.
+ * Модуль прячет детали fetch, JSON-парсинга и единообразной обработки ошибок,
+ * а наружу отдаёт именованные операции предметной области:
+ * загрузить app-data, сохранить тренировку, удалить рекорд, обновить профиль.
+ */
 async function parseJsonSafely(response) {
   return response.json().catch(() => ({}));
 }
 
+// Внутренние хелперы для унифицированной работы с JSON-ответами backend.
 async function requestJson(url, options = {}) {
   const response = await fetch(url, options);
   const payload = await parseJsonSafely(response);
@@ -36,6 +43,7 @@ export async function fetchAppData(userId) {
   }
 }
 
+// Сценарии работы с историей тренировок.
 export function saveWorkout(payload, { editMode = false } = {}) {
   return expectOkJson(
     "/api/workouts",
@@ -72,6 +80,7 @@ export function deleteWorkout(payload) {
   );
 }
 
+// Полная очистка истории тренировок пользователя.
 export function deleteAllWorkouts(userId) {
   return expectOkJson(
     "/api/workouts/all",
@@ -84,6 +93,7 @@ export function deleteAllWorkouts(userId) {
   );
 }
 
+// Работа с рекордами.
 export function createRecord(payload) {
   return expectOkJson(
     "/api/records",
@@ -105,6 +115,7 @@ export async function deleteRecord(payload) {
   return Boolean(response.ok && result?.ok);
 }
 
+// Работа с профилем пользователя.
 export function updateProfile(payload) {
   return expectOkJson(
     "/api/profile",

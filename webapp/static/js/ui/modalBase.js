@@ -1,3 +1,9 @@
+/*
+ * Базовая механика открытия и закрытия модальных окон.
+ * Вместо того чтобы дублировать одинаковый код в каждой модалке,
+ * этот модуль берёт на себя показ оверлея, анимацию, блокировку прокрутки,
+ * фокусировку поля и корректное снятие lock после закрытия.
+ */
 import { runMotion } from "./animation.js";
 
 const DEFAULT_OPEN_OVERLAY_OPTIONS = { duration: 0.18, easing: "ease-out" };
@@ -22,6 +28,7 @@ export function updateBodyScrollLockFromVisibleOverlays(overlays, setBodyScrollL
   setBodyScrollLock(hasVisibleBlockingOverlay(overlays));
 }
 
+// Унифицированное открытие любого overlay + modal-пары.
 export function openOverlay({
   overlay,
   modal,
@@ -54,6 +61,7 @@ export function openOverlay({
   }
 }
 
+// Унифицированное закрытие модалки с ожиданием завершения анимации.
 export async function closeOverlay({
   overlay,
   modal,

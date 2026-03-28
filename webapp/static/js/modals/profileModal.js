@@ -1,3 +1,8 @@
+/*
+ * Модалка редактирования и очистки профиля пользователя.
+ * Здесь собрана форма изменения персональных данных, отправка обновлений на backend
+ * и сценарий полной очистки профиля вместе с историей и рекордами.
+ */
 import { closeOverlay, openOverlay } from "../ui/modalBase.js";
 
 export function createProfileModal({
@@ -12,6 +17,7 @@ export function createProfileModal({
 }) {
   let profileSaving = false;
 
+  // При открытии модалки переносим актуальные данные из payload в поля формы.
   function fillProfileOverlayForm() {
     const user = state.payload?.user || {};
     if (dom.modals.profile.nameInput) {
@@ -119,6 +125,7 @@ export function createProfileModal({
     }
   }
 
+  // Это разрушительный сценарий: помимо профиля очищаются связанные данные пользователя.
   async function clearAllData() {
     if (profileSaving || !state.userId) {
       return false;

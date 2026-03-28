@@ -1,3 +1,9 @@
+/*
+ * Контроллер низкоуровневых пользовательских взаимодействий.
+ * Он следит за клавиатурой на мобильных устройствах, enter-submit у полей,
+ * блокировкой скролла под модалками, стабилизацией viewport и безопасным фокусом.
+ * По сути это инфраструктурный слой, на который опираются модалки и экраны.
+ */
 export function createInteractionController() {
   const enterFieldBehaviors = new WeakMap();
   let stableViewportHeight = 0;
@@ -53,6 +59,7 @@ export function createInteractionController() {
     enterFieldBehaviors.set(node, behavior);
   }
 
+  // Централизованно определяем поля, где Enter должен работать как подтверждение ввода.
   function isEnterManagedField(node) {
     return (
       node instanceof HTMLInputElement ||

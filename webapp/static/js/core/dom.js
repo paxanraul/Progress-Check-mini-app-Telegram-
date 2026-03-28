@@ -1,3 +1,8 @@
+/*
+ * Реестр DOM-узлов приложения.
+ * После рефактора Profile-экрана здесь больше нет отдельной profile-панели:
+ * "Мои данные" живут в avatar-overlay, а "История тренировок" переехала на Home.
+ */
 function queryAll(root, selector) {
   return root ? [...root.querySelectorAll(selector)] : [];
 }
@@ -5,6 +10,7 @@ function queryAll(root, selector) {
 const workoutOverlay = document.getElementById("workout-overlay");
 const recordOverlay = document.getElementById("record-overlay");
 const quoteOverlay = document.getElementById("quote-overlay");
+const myDataOverlay = document.getElementById("my-data-overlay");
 const profileOverlay = document.getElementById("profile-overlay");
 const confirmOverlay = document.getElementById("confirm-overlay");
 
@@ -14,6 +20,9 @@ export const dom = {
   app: {
     content: document.querySelector(".content"),
     screenTitle: document.getElementById("screen-title"),
+    topbarUser: document.getElementById("topbar-user"),
+    topbarAvatar: document.getElementById("topbar-avatar"),
+    topbarAvatarFallback: document.getElementById("topbar-avatar-fallback"),
   },
   navigation: {
     buttons: [...document.querySelectorAll(".nav-btn")],
@@ -23,22 +32,10 @@ export const dom = {
   },
   home: {
     panel: document.querySelector('[data-panel="home"]'),
-    streakValue: document.getElementById("streak-value"),
-    fire: document.querySelector(".fire"),
-    streakBadge: document.querySelector(".streak-badge"),
     openWorkoutFlowButton: document.getElementById("open-workout-flow"),
     quoteManageButton: document.getElementById("open-quote-overlay"),
     quoteText: document.getElementById("quote-text"),
     quoteLiveCard: document.getElementById("quote-live-card"),
-  },
-  profile: {
-    panel: document.querySelector('[data-panel="profile"]'),
-    name: document.getElementById("profile-name"),
-    weight: document.getElementById("weight-value"),
-    height: document.getElementById("height-value"),
-    experience: document.getElementById("experience-value"),
-    workouts: document.getElementById("workouts-value"),
-    openProfileOverlayButton: document.getElementById("open-profile-overlay"),
     historyList: document.getElementById("history-list"),
     historyManageToggle: document.getElementById("history-manage-toggle"),
     historyBulkActions: document.getElementById("history-bulk-actions"),
@@ -114,6 +111,17 @@ export const dom = {
       authorInput: document.getElementById("quote-author-input"),
       formHint: document.getElementById("quote-form-hint"),
       libraryList: document.getElementById("quote-library-list"),
+    },
+    myData: {
+      overlay: myDataOverlay,
+      modal: myDataOverlay?.querySelector(".my-data-modal") || null,
+      closeButton: document.getElementById("close-my-data-overlay"),
+      openProfileOverlayButton: document.getElementById("open-profile-overlay"),
+      name: document.getElementById("profile-name"),
+      weight: document.getElementById("weight-value"),
+      height: document.getElementById("height-value"),
+      experience: document.getElementById("experience-value"),
+      workouts: document.getElementById("workouts-value"),
     },
     profile: {
       overlay: profileOverlay,

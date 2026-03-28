@@ -1,3 +1,11 @@
+/*
+ * Фича пользовательских цитат на главном экране.
+ * Модуль объединяет несколько задач:
+ * 1) выбор источника цитат (дефолтные или пользовательские),
+ * 2) ротацию и анимацию текста с эффектом печати,
+ * 3) редактирование/удаление цитат через overlay,
+ * 4) сохранение пользовательских цитат в localStorage.
+ */
 import {
   HOME_QUOTES,
   MAX_CUSTOM_QUOTES,
@@ -23,6 +31,8 @@ export function createQuoteFeature({
   let quoteTypingRunId = 0;
   let quoteRotationPaused = false;
 
+  // Таймеры ротации и печати держим отдельно, чтобы можно было независимо
+  // останавливать цикл показа и текущую анимацию текста.
   function clearQuoteLoopTimer() {
     if (!quoteLoopTimer) {
       return;
@@ -44,6 +54,7 @@ export function createQuoteFeature({
     quoteLoopTimer = window.setTimeout(runQuoteTick, delay);
   }
 
+  // Нормализуем цитаты в единый вид до рендера, чтобы UI не зависел от исходного формата хранения.
   function normalizeQuoteText(quote) {
     const text = String(quote?.text || "").trim();
     const author = String(quote?.author || "").trim();

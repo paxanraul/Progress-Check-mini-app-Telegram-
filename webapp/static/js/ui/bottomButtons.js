@@ -1,3 +1,11 @@
+/*
+ * Координатор нижних кнопок действий.
+ * Модуль умеет синхронизировать два слоя интерфейса:
+ * 1) inline-кнопки внутри модалок,
+ * 2) системные MainButton/SecondaryButton Telegram Web App.
+ * Он решает, какой набор кнопок сейчас должен быть виден, какой текст на них нужен,
+ * когда показывать loading и как не перевешивать одни и те же обработчики повторно.
+ */
 import { TELEGRAM_BUTTON_ICON_ID } from "../core/constants.js";
 import { telegramMainButton, telegramSecondaryButton } from "./telegram.js";
 
@@ -10,6 +18,8 @@ export function createBottomButtonsController({
   onRecordPrimary,
   onRecordSecondary,
 }) {
+  // WeakMap хранит runtime-состояние Telegram-кнопок между вызовами sync,
+  // чтобы не дёргать Telegram API лишний раз.
   const telegramButtonState = new WeakMap();
 
   function getTelegramButtonState(button) {
@@ -162,6 +172,7 @@ export function createBottomButtonsController({
     button.setAttribute("aria-busy", loading ? "true" : "false");
   }
 
+  // Если модалка умеет показывать свои кнопки внутри себя, приоритет отдаём ей.
   function syncInlineBottomButtons() {
     const workoutVisible = Boolean(state.workoutFlow.open && dom.modals.workout.overlay && !dom.modals.workout.overlay.hidden);
     if (

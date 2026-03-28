@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
   <!-- Метаданные страницы и базовые настройки отображения -->
@@ -12,7 +12,7 @@
   <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
 
   <!-- Подключение основных стилей приложения -->
-  <link rel="stylesheet" href="/static/styles.css?v=91">
+  <link rel="stylesheet" href="/static/styles.css?v=93">
 </head>
 <body>
   <!-- Внешняя рамка интерфейса -->
@@ -26,18 +26,18 @@
       <header class="topbar">
         <!-- Заголовок текущего экрана -->
         <h1 id="screen-title">Главная</h1>
+
+        <!-- Аватар пользователя Telegram в общей шапке -->
+        <button class="topbar-user" id="topbar-user" type="button" aria-label="Открыть мои данные">
+          <img id="topbar-avatar" class="topbar-avatar" alt="Аватар Telegram" hidden>
+          <div id="topbar-avatar-fallback" class="topbar-avatar-fallback">U</div>
+        </button>
       </header>
 
       <!-- Основная область контента -->
       <main class="content">
         <!-- Экран "Главная" -->
         <section class="panel active" data-panel="home">
-          <!-- Верхний блок главной страницы -->
-          <div class="hero-row">
-            <!-- Бейдж серии тренировок -->
-            <div class="streak-badge"><span id="streak-value">0</span><span class="fire">🔥</span></div>
-          </div>
-
           <!-- Кнопка запуска сценария добавления тренировки -->
           <button class="action-card primary" id="open-workout-flow" type="button">
             <span>Добавить тренировку</span>
@@ -63,62 +63,26 @@
             <!-- Скрытый список всех сохраненных цитат -->
             <div id="quotes-list" class="quote-list" hidden></div>
           </section>
-        </section>
 
-        <!-- Экран "Профиль" -->
-        <section class="panel" data-panel="profile">
-          <!-- Карточка с основными данными пользователя -->
-          <section class="profile-card">
-            <!-- Шапка карточки профиля -->
-            <div class="profile-card-head">
-              <h2>Мои данные</h2>
-
-              <!-- Кнопка открытия редактирования профиля -->
-              <button class="profile-manage-btn" id="open-profile-overlay" type="button" aria-label="Редактировать профиль">
-                <i class='bx bx-cog'></i>
-              </button>
-            </div>
-
-            <!-- Список параметров профиля -->
-            <div class="profile-list">
-              <!-- Имя пользователя -->
-              <div class="profile-line"><span>Имя</span><strong id="profile-name">Пользователь</strong></div>
-
-              <!-- Текущий вес -->
-              <div class="profile-line"><span>Вес</span><strong id="weight-value">—</strong></div>
-
-              <!-- Текущий рост -->
-              <div class="profile-line"><span>Рост</span><strong id="height-value">—</strong></div>
-
-              <!-- Стаж тренировок -->
-              <div class="profile-line"><span>Стаж</span><strong id="experience-value">—</strong></div>
-
-              <!-- Количество сохраненных тренировок -->
-              <div class="profile-line"><span>Тренировок</span><strong id="workouts-value">0</strong></div>
-            </div>
-          </section>
-
-          <!-- Блок истории тренировок -->
+          <!-- Историю тренировок перенесли на Home, но сохранили старые id и структуру рендера. -->
           <section class="section-block">
-            <!-- Заголовок секции истории -->
             <div class="section-title">
               <h2>История тренировок</h2>
-
-              <!-- Кнопка включения режима редактирования истории -->
               <button class="history-manage-btn" id="history-manage-toggle" type="button" aria-label="Изменить историю тренировок">
                 <i class='bx bx-cog'></i>
               </button>
             </div>
 
-            <!-- Панель массовых действий над историей тренировок -->
             <div class="history-bulk-actions" id="history-bulk-actions" hidden>
               <button class="history-bulk-btn" id="history-delete-selected" type="button">Удалить выбранные</button>
               <button class="history-bulk-btn danger" id="history-delete-all" type="button">Удалить все</button>
               <button class="history-bulk-btn subtle" id="history-manage-cancel" type="button">Отмена</button>
             </div>
 
-            <!-- Контейнер списка тренировок -->
-            <div id="history-list" class="list-stack"></div>
+            <!-- Внутренний scroll нужен для длинной истории внутри Home-экрана Telegram Mini App. -->
+            <div class="history-scroll-shell">
+              <div id="history-list" class="list-stack"></div>
+            </div>
           </section>
         </section>
 
@@ -169,12 +133,6 @@
         <button class="nav-btn active" data-tab="home" type="button">
           <span class="nav-icon"><i class='bx bx-home-alt-2'></i></span>
           <span class="nav-label">Главная</span>
-        </button>
-
-        <!-- Кнопка перехода в профиль -->
-        <button class="nav-btn" data-tab="profile" type="button">
-          <span class="nav-icon"><i class='bx bx-user'></i></span>
-          <span class="nav-label">Профиль</span>
         </button>
 
         <!-- Кнопка перехода к рекордам -->
@@ -393,6 +351,37 @@
     </div>
   </div>
 
+  <!-- Overlay с перенесённым блоком "Мои данные": открывается по аватару и использует прежние id/контент. -->
+  <div class="workout-overlay" id="my-data-overlay" hidden>
+    <div class="workout-modal my-data-modal">
+      <div class="modal-head">
+        <button class="modal-close-btn" id="close-my-data-overlay" type="button" aria-label="Закрыть">×</button>
+        <p>Мои данные</p>
+      </div>
+
+      <section class="modal-step active my-data-modal-step">
+        <section class="profile-card profile-summary-card">
+          <div class="profile-card-head">
+            <h2>Мои данные</h2>
+
+            <!-- Сохраняем прежнюю кнопку редактирования, только теперь она живёт внутри avatar-overlay. -->
+            <button class="profile-manage-btn" id="open-profile-overlay" type="button" aria-label="Редактировать профиль">
+              <i class='bx bx-cog'></i>
+            </button>
+          </div>
+
+          <div class="profile-list">
+            <div class="profile-line"><span>Имя</span><strong id="profile-name">Пользователь</strong></div>
+            <div class="profile-line"><span>Вес</span><strong id="weight-value">—</strong></div>
+            <div class="profile-line"><span>Рост</span><strong id="height-value">—</strong></div>
+            <div class="profile-line"><span>Стаж</span><strong id="experience-value">—</strong></div>
+            <div class="profile-line"><span>Тренировок</span><strong id="workouts-value">0</strong></div>
+          </div>
+        </section>
+      </section>
+    </div>
+  </div>
+
   <!-- Модальное окно редактирования профиля -->
   <div class="workout-overlay" id="profile-overlay" hidden>
     <div class="workout-modal profile-modal">
@@ -490,7 +479,6 @@
   <script src="https://unpkg.com/motion@11.11.13/dist/motion.js"></script>
 
   <!-- Подключение основного JavaScript-файла приложения -->
-  <script src="/static/app.js?v=62"></script>
+  <script src="/static/app.js?v=63"></script>
 </body>
 </html>
-

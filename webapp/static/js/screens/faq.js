@@ -1,3 +1,8 @@
+/*
+ * Экран FAQ.
+ * Модуль строит вкладки по категориям, фильтрует вопросы по поисковой строке
+ * и отрисовывает список карточек с вопросами и ответами.
+ */
 import { emptyCard, escapeHtml, faqTitle } from "../shared/utils.js";
 
 export function createFaqScreen({ state, dom, animateCollection }) {

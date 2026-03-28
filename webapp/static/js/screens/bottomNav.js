@@ -1,8 +1,13 @@
+/*
+ * Контроллер нижней навигации после удаления Profile-экрана.
+ * Теперь нижнее меню переключает только Home и Records, а hooks учитывают,
+ * что история тренировок живёт на Home и должна корректно выходить из edit-mode.
+ */
 export function createBottomNavigation({
   state,
   dom,
   animatePanelEnter,
-  onLeavingProfile,
+  onLeavingHome,
   onLeavingRecords,
   onActivateHome,
   onActivateRecords,
@@ -39,9 +44,6 @@ export function createBottomNavigation({
   }
 
   function titleForTab(tab) {
-    if (tab === "profile") {
-      return "Профиль";
-    }
     if (tab === "records") {
       return "Рекорды";
     }
@@ -56,8 +58,8 @@ export function createBottomNavigation({
       return;
     }
 
-    if (state.activeTab === "profile" && tab !== "profile") {
-      onLeavingProfile?.();
+    if (state.activeTab === "home" && tab !== "home") {
+      onLeavingHome?.();
     }
     if (state.activeTab === "records" && tab !== "records") {
       onLeavingRecords?.();

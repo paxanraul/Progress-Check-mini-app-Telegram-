@@ -1,12 +1,22 @@
+/*
+ * Главный пошаговый мастер работы с тренировкой.
+ * Модуль поддерживает два режима:
+ * 1) создание новой тренировки с нуля,
+ * 2) редактирование уже существующей сессии из истории.
+ * Внутри он управляет черновиком упражнений, шагами modal flow,
+ * рендером промежуточных состояний и сохранением результата на backend.
+ */
 import { DEFAULT_WORKOUT_DRAFT } from "../core/constants.js";
 import { escapeHtml, formatDate, todayValue } from "../shared/utils.js";
 import { animateDraftItems, animateWorkoutStep } from "../ui/animation.js";
 import { closeOverlay, openOverlay } from "../ui/modalBase.js";
 
+// Дефолтный шаблон одного чернового упражнения.
 function cloneDefaultDraft() {
   return { ...DEFAULT_WORKOUT_DRAFT };
 }
 
+// Явная карта шагов назад для secondary action и inline-навигации внутри мастера.
 function previousWorkoutStep(step) {
   if (step === "form") {
     return "list";
@@ -33,6 +43,7 @@ export function createWorkoutFlowModal({
 }) {
   let lastWorkoutStep = "";
 
+  // Подготовка данных: находим тренировку в истории и превращаем её в редактируемый черновик.
   function convertHistoryToDraft(day) {
     if (!day) {
       return [];
@@ -89,6 +100,7 @@ export function createWorkoutFlowModal({
     }
   }
 
+  // Заголовок зависит не только от шага, но и от режима create/edit.
   function workoutTitle(step) {
     if (step === "form") {
       return state.workoutFlow.editingIndex === null ? "Параметры упражнения" : "Изменить упражнение";
@@ -206,6 +218,7 @@ export function createWorkoutFlowModal({
     animateDraftItems([...dom.modals.workout.draftList.querySelectorAll(".draft-item")]);
   }
 
+  // Централизованный render обновляет активный шаг, тексты, счётчики и видимость действий.
   function render() {
     if (!state.workoutFlow.open) {
       syncBottomButtons();
@@ -274,6 +287,7 @@ export function createWorkoutFlowModal({
     render();
   }
 
+  // Работа с локальным списком упражнений до отправки на backend.
   function removeDraftItem(index) {
     if (!state.workoutFlow.items[index]) {
       return;
@@ -328,6 +342,7 @@ export function createWorkoutFlowModal({
     return true;
   }
 
+  // Финальная сборка payload и сохранение тренировки на сервере.
   async function submitWorkoutFlow() {
     if (state.workoutFlow.saving) {
       return false;
@@ -381,6 +396,7 @@ export function createWorkoutFlowModal({
     }
   }
 
+  // Отдельный destructive-сценарий удаления всей выбранной тренировки.
   async function handleDeleteWorkoutDay() {
     if (
       state.workoutFlow.mode !== "edit" ||
@@ -421,6 +437,7 @@ export function createWorkoutFlowModal({
     }
   }
 
+  // Primary action ведёт пользователя по шагам мастера или завершает процесс сохранением.
   async function handlePrimaryAction() {
     interaction.blurActiveField();
 
@@ -452,6 +469,7 @@ export function createWorkoutFlowModal({
     return false;
   }
 
+  // Открытие нового flow для создания тренировки с нуля.
   function open() {
     state.workoutFlow.open = true;
     resetWorkoutFlowForNewEntry();
@@ -498,6 +516,7 @@ export function createWorkoutFlowModal({
     return closed;
   }
 
+  // Открытие flow в режиме редактирования выбранной записи из истории.
   function openEditWorkoutFlow(sourceSessionKey, sourceDate = "") {
     const day = findWorkoutEntry(sourceSessionKey, sourceDate);
     if (!day) {
@@ -539,6 +558,7 @@ export function createWorkoutFlowModal({
     render();
   }
 
+  // Здесь связываем UI-кнопки, выбор даты и счётчики подходов/повторов с состоянием flow.
   function bindEvents() {
     dom.modals.workout.closeButton?.addEventListener("click", () => {
       void close();

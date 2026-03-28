@@ -1,3 +1,8 @@
+/*
+ * Обёртки над библиотекой Motion.
+ * Модуль задаёт типовые анимации для экранов, карточек и шагов модалок,
+ * чтобы визуальное поведение было единообразным по всему приложению.
+ */
 const motionApi = window.Motion;
 const motionAnimate = typeof motionApi?.animate === "function" ? motionApi.animate : null;
 const motionStagger = typeof motionApi?.stagger === "function" ? motionApi.stagger : null;

@@ -1,3 +1,8 @@
+/*
+ * Экран рекордов пользователя.
+ * Модуль показывает список лучших результатов, поддерживает массовый режим редактирования,
+ * выбор карточек, удаление выбранных/всех рекордов и запуск формы добавления нового рекорда.
+ */
 import {
   decodeHtml,
   emptyCard,
@@ -15,6 +20,7 @@ export function createRecordsScreen({
   animateCollection,
   openRecordFlow,
 }) {
+  // Видимость bulk-действий и состояние кнопок зависят от edit mode и текущего selection.
   function updateControls() {
     dom.records.manageButton?.classList.toggle("active-tool", state.recordsEditMode);
     if (dom.records.manageButton) {
@@ -134,6 +140,7 @@ export function createRecordsScreen({
     });
   }
 
+  // Массовые destructive-действия вынесены отдельно от render, чтобы не смешивать UI и API-сценарии.
   async function deleteSelectedRecords(refreshAppDataStable) {
     if (!state.recordsEditMode || state.selectedRecordExercises.size === 0) {
       return;

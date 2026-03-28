@@ -1,3 +1,8 @@
+/*
+ * Модалка добавления нового личного рекорда.
+ * Модуль управляет локальным состоянием сохранения, валидацией полей,
+ * синхронизацией превью веса/даты и отправкой записи на backend.
+ */
 import { closeOverlay, openOverlay } from "../ui/modalBase.js";
 import { formatDate, todayValue } from "../shared/utils.js";
 
@@ -17,6 +22,8 @@ export function createRecordModal({
     return recordFlowSaving;
   }
 
+  // Отдельно поддерживаем визуальные превью в модалке, чтобы пользователь
+  // сразу видел, как введённые значения будут выглядеть в карточке рекорда.
   function syncWeightDisplay() {
     if (!dom.modals.record.weightDisplay) {
       return;
@@ -144,6 +151,7 @@ export function createRecordModal({
     }
   }
 
+  // Привязываем и кнопки модалки, и live-обновление отображаемых значений.
   function bindEvents() {
     dom.modals.record.saveButton?.addEventListener("click", () => {
       void submit();

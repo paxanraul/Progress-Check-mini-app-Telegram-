@@ -1,3 +1,8 @@
+/*
+ * Локальное клиентское хранилище mini-app.
+ * Сейчас здесь сохраняются только пользовательские цитаты,
+ * чтобы персонализация переживала перезагрузку страницы без участия backend.
+ */
 import { MAX_CUSTOM_QUOTES } from "../core/constants.js";
 
 function normalizeCustomQuotes(items) {
@@ -40,10 +45,7 @@ function customQuotesStorageKey(userId) {
   return `custom_quotes:${userId || "unknown"}`;
 }
 
-function fireStateStorageKey(userId) {
-  return `fire_state:${userId || "unknown"}`;
-}
-
+// Чтение и запись пользовательских цитат.
 export function loadCustomQuotes(userId) {
   try {
     const raw = localStorage.getItem(customQuotesStorageKey(userId));
@@ -69,21 +71,4 @@ export function persistCustomQuotes(userId, quotes) {
     console.warn("custom quotes storage failed", error);
   }
   return normalized;
-}
-
-export function readFireState(userId) {
-  try {
-    const raw = localStorage.getItem(fireStateStorageKey(userId));
-    return raw ? JSON.parse(raw) : null;
-  } catch (error) {
-    return null;
-  }
-}
-
-export function writeFireState(userId, value) {
-  try {
-    localStorage.setItem(fireStateStorageKey(userId), JSON.stringify(value));
-  } catch (error) {
-    // ignore storage errors
-  }
 }

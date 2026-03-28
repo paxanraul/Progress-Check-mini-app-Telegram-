@@ -1,3 +1,8 @@
+/*
+ * UI-обвязка для модального окна управления цитатами.
+ * Сам бизнес-процесс хранения, ротации и валидации цитат живёт в `features/quotes`,
+ * а этот модуль отвечает именно за lifecycle окна: открыть, закрыть, связать кнопки и поля.
+ */
 import { closeOverlay, openOverlay } from "../ui/modalBase.js";
 
 export function createQuotesModal({

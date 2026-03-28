@@ -1,3 +1,9 @@
+/*
+ * Простая модалка подтверждения.
+ * Используется как переиспользуемый yes/no-диалог: показывает текст,
+ * ждёт действие пользователя и возвращает результат через Promise,
+ * чтобы вызывающий код мог писать линейные сценарии удаления или очистки данных.
+ */
 import { closeOverlay, openOverlay } from "../ui/modalBase.js";
 
 export function createConfirmModal({ state, dom, interaction, getBlockingOverlays }) {

@@ -1,3 +1,9 @@
+/*
+ * Общие утилиты, которые переиспользуются несколькими экранами и модалками.
+ * Здесь собраны маленькие функции без привязки к конкретному сценарию:
+ * форматирование дат, экранирование HTML, сохранение scroll-позиции
+ * и обработка long-press для мобильных жестов.
+ */
 export function todayValue() {
   const date = new Date();
   const year = date.getFullYear();
@@ -34,6 +40,7 @@ export function decodeHtml(value) {
   return textarea.value;
 }
 
+// HTML-заглушка для пустых состояний списков.
 export function emptyCard(text) {
   return `<div class="history-card empty-card"><div class="history-main empty-card-text">${escapeHtml(text)}</div></div>`;
 }
@@ -73,40 +80,7 @@ export function faqTitle(key) {
   return "Техника";
 }
 
-export function countBackConsecutiveDays(dateSet, startIsoDate) {
-  let count = 0;
-  let current = startIsoDate;
-
-  while (dateSet.has(current)) {
-    count += 1;
-    current = shiftIsoDate(current, -1);
-  }
-
-  return count;
-}
-
-export function shiftIsoDate(isoDate, deltaDays) {
-  const parts = String(isoDate).split("-");
-  if (parts.length !== 3) {
-    return isoDate;
-  }
-
-  const year = Number(parts[0]);
-  const month = Number(parts[1]);
-  const day = Number(parts[2]);
-  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) {
-    return isoDate;
-  }
-
-  const date = new Date(year, month - 1, day);
-  date.setDate(date.getDate() + deltaDays);
-
-  const nextYear = String(date.getFullYear());
-  const nextMonth = String(date.getMonth() + 1).padStart(2, "0");
-  const nextDay = String(date.getDate()).padStart(2, "0");
-  return `${nextYear}-${nextMonth}-${nextDay}`;
-}
-
+// Универсальный long-press нужен для быстрых мобильных действий без отдельной кнопки.
 export function attachLongPress(node, durationMs, onLongPress) {
   if (!node) {
     return;

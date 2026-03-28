@@ -1,4 +1,4 @@
-﻿:root {
+:root {
   --app-vh: 100vh;
   --bg: #020305;
   --bg-soft: #0a0b0f;
@@ -146,7 +146,6 @@ h2 {
   font-weight: 600;
 }
 
-.hero-row,
 .section-title,
 .records-toolbar,
 .profile-line,
@@ -167,37 +166,9 @@ h2 {
  top: 50%;
  transform: translateY(22%);
 }
-.hero-row,
 .records-toolbar,
 .modal-head {
   justify-content: space-between;
-}
-
-.hero-row {
-  margin: 2px 0 14px;
-  justify-content: flex-end;
-  padding-right: 6px;
-}
-
-.streak-badge {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 43px !important;
-  font-weight: 700;
-}
-
-.fire {
-  font-size: 43px !important;
-}
-
-.fire.fire-inactive {
-  filter: grayscale(1);
-  opacity: 0.45;
-}
-
-.streak-badge.streak-inactive {
-  color: #8a8f98;
 }
 
 .action-card,
@@ -1085,15 +1056,6 @@ h2 {
   backdrop-filter: blur(6px);
 }
 
-.streak-badge {
-  font-size: 30px !important;
-  gap: 2px;
-}
-
-.fire {
-  font-size: 27px !important;
-}
-
 .nav-icon {
   font-size: 15px;
   line-height: 1;
@@ -1522,21 +1484,6 @@ body {
 .record-modal {
   overflow-anchor: none;
   scrollbar-gutter: stable both-edges;
-}
-
-.hero-row {
-  margin: 4px 0 2px;
-  padding-right: 2px;
-}
-
-.streak-badge {
-  font-size: 33px !important;
-  gap: 3px;
-  letter-spacing: -0.03em;
-}
-
-.fire {
-  font-size: 30px !important;
 }
 
 button,
@@ -2356,22 +2303,6 @@ body::after {
 
 .panel {
   padding-bottom: 6px;
-}
-
-.hero-row {
-  margin: 2px 0 16px;
-  padding-right: 0;
-}
-
-.streak-badge {
-  gap: 10px;
-  padding: 12px 18px;
-  border-radius: 999px;
-  background: var(--liquid-surface-soft);
-  border: 1px solid var(--liquid-stroke);
-  box-shadow: var(--liquid-hairline), var(--liquid-shadow-soft);
-  backdrop-filter: blur(18px) saturate(180%);
-  -webkit-backdrop-filter: blur(18px) saturate(180%);
 }
 
 .action-card,
@@ -3390,14 +3321,16 @@ body {
 
 .bottom-nav {
   position: absolute;
-  left: 0;
-  right: 0;
+  /* Сужаем весь нижний блок на 50px: по 25px отступа слева и справа. */
+  left: 25px;
+  right: 25px;
   bottom: 0;
-  width: 100%;
+  width: auto;
   height: calc(68px + env(safe-area-inset-bottom, 0px));
   padding: 6px 8px calc(8px + env(safe-area-inset-bottom, 0px));
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  /* После удаления Profile-nav нижнее меню должно делить контейнер только между двумя вкладками. */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: stretch;
   gap: 0;
   border: 0;
@@ -3444,7 +3377,7 @@ body {
   top: 6px;
   bottom: calc(8px + env(safe-area-inset-bottom, 0px));
   left: 8px;
-  width: calc((100% - 16px) / 3);
+  width: calc((100% - 16px) / 2);
   height: auto;
   border-radius: 14px;
   background:
@@ -3467,8 +3400,8 @@ body {
 .nav-btn {
   position: relative;
   z-index: 1;
-  width: calc(100% - 4px);
-  justify-self: center;
+  width: 100%;
+  justify-self: stretch;
   align-self: center;
   min-height: 52px;
   border-radius: 14px;
@@ -3534,12 +3467,12 @@ body {
     top: 6px;
     bottom: calc(8px + env(safe-area-inset-bottom, 0px));
     left: 8px;
-    width: calc((100% - 16px) / 3);
+    width: calc((100% - 16px) / 2);
     border-radius: 14px;
   }
 
   .nav-btn {
-    width: calc(100% - 4px);
+    width: 100%;
     min-height: 50px;
     border-radius: 14px;
   }
@@ -3589,7 +3522,10 @@ body {
 
 .topbar {
   padding: 24px 24px 8px;
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
 }
 
 #screen-title {
@@ -3599,6 +3535,40 @@ body {
   font-weight: 600;
   letter-spacing: -0.045em;
   color: #ffffff;
+  margin: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Блок аватара в общей шапке mini-app. */
+.topbar-user {
+  width: 45px;
+  height: 45px;
+  flex: 0 0 45px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.topbar-avatar {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.topbar-avatar-fallback {
+  font-size: 14px;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #ffffff;
 }
 
 .content {
@@ -3607,32 +3577,6 @@ body {
 
 .panel {
   padding-bottom: 10px;
-}
-
-.hero-row {
-  margin: 0 0 16px;
-  justify-content: flex-end;
-  padding-right: 0;
-}
-
-.streak-badge {
-  gap: 10px;
-  padding: 12px 18px;
-  border-radius: 999px;
-  font-size: 30px !important;
-  line-height: 1;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.37),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
-}
-
-.fire,
-.streak-badge .fire {
-  font-size: 30px !important;
 }
 
 .action-card,
@@ -3680,6 +3624,11 @@ body {
   min-height: 72px;
   padding: 0 20px;
   margin-bottom: 14px;
+}
+
+/* После удаления streak-блока добавляем небольшой верхний отступ только главной CTA-кнопке. */
+#open-workout-flow {
+  margin-top: 8px;
 }
 
 .action-card.primary,
@@ -4075,17 +4024,19 @@ body {
 
 .bottom-nav {
   position: absolute;
-  left: 16px;
-  right: 16px;
-  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
-  width: auto;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
   height: auto;
   padding: 8px;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  /* Финальный блок нижнего меню: после удаления Profile остаются только две равные вкладки. */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 28px;
+  border: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 24px 24px 0 0;
   background: rgba(18, 18, 26, 0.85);
   box-shadow:
     0 -4px 24px rgba(0, 0, 0, 0.5),
@@ -4235,6 +4186,9 @@ body {
 .quote-section-card {
   position: relative;
   min-height: 152px;
+  width: calc(100% - 10px);
+  margin-inline: auto;
+  margin-top: -3px;
   padding: 0;
   overflow: hidden;
 }
@@ -5522,11 +5476,6 @@ textarea {
   -webkit-appearance: none;
 }
 
-.streak-badge,
-.fire {
-  font-size: calc(var(--scale-unit) * 2.05) !important;
-}
-
 #delete-btn.records-tool-btn,
 #move-btn.records-tool-btn,
 .records-toolbar .records-tool-btn {
@@ -5606,5 +5555,174 @@ textarea {
 
   .record-date-display {
     font-size: inherit;
+  }
+}
+
+/* Avatar-triggered "My Data" overlay and moved Home history overrides. */
+.topbar-user {
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 0;
+  cursor: pointer;
+  outline: none;
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+}
+
+.topbar-user:focus-visible {
+  border-color: rgba(63, 162, 255, 0.34);
+  box-shadow:
+    0 0 0 2px rgba(63, 162, 255, 0.2),
+    0 10px 26px rgba(0, 0, 0, 0.22);
+}
+
+.topbar-user:active {
+  transform: scale(0.97);
+}
+
+.history-scroll-shell {
+  max-height: min(42vh, 356px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  touch-action: pan-y;
+  padding-right: 4px;
+  margin-right: -4px;
+}
+
+.history-scroll-shell::-webkit-scrollbar {
+  width: 5px;
+}
+
+.history-scroll-shell::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.my-data-modal {
+  min-height: 0;
+}
+
+.my-data-modal .modal-head {
+  display: grid;
+  grid-template-columns: 42px 1fr 42px;
+  align-items: center;
+  column-gap: 10px;
+}
+
+.my-data-modal .modal-head p {
+  margin: 0;
+  justify-self: center;
+  text-align: center;
+}
+
+.my-data-modal .modal-head::after {
+  content: "";
+  width: 42px;
+  height: 42px;
+}
+
+.my-data-modal-step {
+  display: grid;
+  gap: 12px;
+}
+
+.profile-summary-card {
+  margin: 0;
+}
+
+/* Панели управления историей и рекордами переводим в одну колонку, чтобы каждая кнопка тянулась на весь блок. */
+.history-bulk-actions,
+.records-bulk-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: stretch;
+}
+
+.history-bulk-actions .history-bulk-btn,
+.records-bulk-actions .history-bulk-btn {
+  width: 100%;
+  margin: 0;
+  justify-content: center;
+  text-align: center;
+  white-space: normal;
+  line-height: 1.18;
+}
+
+/* Финальные адаптивные overrides для последних UI-изменений.
+   Этот блок идёт в самом конце файла, чтобы побеждать более ранние повторяющиеся правила. */
+.bottom-nav {
+  left: clamp(10px, 4vw, 25px);
+  right: clamp(10px, 4vw, 25px);
+  bottom: max(0px, calc(8px + env(safe-area-inset-bottom, 0px)));
+  width: auto;
+  padding: clamp(6px, 1.9vw, 8px);
+  border-radius: clamp(20px, 6vw, 28px);
+}
+
+.nav-pill {
+  top: clamp(6px, 1.8vw, 8px);
+  bottom: clamp(6px, 1.8vw, 8px);
+  left: clamp(6px, 1.8vw, 8px);
+  border-radius: clamp(16px, 4.8vw, 20px);
+}
+
+.nav-btn {
+  min-height: clamp(54px, 15vw, 64px);
+  padding: clamp(8px, 2.4vw, 10px) clamp(4px, 2vw, 8px);
+  border-radius: clamp(16px, 4.8vw, 20px);
+  gap: clamp(2px, 1vw, 4px);
+}
+
+.nav-icon {
+  font-size: clamp(20px, 5vw, 23px);
+}
+
+.nav-label {
+  font-size: clamp(10px, 2.8vw, 12px);
+}
+
+.topbar-user {
+  width: clamp(42px, 11vw, 45px);
+  height: clamp(42px, 11vw, 45px);
+  flex-basis: clamp(42px, 11vw, 45px);
+}
+
+.history-scroll-shell {
+  max-height: clamp(220px, 36vh, 356px);
+}
+
+@media (max-width: 360px) {
+  /* На очень узких экранах уменьшаем горизонтальные поля и подписи нижнего меню. */
+  .bottom-nav {
+    left: 8px;
+    right: 8px;
+    bottom: max(0px, calc(6px + env(safe-area-inset-bottom, 0px)));
+    gap: 6px;
+  }
+
+  .nav-label {
+    font-size: 10px;
+    letter-spacing: -0.015em;
+  }
+
+  .my-data-modal .modal-head {
+    grid-template-columns: 38px 1fr 38px;
+  }
+
+  .my-data-modal .modal-head::after {
+    width: 38px;
+    height: 38px;
+  }
+}
+
+@media (max-height: 720px) {
+  /* На невысоких устройствах ограничиваем вертикальный аппетит истории и overlay-заголовка. */
+  .history-scroll-shell {
+    max-height: min(30vh, 250px);
+  }
+
+  .my-data-modal-step {
+    gap: 10px;
   }
 }

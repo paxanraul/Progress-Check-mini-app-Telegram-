@@ -31,25 +31,25 @@ export function UserLevelCard({ workoutCount = 0, variant = "full" }) {
       transition={{ duration: 0.34, ease: [0.22, 1, 0.36, 1] }}
       className={`ul-relative ul-isolate ul-overflow-hidden ul-rounded-[24px] ul-border ${getCardPadding(variant)} ul-backdrop-blur-xl`}
       style={{
-        borderColor: "rgba(255,255,255,0.1)",
+        borderColor: "rgba(255,255,255,0.09)",
         background:
-          "radial-gradient(circle at 100% 0%, rgba(63,162,255,0.11), transparent 30%), radial-gradient(circle at 0% 100%, rgba(208,165,40,0.05), transparent 24%), linear-gradient(180deg, rgba(40,40,46,0.98), rgba(27,28,33,0.98))",
+          "radial-gradient(circle at 100% 100%, rgba(208,165,40,0.14), transparent 24%), linear-gradient(180deg, rgba(34,35,42,0.96), rgba(21,22,28,0.98))",
         boxShadow:
-          "0 14px 28px rgba(0,0,0,0.26), inset 0 1px 0 rgba(255,255,255,0.02)",
+          "0 18px 40px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.03)",
       }}
     >
       <div
         aria-hidden="true"
-        className="ul-pointer-events-none ul-absolute ul-right-[-18px] ul-top-[-18px] ul-h-24 ul-w-24 ul-rounded-full ul-blur-2xl"
-        style={{ background: "rgba(255,255,255,0.09)" }}
+        className="ul-pointer-events-none ul-absolute ul-bottom-[-24px] ul-right-[-14px] ul-h-24 ul-w-24 ul-rounded-full ul-blur-2xl"
+        style={{ background: "rgba(208,165,40,0.18)" }}
       />
 
       <div className="ul-relative ul-flex ul-flex-col ul-gap-3">
         <div className="ul-flex ul-items-start ul-justify-between ul-gap-3">
-          <div className="ul-max-w-[240px] ul-text-[16px] ul-font-semibold ul-leading-6 ul-text-white/92">
+          <div className="ul-max-w-[240px] ul-text-[12px] ul-font-semibold ul-leading-5 ul-text-white/92">
         Текущий прогресс
           </div>
-          <div className="ul-text-right ul-text-[17px] ul-font-semibold ul-leading-6 ul-text-white">
+          <div className="ul-text-right ul-text-[13px] ul-font-semibold ul-leading-5 ul-text-white">
             {metrics.progressLabel.replace(" / ", " / ")}
           </div>
         </div>
@@ -100,7 +100,7 @@ export function UserLevelCard({ workoutCount = 0, variant = "full" }) {
           </motion.div>
         </div>
 
-        <div className="ul-flex ul-flex-wrap ul-items-center ul-justify-between ul-gap-3 ul-text-[16px] ul-font-medium ul-leading-6">
+        <div className="ul-flex ul-flex-wrap ul-items-center ul-justify-between ul-gap-3 ul-text-[12px] ul-font-medium">
           <span className="ul-text-white/92">Уровень {metrics.level}</span>
           <span className="ul-text-right ul-text-white/92">{formatRemainingLabel(metrics)}</span>
         </div>

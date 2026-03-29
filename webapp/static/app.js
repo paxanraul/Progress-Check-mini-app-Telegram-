@@ -1423,6 +1423,7 @@ async function bootstrap() {
     document.getElementById("height-value").textContent = "—";
     document.getElementById("experience-value").textContent = "—";
     document.getElementById("workouts-value").textContent = "0";
+    syncUserLevelWidget({});
     document.getElementById("history-list").innerHTML = emptyCard(payload.message || "Сначала открой бота и заполни профиль.");
     document.getElementById("records-list").innerHTML = emptyCard("Рекорды появятся после первых тренировок.");
     switchTab("home");
@@ -1500,6 +1501,33 @@ function renderTelegramAvatar(profileUser = null) {
   topbarAvatar.hidden = false;
 }
 
+function normalizeWorkoutCountForLevelWidget(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return 0;
+  }
+  return Math.floor(parsed);
+}
+
+function syncUserLevelWidget(profileUser = {}) {
+  const userLevelRoots = document.querySelectorAll("[data-user-level-widget]");
+  const levelPayload = {
+    workoutCount: normalizeWorkoutCountForLevelWidget(profileUser.workout_days ?? 0),
+    userName: String(profileUser.name || "").trim(),
+  };
+
+  window.__USER_LEVEL_WIDGET_PROFILE__ = levelPayload;
+
+  userLevelRoots.forEach((rootNode) => {
+    rootNode.dataset.workoutCount = String(levelPayload.workoutCount);
+    rootNode.dataset.userName = levelPayload.userName;
+  });
+
+  if (typeof window.dispatchEvent === "function" && typeof window.CustomEvent === "function") {
+    window.dispatchEvent(new window.CustomEvent("user-level:sync", { detail: levelPayload }));
+  }
+}
+
 function renderProfile(user) {
   // Поля профиля больше не живут на отдельной вкладке: они обновляют summary-overlay, открываемый по аватару.
   document.getElementById("profile-name").textContent = user.name || "Пользователь";
@@ -1507,6 +1535,7 @@ function renderProfile(user) {
   document.getElementById("height-value").textContent = user.height ? `${user.height} см` : "—";
   document.getElementById("experience-value").textContent = user.experience || "—";
   document.getElementById("workouts-value").textContent = String(user.workout_days ?? 0);
+  syncUserLevelWidget(user);
 }
 
 function renderHistory(history, options = {}) {

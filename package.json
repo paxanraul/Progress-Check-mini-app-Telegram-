@@ -1,0 +1,33 @@
+{
+  "name": "progress-check-mini-app-telegram-",
+  "version": "1.0.0",
+  "description": "Telegram bot + Mini App для фиксации тренировок, профиля, рекордов и мотивационных цитат.",
+  "main": "index.js",
+  "scripts": {
+    "build:user-level:css": "tailwindcss -c ./tailwind.user-level.config.cjs -i ./frontend/user-level/input.css -o ./webapp/static/generated/user-level-widget.css --minify",
+    "build:user-level:js": "esbuild ./frontend/user-level/index.jsx --bundle --format=iife --target=es2020 --jsx=automatic --minify --outfile=./webapp/static/generated/user-level-widget.js",
+    "build:user-level": "npm run build:user-level:css && npm run build:user-level:js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/paxanraul/Progress-Check-mini-app-Telegram-.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/paxanraul/Progress-Check-mini-app-Telegram-/issues"
+  },
+  "homepage": "https://github.com/paxanraul/Progress-Check-mini-app-Telegram-#readme",
+  "devDependencies": {
+    "autoprefixer": "^10.4.27",
+    "esbuild": "^0.27.4",
+    "framer-motion": "^12.38.0",
+    "postcss": "^8.5.8",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "tailwindcss": "^3.4.17"
+  }
+}

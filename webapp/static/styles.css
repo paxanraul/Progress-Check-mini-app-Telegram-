@@ -4358,14 +4358,19 @@ body {
 }
 
 .profile-card-head {
-  display: flex;
-  align-items: center;
+  position: relative;
+  display: block;
   margin-bottom: 12px;
-  padding-right: 44px;
+  padding-right: 56px;
 }
 
 .profile-card-head h2 {
   margin: 0;
+}
+
+.profile-card-head-copy {
+  display: grid;
+  gap: 12px;
 }
 
 .profile-manage-btn {
@@ -5614,6 +5619,7 @@ textarea {
   margin: 0;
   justify-self: center;
   text-align: center;
+  font-size: calc(var(--scale-title) + 3px);
 }
 
 .my-data-modal .modal-head::after {
@@ -5629,6 +5635,22 @@ textarea {
 
 .profile-summary-card {
   margin: 0;
+  display: grid;
+  gap: 18px;
+}
+
+.user-level-home-slot {
+  width: calc(100% - 10px);
+  margin: 12px auto 0;
+}
+
+.user-level-mount {
+  min-height: 0;
+}
+
+.user-level-home-mount,
+.user-level-profile-mount {
+  width: 100%;
 }
 
 /* Панели управления историей и рекордами переводим в одну колонку, чтобы каждая кнопка тянулась на весь блок. */

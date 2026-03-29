@@ -1,6 +1,5 @@
 import os
 import html
-from datetime import date, datetime
 from pathlib import Path
 
 from aiogram import F, Router
@@ -14,7 +13,6 @@ from aiogram.types import CallbackQuery, FSInputFile, Message
 
 from bot.db import (
     DB_PATH,
-    add_workout,
     get_active_started_users_since,
     get_all_started_user_ids,
     get_profiles_count,
@@ -32,8 +30,7 @@ from bot.db import (
     upsert_user,
     upsert_user_activity
 )
-from bot.keyboards import admin_panel_keyboard, faq_keyboard, main_menu_keyboard, workout_action_keyboard
-from bot.keyboards import workout_date_keyboard, workout_next_step_keyboard
+from bot.keyboards import admin_panel_keyboard, faq_keyboard, main_menu_keyboard
 
 
 router = Router()
@@ -56,7 +53,7 @@ router.message.outer_middleware(TrackUserActivityMiddleware())
 
 FAQ_TEXTS = {
     "technique": (
-        "Техника:\n"
+        "Техника:\n"    
         "1. Жим лежа: лопатки сведены, ноги упираются в пол, штанга идет по контролируемой траектории.\n"
         "2. Присед: спина нейтральна, колени смотрят в сторону носков, глубина без потери контроля.\n"
         "3. Становая: штанга близко к ногам, корпус жесткий, движение начинается ногами."
@@ -266,13 +263,6 @@ async def menu_home(message: Message) -> None:
     await send_main_screen(message, message.from_user.id)
 
 
-@router.message(F.text == "Рекорды")
-async def menu_records(message: Message) -> None:
-    await message.answer(
-        "Рекорды уже отображаются на главном экране и внутри mini app.",
-        reply_markup=main_menu_keyboard(message.from_user.id),
-    )
-
 
 @router.message(F.text == "Мини-гайд")
 async def menu_mini_guide(message: Message) -> None:
@@ -283,169 +273,6 @@ async def start_workout_flow(message: Message, state: FSMContext, user_id: int) 
     if not get_user(user_id):
         await message.answer("Сначала заполни профиль через /start.")
         return
-
-    await state.set_state(WorkoutForm.workout_date)
-    await state.set_data({})
-    await message.answer(
-        "Введите дату тренировки.\n"
-        "Форматы: YYYY-MM-DD или DD.MM.YYYY\n"
-        "Можно выбрать: Сегодня",
-        reply_markup=workout_date_keyboard(),
-    )
-
-
-@router.callback_query(F.data == "workout_cancel")
-async def workout_cancel(callback: CallbackQuery, state: FSMContext) -> None:
-    if not await ensure_active_workout_state(callback, state):
-        return
-
-    await state.clear()
-    await callback.message.answer("Запись тренировки отменена.")
-    await send_main_screen(callback.message, callback.from_user.id)
-    await callback.answer()
-
-
-@router.callback_query(F.data == "workout_reset")
-async def workout_reset(callback: CallbackQuery, state: FSMContext) -> None:
-    if not await ensure_active_workout_state(callback, state):
-        return
-
-    await state.set_state(WorkoutForm.workout_date)
-    await state.set_data({})
-    await callback.message.answer(
-        "Введенные данные очищены. Начнем заново.\n"
-        "Введите дату тренировки (YYYY-MM-DD / DD.MM.YYYY или сегодня):",
-        reply_markup=workout_date_keyboard(),
-    )
-    await callback.answer()
-
-
-@router.callback_query(F.data == "workout_add_more")
-async def workout_add_more(callback: CallbackQuery, state: FSMContext) -> None:
-    if not await ensure_active_workout_state(callback, state):
-        return
-
-    await state.set_state(WorkoutForm.exercise)
-    await callback.message.answer("Введите упражнение (например: Жим лежа):", reply_markup=workout_action_keyboard())
-    await callback.answer()
-
-
-@router.callback_query(F.data == "workout_date_today")
-async def workout_date_today(callback: CallbackQuery, state: FSMContext) -> None:
-    current_state = await state.get_state()
-    if current_state != "WorkoutForm:workout_date":
-        await callback.answer("Кнопка доступна только на шаге выбора даты.", show_alert=False)
-        return
-
-    today = date.today().isoformat()
-    await state.update_data(workout_date=today, entries=[])
-    await state.set_state(WorkoutForm.exercise)
-    await callback.message.answer(
-        f"Дата тренировки: {today}\nВведите упражнение (например: Жим лежа):",
-        reply_markup=workout_action_keyboard(),
-    )
-    await callback.answer()
-
-
-@router.callback_query(F.data == "workout_finish")
-async def workout_finish(callback: CallbackQuery, state: FSMContext) -> None:
-    if not await ensure_active_workout_state(callback, state):
-        return
-
-    data = await state.get_data()
-    workout_date = data.get("workout_date")
-    entries = data.get("entries", [])
-    if not workout_date or not entries:
-        await callback.answer("Нет данных для сохранения.", show_alert=False)
-        return
-
-    for entry in entries:
-        add_workout(
-            user_id=callback.from_user.id,
-            workout_date=workout_date,
-            exercise=entry["exercise"],
-            weight=entry["weight"],
-            reps=entry["reps"],
-        )
-
-    await state.clear()
-    await callback.message.answer(
-        f"Тренировка за {workout_date} сохранена. Упражнений: {len(entries)}."
-    )
-    await send_main_screen(callback.message, callback.from_user.id)
-    await callback.answer()
-
-
-@router.message(WorkoutForm.workout_date)
-async def workout_date(message: Message, state: FSMContext) -> None:
-    parsed = parse_workout_date(message.text)
-    if not parsed:
-        await message.answer(
-            "Не понял дату. Используй YYYY-MM-DD или DD.MM.YYYY (или выбери: сегодня).",
-            reply_markup=workout_date_keyboard(),
-        )
-        return
-
-    await state.update_data(workout_date=parsed, entries=[])
-    await state.set_state(WorkoutForm.exercise)
-    await message.answer("Введите упражнение (например: Жим лежа):", reply_markup=workout_action_keyboard())
-
-
-@router.message(WorkoutForm.exercise)
-async def workout_exercise(message: Message, state: FSMContext) -> None:
-    exercise = message.text.strip()
-    if not exercise:
-        await message.answer("Название упражнения не может быть пустым.", reply_markup=workout_action_keyboard())
-        return
-
-    await state.update_data(exercise=exercise)
-    await state.set_state(WorkoutForm.weight)
-    await message.answer("Введите рабочий вес (кг), например 80:", reply_markup=workout_action_keyboard())
-
-
-@router.message(WorkoutForm.weight)
-async def workout_weight(message: Message, state: FSMContext) -> None:
-    value = parse_float(message.text)
-    if value is None:
-        await message.answer("Вес должен быть числом. Пример: 80", reply_markup=workout_action_keyboard())
-        return
-
-    await state.update_data(weight=value)
-    await state.set_state(WorkoutForm.reps)
-    await message.answer("Введите количество повторов, например 8:", reply_markup=workout_action_keyboard())
-
-
-@router.message(WorkoutForm.reps)
-async def workout_reps(message: Message, state: FSMContext) -> None:
-    if not message.text.isdigit():
-        await message.answer("Повторы должны быть целым числом. Пример: 8", reply_markup=workout_action_keyboard())
-        return
-
-    data = await state.get_data()
-    entries = list(data.get("entries", []))
-    entries.append(
-        {
-            "exercise": data["exercise"],
-            "weight": data["weight"],
-            "reps": int(message.text),
-        }
-    )
-    await state.update_data(entries=entries)
-    await state.set_state(WorkoutForm.decision)
-
-    workout_date = data.get("workout_date", "дата не задана")
-    await message.answer(
-        build_workout_draft_text(workout_date, entries),
-        reply_markup=workout_next_step_keyboard(),
-    )
-
-
-@router.message(WorkoutForm.decision)
-async def workout_decision_text(message: Message) -> None:
-    await message.answer(
-        "Используй кнопки: 'Добавить еще упражнение' или 'Сохранить тренировку'.",
-        reply_markup=workout_next_step_keyboard(),
-    )
 
 
 @router.callback_query(F.data.startswith("faq_"))
@@ -487,22 +314,10 @@ async def admin_callback(callback: CallbackQuery) -> None:
     await callback.answer("Обновлено.")
 
 
-@router.message(Command("cancel"))
-async def cmd_cancel(message: Message, state: FSMContext) -> None:
-    current_state = await state.get_state()
-    if not current_state:
-        await message.answer("Нет активного действия.")
-        return
-
-    await state.clear()
-    await message.answer("Действие отменено.")
-    await send_main_screen(message, message.from_user.id)
-
-
 @router.message()
 async def fallback(message: Message) -> None:
     await message.answer(
-        "Не понял сообщение. Используй /start, /cancel или кнопки на сообщении.",
+        "Не понял сообщение. Используй /start или кнопки на сообщении.",
     )
 
 
@@ -736,19 +551,6 @@ def parse_float(value: str) -> float | None:
         return float(text)
     except ValueError:
         return None
-
-
-def parse_workout_date(value: str) -> str | None:
-    text = value.strip().lower()
-    if text == "сегодня":
-        return date.today().isoformat()
-
-    for pattern in ("%Y-%m-%d", "%d.%m.%Y", "%d.%m.%y"):
-        try:
-            return datetime.strptime(text, pattern).date().isoformat()
-        except ValueError:
-            continue
-    return None
 
 
 def build_workout_draft_text(workout_date: str, entries: list[dict[str, int | float | str]]) -> str:

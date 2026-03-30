@@ -5,10 +5,16 @@ from pathlib import Path
 from aiogram import F, Router
 from aiogram import BaseMiddleware
 from aiogram.exceptions import TelegramBadRequest
-from aiogram.filters import Command, CommandStart
+from aiogram.filters import Command, CommandStart, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import CallbackQuery, FSInputFile, Message
+from aiogram.types import (
+    CallbackQuery,
+    FSInputFile,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    Message,
+)
 
 
 from bot.db import (
@@ -35,6 +41,9 @@ from bot.keyboards import admin_panel_keyboard, faq_keyboard, main_menu_keyboard
 
 router = Router()
 START_NAME_PHOTO = FSInputFile(Path(__file__).resolve().parent / "assets" / "start_name_photo.jpeg")
+FEEDBACK_COMMAND = "feedback"
+FEEDBACK_MENU_TEXT = "Отзыв"
+DEFAULT_SURVEY_URL = "https://your-google-form-link"
 
 
 class TrackUserActivityMiddleware(BaseMiddleware):
@@ -49,6 +58,49 @@ class TrackUserActivityMiddleware(BaseMiddleware):
 
 
 router.message.outer_middleware(TrackUserActivityMiddleware())
+
+
+def get_feedback_survey_url() -> str:
+    return os.getenv("FEEDBACK_FORM_URL", DEFAULT_SURVEY_URL).strip() or DEFAULT_SURVEY_URL
+
+
+def build_feedback_text() -> str:
+    return "\n\n".join(
+        [
+            "Помоги улучшить приложение за минуту",
+            "Пройди короткий опрос по ссылке 👇",
+            get_feedback_survey_url(),
+        ]
+    )
+
+
+def build_feedback_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="Пройти опрос",
+                    url=get_feedback_survey_url(),
+                )
+            ]
+        ]
+    )
+
+
+async def handle_feedback_request(message: Message) -> None:
+    await message.answer(
+        build_feedback_text(),
+        reply_markup=build_feedback_keyboard(),
+        disable_web_page_preview=True,
+    )
+
+
+router.message.register(handle_feedback_request, Command(FEEDBACK_COMMAND))
+router.message.register(
+    handle_feedback_request,
+    StateFilter(None),
+    F.text == FEEDBACK_MENU_TEXT,
+)
 
 
 FAQ_TEXTS = {
@@ -332,7 +384,7 @@ async def send_main_screen(message: Message, user_id: int) -> None:
     records = get_records(user_id)
 
     summary = (
-        "Для полного использования бота открой Mini app через кнопку Menu рядом с полем ввода <tg-emoji emoji-id=\"5282869697463740318\">✨</tg-emoji>\n\n"
+        "Для полного использования бота открой Mini App кнопкой Mini App под сообщением<tg-emoji emoji-id=\"5282869697463740318\">✨</tg-emoji>\n\n"
         "Мой прогресс: <tg-emoji emoji-id=\"5334882760735598374\">📝</tg-emoji>\n"
         f"Имя: {user['name']}\n"
         f"Возраст: {user['age']}\n"

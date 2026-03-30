@@ -9,6 +9,8 @@ from aiogram.types import (
     WebAppInfo,
 )
 
+FEEDBACK_MENU_TEXT = "Отзыв"
+
 
 def get_mini_app_base_url() -> str:
     return os.getenv("MINI_APP_URL", "").strip()
@@ -35,6 +37,7 @@ def build_mini_app_url(user_id: int | None = None) -> str | None:
 def main_menu_keyboard(user_id: int) -> ReplyKeyboardMarkup:
     keyboard = [
         [KeyboardButton(text="Главная"), KeyboardButton(text="Мини-гайд")],
+        [KeyboardButton(text=FEEDBACK_MENU_TEXT)],
     ]
 
     mini_app_url = build_mini_app_url(user_id)
@@ -73,19 +76,40 @@ def admin_panel_keyboard(current_section: str = "overview") -> InlineKeyboardMar
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                InlineKeyboardButton(text=label("overview", "Обзор"), callback_data="admin:overview"),
-                InlineKeyboardButton(text=label("users", "Пользователи"), callback_data="admin:users"),
+                InlineKeyboardButton(
+                    text=label("overview", "Обзор"),
+                    callback_data="admin:overview",
+                ),
+                InlineKeyboardButton(
+                    text=label("users", "Пользователи"),
+                    callback_data="admin:users",
+                ),
             ],
             [
-                InlineKeyboardButton(text=label("workouts", "Тренировки"), callback_data="admin:workouts"),
-                InlineKeyboardButton(text=label("records", "Рекорды"), callback_data="admin:records"),
+                InlineKeyboardButton(
+                    text=label("workouts", "Тренировки"),
+                    callback_data="admin:workouts",
+                ),
+                InlineKeyboardButton(
+                    text=label("records", "Рекорды"),
+                    callback_data="admin:records",
+                ),
             ],
             [
-                InlineKeyboardButton(text=label("diagnostics", "Диагностика"), callback_data="admin:diagnostics"),
-                InlineKeyboardButton(text=label("broadcast", "Рассылка"), callback_data="admin:broadcast"),
+                InlineKeyboardButton(
+                    text=label("diagnostics", "Диагностика"),
+                    callback_data="admin:diagnostics",
+                ),
+                InlineKeyboardButton(
+                    text=label("broadcast", "Рассылка"),
+                    callback_data="admin:broadcast",
+                ),
             ],
             [
-                InlineKeyboardButton(text="Обновить", callback_data=f"admin:refresh:{current_section}"),
+                InlineKeyboardButton(
+                    text="Обновить",
+                    callback_data=f"admin:refresh:{current_section}",
+                ),
                 InlineKeyboardButton(text="Закрыть", callback_data="admin:close"),
             ],
         ]

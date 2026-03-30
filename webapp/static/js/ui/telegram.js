@@ -46,7 +46,7 @@ export function renderTelegramAvatar(dom, profileUser = null) {
   }
 
   const telegramUser = getTelegramUser();
-  const photoUrl = String(telegramUser?.photo_url || "").trim();
+  const photoUrl = String(profileUser?.avatar_url || telegramUser?.photo_url || "").trim();
 
   fallbackNode.textContent = avatarFallbackLetter(profileUser);
   fallbackNode.hidden = false;

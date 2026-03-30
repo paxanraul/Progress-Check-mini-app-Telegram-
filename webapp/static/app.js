@@ -1858,14 +1858,16 @@ function avatarFallbackLetter(profileUser = null) {
   return (candidate[0] || "U").toUpperCase();
 }
 
-// Аватар читаем из Telegram Mini App (`photo_url`) и откатываемся к буквенной заглушке при любом сбое.
+// Аватар читаем из payload Telegram/бота и откатываемся к буквенной заглушке при любом сбое.
 function renderTelegramAvatar(profileUser = null) {
   if (!topbarAvatar || !topbarAvatarFallback) {
     return;
   }
 
   const telegramUser = telegram?.initDataUnsafe?.user;
-  const photoUrl = String(telegramUser?.photo_url || "").trim();
+  const photoUrl = String(
+    profileUser?.avatar_url || telegramUser?.photo_url || ""
+  ).trim();
 
   topbarAvatarFallback.textContent = avatarFallbackLetter(profileUser);
   topbarAvatarFallback.hidden = false;

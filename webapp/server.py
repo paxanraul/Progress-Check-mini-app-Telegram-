@@ -1,8 +1,10 @@
+import os
 from pathlib import Path
 from datetime import date, datetime
+from time import monotonic
 from uuid import uuid4
 
-from aiohttp import web
+from aiohttp import ClientSession, ClientTimeout, web
 
 from bot.db import (
     add_workout,
@@ -18,6 +20,8 @@ from bot.db import (
 
 BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR / "static"
+TELEGRAM_AVATAR_CACHE_TTL = 300
+_TELEGRAM_AVATAR_CACHE: dict[int, tuple[float, str]] = {}
 
 FAQ_DATA = {
     "technique": [
@@ -87,6 +91,77 @@ async def read_json_payload(request: web.Request) -> dict | None:
 
 def started_user_exists(user_id: int) -> bool:
     return bool(get_started_user(user_id))
+
+
+async def create_http_session(app: web.Application) -> None:
+    app["http_session"] = ClientSession(timeout=ClientTimeout(total=10))
+
+
+async def close_http_session(app: web.Application) -> None:
+    session = app.get("http_session")
+    if session is not None:
+        await session.close()
+
+
+async def resolve_telegram_avatar_url(user_id: int, app: web.Application) -> str:
+    if user_id <= 0:
+        return ""
+
+    cached = _TELEGRAM_AVATAR_CACHE.get(user_id)
+    now = monotonic()
+    if cached and now - cached[0] < TELEGRAM_AVATAR_CACHE_TTL:
+        return cached[1]
+
+    token = os.getenv("BOT_TOKEN", "").strip()
+    if not token:
+        return ""
+
+    session = app.get("http_session")
+    if session is None:
+        return ""
+
+    try:
+        response = await session.get(
+            f"https://api.telegram.org/bot{token}/getUserProfilePhotos",
+            params={"user_id": user_id, "limit": 1},
+        )
+        async with response:
+            payload = await response.json()
+    except Exception:
+        return ""
+
+    if not payload.get("ok"):
+        return ""
+
+    photos = payload.get("result", {}).get("photos") or []
+    first_photo = photos[0] if photos else []
+    if not first_photo:
+        return ""
+
+    file_id = first_photo[-1].get("file_id") if isinstance(first_photo[-1], dict) else None
+    if not file_id:
+        return ""
+
+    try:
+        response = await session.get(
+            f"https://api.telegram.org/bot{token}/getFile",
+            params={"file_id": file_id},
+        )
+        async with response:
+            file_payload = await response.json()
+    except Exception:
+        return ""
+
+    if not file_payload.get("ok"):
+        return ""
+
+    file_path = file_payload.get("result", {}).get("file_path") or ""
+    if not file_path:
+        return ""
+
+    avatar_url = f"https://api.telegram.org/file/bot{token}/{file_path}"
+    _TELEGRAM_AVATAR_CACHE[user_id] = (now, avatar_url)
+    return avatar_url
 
 
 def parse_exercise_payload(item: object) -> dict[str, float | int | str] | None:
@@ -270,6 +345,7 @@ async def app_data(request: web.Request) -> web.Response:
             "records": records_payload,
             "faq": FAQ_DATA,
         }
+        payload["user"]["avatar_url"] = await resolve_telegram_avatar_url(user_id, request.app)
         return web.json_response(payload)
     except Exception as error:
         return web.json_response({"error": f"app_data failed: {error}"}, status=500)
@@ -686,6 +762,8 @@ async def delete_record(request: web.Request) -> web.Response:
 
 def create_web_app() -> web.Application:
     app = web.Application(middlewares=[no_cache_static_middleware])
+    app.on_startup.append(create_http_session)
+    app.on_cleanup.append(close_http_session)
     app.router.add_get("/", index)
     app.router.add_get("/app", index)
     app.router.add_get("/api/app-data", app_data)

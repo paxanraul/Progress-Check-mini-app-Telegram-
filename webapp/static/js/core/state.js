@@ -21,6 +21,8 @@ export const state = {
   // Пользовательские цитаты и режим работы редактора цитат.
   userQuotes: [],
   quoteOverlayOpen: false,
+  quoteManageMode: false,
+  selectedQuoteIndexes: new Set(),
   quoteEditor: { mode: "create", editingIndex: -1 },
 
   // Состояние вспомогательных оверлеев.

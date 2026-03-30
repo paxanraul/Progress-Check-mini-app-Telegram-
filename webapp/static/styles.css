@@ -4347,6 +4347,10 @@ body {
   flex-wrap: wrap;
 }
 
+.quote-manager-actions .records-tool-btn {
+  flex: 1 1 0;
+}
+
 .quote-modal-actions .history-bulk-btn.danger {
   margin-right: auto;
 }
@@ -4661,6 +4665,56 @@ body {
   transform: translateY(-1px);
 }
 
+.quote-library-list.is-managing .quote-library-item {
+  position: relative;
+  padding-left: 54px;
+}
+
+.quote-library-list.is-managing .quote-library-item::before {
+  content: "";
+  position: absolute;
+  left: 16px;
+  top: 18px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.quote-library-list.is-managing .quote-library-item::after {
+  content: "✓";
+  position: absolute;
+  left: 21px;
+  top: 20px;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  color: transparent;
+}
+
+.quote-library-list.is-managing .quote-library-item.is-manage-selected {
+  border-color: rgba(255, 255, 255, 0.24);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.06)),
+    rgba(255, 255, 255, 0.08);
+  transform: translateY(-1px);
+}
+
+.quote-library-list.is-managing .quote-library-item.is-manage-selected::before {
+  border-color: rgba(255, 255, 255, 0.28);
+  background: linear-gradient(180deg, rgba(145, 210, 255, 0.34), rgba(108, 168, 255, 0.26));
+}
+
+.quote-library-list.is-managing .quote-library-item.is-manage-selected::after {
+  color: #ffffff;
+}
+
+.quote-library-list.is-managing .quote-library-handle {
+  display: none;
+}
+
 .quote-library-item:hover {
   border-color: rgba(255, 255, 255, 0.18);
 }
@@ -4693,6 +4747,10 @@ body {
   text-align: center;
 }
 
+.quote-bulk-actions {
+  width: 100%;
+}
+
 #save-quote-overlay:disabled {
   opacity: 0.48;
   cursor: not-allowed;
@@ -4716,7 +4774,12 @@ body {
     width: 100%;
   }
 
-  .quote-manager-actions .history-bulk-btn,
+  .quote-bulk-actions {
+    width: 100%;
+  }
+
+  .quote-manager-actions .records-tool-btn,
+  .quote-bulk-actions .history-bulk-btn,
   .quote-modal-actions .history-bulk-btn {
     flex: 1 1 100%;
   }
@@ -4918,7 +4981,7 @@ body {
   gap: 12px;
 }
 
-.quote-manager-actions .history-bulk-btn,
+.quote-manager-actions .records-tool-btn,
 .quote-modal-actions .history-bulk-btn {
   width: 100%;
   margin: 0;

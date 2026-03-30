@@ -328,8 +328,15 @@
       <section class="modal-step active quote-modal-step">
         <!-- Кнопки добавления и удаления цитат -->
         <div class="quote-manager-actions">
-          <button class="history-bulk-btn danger" id="delete-selected-quote-overlay" type="button">Удалить</button>
-          <button class="history-bulk-btn" id="add-quote-overlay" type="button">Добавить</button>
+          <button class="records-tool-btn" id="delete-selected-quote-overlay" type="button">Изменить</button>
+          <button class="records-tool-btn add" id="add-quote-overlay" type="button">Добавить</button>
+        </div>
+
+        <!-- Массовые действия для управления цитатами -->
+        <div class="history-bulk-actions quote-bulk-actions" id="quote-bulk-actions" hidden>
+          <button class="history-bulk-btn" id="quote-delete-selected" type="button">Удалить выбранные</button>
+          <button class="history-bulk-btn danger" id="quote-delete-all" type="button">Удалить все</button>
+          <button class="history-bulk-btn subtle" id="quote-manage-cancel" type="button">Отмена</button>
         </div>
 
         <!-- Библиотека уже сохраненных цитат -->

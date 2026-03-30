@@ -19,6 +19,7 @@ export function createQuotesModal({
       return;
     }
 
+    quoteFeature.setQuoteManageMode(false);
     quoteFeature.setEditorMode("create");
 
     state.quoteOverlayOpen = true;
@@ -42,6 +43,7 @@ export function createQuotesModal({
     quoteFeature.finishQuoteReorder();
     state.quoteOverlayOpen = false;
     quoteFeature.setEditorMode("create");
+    quoteFeature.setQuoteManageMode(false);
 
     return closeOverlay({
       overlay: dom.modals.quote.overlay,
@@ -61,9 +63,20 @@ export function createQuotesModal({
     dom.modals.quote.cancelButton?.addEventListener("click", () => {
       void close();
     });
-    dom.modals.quote.addButton?.addEventListener("click", quoteFeature.startCreateCustomQuote);
-    dom.modals.quote.deleteButton?.addEventListener("click", async () => {
-      await quoteFeature.deleteQuoteFromOverlay();
+    dom.modals.quote.addButton?.addEventListener("click", () => {
+      quoteFeature.startCreateCustomQuote();
+    });
+    dom.modals.quote.deleteButton?.addEventListener("click", () => {
+      quoteFeature.toggleQuoteManageMode();
+    });
+    dom.modals.quote.deleteSelectedButton?.addEventListener("click", async () => {
+      await quoteFeature.deleteSelectedQuotes();
+    });
+    dom.modals.quote.deleteAllButton?.addEventListener("click", async () => {
+      await quoteFeature.deleteAllQuotes();
+    });
+    dom.modals.quote.manageCancelButton?.addEventListener("click", () => {
+      quoteFeature.setQuoteManageMode(false);
     });
     dom.modals.quote.saveButton?.addEventListener("click", async () => {
       interaction.blurActiveField();

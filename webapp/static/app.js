@@ -15,6 +15,8 @@ const state = {
   faqQuery: "",
   userQuotes: [],
   quoteOverlayOpen: false,
+  quoteManageMode: false,
+  selectedQuoteIndexes: new Set(),
   quoteEditor: { mode: "create", editingIndex: -1 },
   myDataOverlayOpen: false,
   profileOverlayOpen: false,
@@ -93,6 +95,10 @@ const quoteFormHint = document.getElementById("quote-form-hint");
 const quoteLibraryList = document.getElementById("quote-library-list");
 const addQuoteBtn = document.getElementById("add-quote-overlay");
 const deleteSelectedQuoteBtn = document.getElementById("delete-selected-quote-overlay");
+const quoteBulkActions = document.getElementById("quote-bulk-actions");
+const quoteDeleteSelectedBtn = document.getElementById("quote-delete-selected");
+const quoteDeleteAllBtn = document.getElementById("quote-delete-all");
+const quoteManageCancelBtn = document.getElementById("quote-manage-cancel");
 const saveQuoteBtn = document.getElementById("save-quote-overlay");
 const workoutModal = document.querySelector(".workout-modal");
 const recordModal = document.querySelector(".record-modal");
@@ -862,28 +868,50 @@ function persistCustomQuotes(quotes) {
 
 function updateQuoteFormState() {
   const currentCount = state.userQuotes.length;
+  const isManaging = Boolean(state.quoteManageMode);
   const isEditing = state.quoteEditor?.mode === "edit" && currentEditableQuoteIndex() >= 0;
-  const hasSelectedQuote = currentEditableQuoteIndex() >= 0;
+  const selectedCount = state.selectedQuoteIndexes.size;
   if (quoteFormHint) {
-    quoteFormHint.textContent = isEditing
-      ? "Измените текст или автора, затем сохраните. Порядок можно менять перетаскиванием."
-      : currentCount >= MAX_CUSTOM_QUOTES
-        ? `Лимит достигнут: можно хранить максимум ${MAX_CUSTOM_QUOTES} цитат.`
-        : currentCount > 0
-          ? "Введите новую цитату или выберите сохраненную ниже. Порядок меняется перетаскиванием."
-          : `Можно добавить до ${MAX_CUSTOM_QUOTES} цитат.`;
+    quoteFormHint.textContent = isManaging
+      ? "Выберите одну или несколько цитат, затем удалите их."
+      : isEditing
+        ? "Измените текст или автора, затем сохраните. Порядок можно менять перетаскиванием."
+        : currentCount >= MAX_CUSTOM_QUOTES
+          ? `Лимит достигнут: можно хранить максимум ${MAX_CUSTOM_QUOTES} цитат.`
+          : currentCount > 0
+            ? "Введите новую цитату или выберите сохраненную ниже. Порядок меняется перетаскиванием."
+            : `Можно добавить до ${MAX_CUSTOM_QUOTES} цитат.`;
   }
   if (saveQuoteBtn) {
-    saveQuoteBtn.disabled = !String(quoteInput?.value || "").trim() || (!isEditing && currentCount >= MAX_CUSTOM_QUOTES);
+    saveQuoteBtn.disabled =
+      isManaging || !String(quoteInput?.value || "").trim() || (!isEditing && currentCount >= MAX_CUSTOM_QUOTES);
   }
   if (addQuoteBtn) {
-    addQuoteBtn.disabled = currentCount >= MAX_CUSTOM_QUOTES && !isEditing;
+    addQuoteBtn.disabled = isManaging || (currentCount >= MAX_CUSTOM_QUOTES && !isEditing);
   }
   if (deleteSelectedQuoteBtn) {
-    deleteSelectedQuoteBtn.disabled = !hasSelectedQuote;
+    deleteSelectedQuoteBtn.textContent = isManaging ? "Готово" : "Изменить";
+    deleteSelectedQuoteBtn.setAttribute("aria-label", isManaging ? "Завершить выбор цитат" : "Выбрать цитаты для удаления");
+    deleteSelectedQuoteBtn.disabled = currentCount === 0 && !isManaging;
+  }
+  if (quoteBulkActions) {
+    quoteBulkActions.hidden = !isManaging;
+  }
+  if (quoteDeleteSelectedBtn) {
+    quoteDeleteSelectedBtn.disabled = selectedCount === 0;
+  }
+  if (quoteDeleteAllBtn) {
+    quoteDeleteAllBtn.disabled = currentCount === 0;
+  }
+  if (quoteManageCancelBtn) {
+    quoteManageCancelBtn.disabled = false;
   }
   if (quoteModalTitle) {
-    quoteModalTitle.textContent = isEditing ? "Редактировать цитату" : "Новая цитата";
+    quoteModalTitle.textContent = isManaging
+      ? "Выбор цитат"
+      : isEditing
+        ? "Редактировать цитату"
+        : "Новая цитата";
   }
   const quoteManageButton = document.getElementById("open-quote-overlay");
   if (quoteManageButton) {
@@ -897,6 +925,8 @@ function renderQuoteLibrary() {
   }
 
   const quotes = Array.isArray(state.userQuotes) ? state.userQuotes : [];
+  const isManaging = Boolean(state.quoteManageMode);
+  quoteLibraryList.classList.toggle("is-managing", isManaging);
   if (!quotes.length) {
     quoteLibraryList.innerHTML = `<div class="quote-library-empty">Сохраненных цитат пока нет</div>`;
     return;
@@ -906,11 +936,11 @@ function renderQuoteLibrary() {
     .map(
       (quote, index) => `
         <article
-          class="quote-library-item ${currentEditableQuoteIndex() === index ? "is-selected" : ""}"
+          class="quote-library-item ${isManaging ? (state.selectedQuoteIndexes.has(index) ? "is-selected is-manage-selected" : "") : currentEditableQuoteIndex() === index ? "is-selected" : ""}"
           data-quote-index="${index}"
           tabindex="0"
           role="button"
-          aria-pressed="${currentEditableQuoteIndex() === index ? "true" : "false"}"
+          aria-pressed="${isManaging ? (state.selectedQuoteIndexes.has(index) ? "true" : "false") : currentEditableQuoteIndex() === index ? "true" : "false"}"
         >
           <div class="quote-library-copy">
             <p class="quote-library-text">${escapeHtml(quote.text)}</p>
@@ -922,6 +952,7 @@ function renderQuoteLibrary() {
             data-quote-handle
             aria-label="Переместить цитату"
             title="Перетащите, чтобы изменить порядок"
+            ${isManaging ? "hidden" : ""}
           ></button>
         </article>
       `
@@ -934,6 +965,10 @@ function renderQuoteLibrary() {
         return;
       }
       const index = Number(item.dataset.quoteIndex);
+      if (state.quoteManageMode) {
+        toggleQuoteSelection(index);
+        return;
+      }
       startEditCustomQuote(index);
     };
     item.addEventListener("click", openSelectedQuote);
@@ -950,7 +985,14 @@ function renderQuoteLibrary() {
     handle.addEventListener("click", (event) => {
       event.stopPropagation();
     });
-    handle.addEventListener("pointerdown", startQuoteReorder);
+    handle.addEventListener("pointerdown", (event) => {
+      if (state.quoteManageMode) {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+      startQuoteReorder(event);
+    });
   });
 }
 
@@ -1101,6 +1143,9 @@ function startQuoteReorder(event) {
   if (!handle || !item || !quoteLibraryList) {
     return;
   }
+  if (state.quoteManageMode) {
+    return;
+  }
   if (event.pointerType === "mouse" && event.button !== 0) {
     return;
   }
@@ -1195,6 +1240,40 @@ function setQuoteEditorMode(mode, editingIndex = -1) {
   updateQuoteFormState();
 }
 
+function getSelectedQuoteIndexes() {
+  return [...state.selectedQuoteIndexes]
+    .filter((index) => Number.isInteger(index) && index >= 0 && state.userQuotes[index])
+    .sort((a, b) => a - b);
+}
+
+function clearQuoteSelection() {
+  state.selectedQuoteIndexes.clear();
+}
+
+function setQuoteManageMode(active) {
+  state.quoteManageMode = Boolean(active);
+  if (!state.quoteManageMode) {
+    clearQuoteSelection();
+  }
+  updateQuoteFormState();
+  renderQuoteLibrary();
+}
+
+function toggleQuoteSelection(index) {
+  if (!state.quoteManageMode || !Number.isInteger(index) || index < 0 || !state.userQuotes[index]) {
+    return;
+  }
+
+  if (state.selectedQuoteIndexes.has(index)) {
+    state.selectedQuoteIndexes.delete(index);
+  } else {
+    state.selectedQuoteIndexes.add(index);
+  }
+
+  updateQuoteFormState();
+  renderQuoteLibrary();
+}
+
 function fillQuoteOverlayForm() {
   const editingIndex = currentEditableQuoteIndex();
   const editingQuote = state.quoteEditor?.mode === "edit" && editingIndex >= 0 ? state.userQuotes[editingIndex] : null;
@@ -1210,6 +1289,9 @@ function fillQuoteOverlayForm() {
 }
 
 function startCreateCustomQuote() {
+  if (state.quoteManageMode) {
+    setQuoteManageMode(false);
+  }
   if (state.userQuotes.length >= MAX_CUSTOM_QUOTES) {
     updateQuoteFormState();
     showToast(`Можно сохранить максимум ${MAX_CUSTOM_QUOTES} цитат`);
@@ -1222,6 +1304,9 @@ function startCreateCustomQuote() {
 }
 
 function startEditCustomQuote(index = currentEditableQuoteIndex()) {
+  if (state.quoteManageMode) {
+    setQuoteManageMode(false);
+  }
   if (!Number.isInteger(index) || index < 0 || !state.userQuotes[index]) {
     updateQuoteFormState();
     showToast("Выберите цитату из списка");
@@ -1236,6 +1321,69 @@ function startEditCustomQuote(index = currentEditableQuoteIndex()) {
 function syncQuoteEditorAfterDelete() {
   setQuoteEditorMode("create");
   fillQuoteOverlayForm();
+}
+
+function removeQuotesByIndexes(indexes, successMessage = "Цитата удалена") {
+  const validIndexes = [...new Set(indexes)]
+    .filter((index) => Number.isInteger(index) && index >= 0 && state.userQuotes[index])
+    .sort((a, b) => b - a);
+  if (!validIndexes.length) {
+    return false;
+  }
+
+  const nextQuotes = state.userQuotes.filter((_, quoteIndex) => !validIndexes.includes(quoteIndex));
+  persistCustomQuotes(nextQuotes);
+  clearQuoteSelection();
+  setQuoteManageMode(false);
+  syncQuoteEditorAfterDelete();
+  renderQuotesSection({ resetLoop: true });
+  updateQuoteFormState();
+  triggerHaptic("selection");
+  showToast(successMessage);
+  return true;
+}
+
+function toggleQuoteManageMode() {
+  if (state.quoteManageMode) {
+    setQuoteManageMode(false);
+    return;
+  }
+  if (!state.userQuotes.length) {
+    showToast("Сохраненных цитат пока нет");
+    return;
+  }
+  setQuoteManageMode(true);
+  showToast("Выберите цитаты для удаления");
+}
+
+function deleteSelectedQuotes() {
+  const selectedIndexes = getSelectedQuoteIndexes();
+  if (!selectedIndexes.length) {
+    showToast("Выберите хотя бы одну цитату");
+    return;
+  }
+  removeQuotesByIndexes(selectedIndexes, selectedIndexes.length > 1 ? "Цитаты удалены" : "Цитата удалена");
+}
+
+function deleteAllQuotes() {
+  if (!state.userQuotes.length) {
+    showToast("Сохраненных цитат пока нет");
+    return;
+  }
+
+  const confirmed = window.confirm("Удалить все сохраненные цитаты?");
+  if (!confirmed) {
+    return;
+  }
+
+  persistCustomQuotes([]);
+  clearQuoteSelection();
+  setQuoteManageMode(false);
+  syncQuoteEditorAfterDelete();
+  renderQuotesSection({ resetLoop: true });
+  updateQuoteFormState();
+  triggerHaptic("warning");
+  showToast("Все цитаты удалены");
 }
 
 function runQuoteTick() {
@@ -1565,8 +1713,19 @@ bindClick("close-quote-overlay", () => {
 bindClick("cancel-quote-overlay", () => {
   void closeQuoteOverlay();
 });
-bindClick("add-quote-overlay", startCreateCustomQuote);
-bindClick("delete-selected-quote-overlay", deleteQuoteFromOverlay);
+bindClick("add-quote-overlay", () => {
+  void startCreateCustomQuote();
+});
+bindClick("delete-selected-quote-overlay", toggleQuoteManageMode);
+bindClick("quote-delete-selected", () => {
+  void deleteSelectedQuotes();
+});
+bindClick("quote-delete-all", () => {
+  void deleteAllQuotes();
+});
+bindClick("quote-manage-cancel", () => {
+  setQuoteManageMode(false);
+});
 bindClick("save-quote-overlay", saveCustomQuote);
 bindClick("open-profile-overlay", openProfileEditorFromMyData);
 bindClick("close-profile-overlay", closeProfileOverlay);
@@ -2371,6 +2530,7 @@ async function openQuoteOverlay() {
 
   const runId = ++quoteOverlayTransitionRunId;
   quoteOverlayTransitioning = true;
+  setQuoteManageMode(false);
   setQuoteEditorMode("create");
   freezeViewportFor(280);
   state.quoteOverlayOpen = true;
@@ -2408,6 +2568,8 @@ async function closeQuoteOverlay() {
 
   const runId = ++quoteOverlayTransitionRunId;
   quoteOverlayTransitioning = true;
+  clearQuoteSelection();
+  setQuoteManageMode(false);
   blurActiveFieldInside(quoteOverlay);
   finishQuoteReorder();
   state.quoteOverlayOpen = false;
@@ -2743,6 +2905,10 @@ async function saveCustomQuote() {
     showToast("Сначала открой профиль в боте");
     return false;
   }
+  if (state.quoteManageMode) {
+    setQuoteManageMode(false);
+    return false;
+  }
 
   const text = String(quoteInput?.value || "").trim();
   const author = String(quoteAuthorInput?.value || "").trim();
@@ -2782,33 +2948,11 @@ async function saveCustomQuote() {
 }
 
 function deleteCustomQuote(index) {
-  if (!Number.isInteger(index) || !state.userQuotes[index]) {
-    return;
-  }
-  const nextQuotes = state.userQuotes.filter((_, quoteIndex) => quoteIndex !== index);
-  persistCustomQuotes(nextQuotes);
-  syncQuoteEditorAfterDelete();
-  renderQuotesSection({ resetLoop: true });
-  updateQuoteFormState();
-  triggerHaptic("selection");
-  showToast("Цитата удалена");
+  removeQuotesByIndexes([index], "Цитата удалена");
 }
 
 async function deleteQuoteFromOverlay() {
-  const index = currentEditableQuoteIndex();
-  if (index < 0 || !state.userQuotes[index]) {
-    return;
-  }
-  const quote = state.userQuotes[index];
-  const text = String(quote?.text || "").trim();
-  const preview = text.length > 60 ? `${text.slice(0, 60)}...` : text;
-  const confirmed = window.confirm(
-    preview ? `Удалить цитату?\n\n"${preview}"` : "Удалить текущую пользовательскую цитату?"
-  );
-  if (!confirmed) {
-    return;
-  }
-  deleteCustomQuote(index);
+  deleteSelectedQuotes();
 }
 
 function syncNavPillPosition(tab, immediate) {

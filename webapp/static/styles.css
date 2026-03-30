@@ -1,4 +1,4 @@
-:root {
+﻿:root {
   --app-vh: 100vh;
   --bg: #020305;
   --bg-soft: #0a0b0f;
@@ -5498,6 +5498,17 @@ textarea {
 .profile-manage-btn i,
 .section-title .history-manage-btn:not(.is-text-mode) i {
   font-size: calc(var(--scale-unit) * 1.55 + 3px);
+}
+
+/* Keep the "My Data" gear aligned with the other gear buttons and nudge it right. */
+.profile-summary-card .profile-manage-btn {
+  top: 50%;
+  right: -10px;
+  transform: translateY(-40%);
+  width: 45.6px;
+  height: 45.6px;
+  min-height: 45.6px;
+ 
 }
 
 @media (max-width: 420px) {

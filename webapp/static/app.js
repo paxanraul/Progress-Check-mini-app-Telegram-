@@ -141,6 +141,8 @@ let quoteRotationPaused = false;
 let recordFlowSaving = false;
 let workoutFlowTransitioning = false;
 let recordFlowTransitioning = false;
+let quoteOverlayTransitioning = false;
+let quoteOverlayTransitionRunId = 0;
 let myDataOverlayTransitioning = false;
 let myDataOverlayTransitionRunId = 0;
 let profileOverlayTransitioning = false;
@@ -1554,9 +1556,15 @@ bindClick("records-delete-all", deleteAllRecords);
 bindClick("records-manage-cancel", disableRecordsManageMode);
 bindClick("topbar-user", openMyDataOverlay);
 bindClick("close-my-data-overlay", closeMyDataOverlay);
-bindClick("open-quote-overlay", openQuoteOverlay);
-bindClick("close-quote-overlay", closeQuoteOverlay);
-bindClick("cancel-quote-overlay", closeQuoteOverlay);
+bindClick("open-quote-overlay", () => {
+  void openQuoteOverlay();
+});
+bindClick("close-quote-overlay", () => {
+  void closeQuoteOverlay();
+});
+bindClick("cancel-quote-overlay", () => {
+  void closeQuoteOverlay();
+});
 bindClick("add-quote-overlay", startCreateCustomQuote);
 bindClick("delete-selected-quote-overlay", deleteQuoteFromOverlay);
 bindClick("save-quote-overlay", saveCustomQuote);
@@ -2352,54 +2360,77 @@ function switchTab(tab) {
   animatePanelEnter(tab);
 }
 
-function openQuoteOverlay() {
+async function openQuoteOverlay() {
   if (!state.userId) {
     showToast("Сначала открой профиль в боте");
-    return;
+    return false;
   }
+  if (!quoteOverlay || !quoteModal || !quoteOverlay.hidden || quoteOverlayTransitioning) {
+    return false;
+  }
+
+  const runId = ++quoteOverlayTransitionRunId;
+  quoteOverlayTransitioning = true;
   setQuoteEditorMode("create");
   freezeViewportFor(280);
   state.quoteOverlayOpen = true;
   fillQuoteOverlayForm();
   renderQuoteLibrary();
   setBodyScrollLock(true);
+  resetMotionState(quoteOverlay, quoteModal);
+  resetScrollableOverlayState(quoteOverlay, quoteModal);
   quoteOverlay.hidden = false;
-  runMotion(quoteOverlay, { opacity: [0, 1] }, { duration: 0.18, easing: "ease-out" });
-  runMotion(
+  const overlayAnimation = runMotion(quoteOverlay, { opacity: [0, 1] }, { duration: 0.18, easing: "ease-out" });
+  const modalAnimation = runMotion(
     quoteModal,
     { opacity: [0.6, 1], transform: ["translateY(18px) scale(0.985)", "translateY(0px) scale(1)"] },
     { duration: 0.24, easing: [0.22, 1, 0.36, 1] }
   );
   requestAnimationFrame(() => {
-    focusWithoutScroll(quoteInput);
+    if (!quoteOverlay.hidden) {
+      focusWithoutScroll(quoteInput);
+    }
   });
+  await waitForMotionFinish(overlayAnimation, modalAnimation);
+  if (quoteOverlayTransitionRunId !== runId) {
+    return false;
+  }
+  resetMotionState(quoteOverlay, quoteModal);
+  resetScrollableOverlayState(quoteOverlay, quoteModal);
+  quoteOverlayTransitioning = false;
+  return true;
 }
 
-function closeQuoteOverlay() {
-  if (!quoteOverlay || quoteOverlay.hidden) {
-    return;
+async function closeQuoteOverlay() {
+  if (!quoteOverlay || !quoteModal || quoteOverlay.hidden) {
+    return false;
   }
+
+  const runId = ++quoteOverlayTransitionRunId;
+  quoteOverlayTransitioning = true;
   blurActiveFieldInside(quoteOverlay);
   finishQuoteReorder();
   state.quoteOverlayOpen = false;
   setQuoteEditorMode("create");
   freezeViewportFor(320);
+  resetMotionState(quoteOverlay, quoteModal);
   const overlayAnimation = runMotion(quoteOverlay, { opacity: [1, 0] }, { duration: 0.14, easing: "ease-out" });
   const modalAnimation = runMotion(
     quoteModal,
     { opacity: [1, 0.75], transform: ["translateY(0px) scale(1)", "translateY(12px) scale(0.99)"] },
     { duration: 0.16, easing: "ease-in" }
   );
-  if (overlayAnimation?.finished) {
-    overlayAnimation.finished.catch(() => undefined);
+  await waitForMotionFinish(overlayAnimation, modalAnimation);
+  if (quoteOverlayTransitionRunId !== runId) {
+    return false;
   }
-  if (modalAnimation?.finished) {
-    modalAnimation.finished.catch(() => undefined);
-  }
-  setTimeout(() => {
-    quoteOverlay.hidden = true;
-    setBodyScrollLock(false);
-  }, 170);
+  quoteOverlay.hidden = true;
+  resetMotionState(quoteOverlay, quoteModal);
+  resetScrollableOverlayState(quoteOverlay, quoteModal);
+  updateBodyScrollLockFromVisibleOverlays();
+  restoreViewportAfterOverlayTransition();
+  quoteOverlayTransitioning = false;
+  return true;
 }
 
 function hasVisibleBlockingOverlay() {

@@ -141,6 +141,10 @@ let quoteRotationPaused = false;
 let recordFlowSaving = false;
 let workoutFlowTransitioning = false;
 let recordFlowTransitioning = false;
+let myDataOverlayTransitioning = false;
+let myDataOverlayTransitionRunId = 0;
+let profileOverlayTransitioning = false;
+let profileOverlayTransitionRunId = 0;
 let profileSaving = false;
 let confirmResolver = null;
 let quoteDragState = createQuoteDragState();
@@ -2409,56 +2413,78 @@ function updateBodyScrollLockFromVisibleOverlays() {
 }
 
 // Блок "Мои данные" больше не живёт на отдельном экране: аватар открывает этот summary-overlay.
-function openMyDataOverlay() {
-  if (!myDataOverlay || !myDataModal) {
-    return;
+async function openMyDataOverlay() {
+  if (!myDataOverlay || !myDataModal || !myDataOverlay.hidden || myDataOverlayTransitioning) {
+    return false;
   }
+
+  const runId = ++myDataOverlayTransitionRunId;
+  myDataOverlayTransitioning = true;
   freezeViewportFor(280);
   state.myDataOverlayOpen = true;
   setBodyScrollLock(true);
+  resetMotionState(myDataOverlay, myDataModal);
+  resetScrollableOverlayState(myDataOverlay, myDataModal);
   myDataOverlay.hidden = false;
-  runMotion(myDataOverlay, { opacity: [0, 1] }, { duration: 0.18, easing: "ease-out" });
-  runMotion(
+  const overlayAnimation = runMotion(myDataOverlay, { opacity: [0, 1] }, { duration: 0.18, easing: "ease-out" });
+  const modalAnimation = runMotion(
     myDataModal,
     { opacity: [0.6, 1], transform: ["translateY(18px) scale(0.985)", "translateY(0px) scale(1)"] },
     { duration: 0.24, easing: [0.22, 1, 0.36, 1] }
   );
+  await waitForMotionFinish(overlayAnimation, modalAnimation);
+  if (myDataOverlayTransitionRunId !== runId) {
+    return false;
+  }
+  resetMotionState(myDataOverlay, myDataModal);
+  resetScrollableOverlayState(myDataOverlay, myDataModal);
+  myDataOverlayTransitioning = false;
+  return true;
 }
 
-function closeMyDataOverlay() {
-  if (!myDataOverlay || myDataOverlay.hidden) {
-    return;
+async function closeMyDataOverlay({ restoreViewport = true, updateScrollLock = true } = {}) {
+  if (!myDataOverlay || !myDataModal || myDataOverlay.hidden) {
+    return false;
   }
+
+  const runId = ++myDataOverlayTransitionRunId;
+  myDataOverlayTransitioning = true;
   state.myDataOverlayOpen = false;
+  blurActiveFieldInside(myDataOverlay);
   freezeViewportFor(320);
+  resetMotionState(myDataOverlay, myDataModal);
   const overlayAnimation = runMotion(myDataOverlay, { opacity: [1, 0] }, { duration: 0.14, easing: "ease-out" });
   const modalAnimation = runMotion(
     myDataModal,
     { opacity: [1, 0.75], transform: ["translateY(0px) scale(1)", "translateY(12px) scale(0.99)"] },
     { duration: 0.16, easing: "ease-in" }
   );
-  if (overlayAnimation?.finished) {
-    overlayAnimation.finished.catch(() => undefined);
+  await waitForMotionFinish(overlayAnimation, modalAnimation);
+  if (myDataOverlayTransitionRunId !== runId) {
+    return false;
   }
-  if (modalAnimation?.finished) {
-    modalAnimation.finished.catch(() => undefined);
-  }
-  setTimeout(() => {
-    myDataOverlay.hidden = true;
+  myDataOverlay.hidden = true;
+  resetMotionState(myDataOverlay, myDataModal);
+  resetScrollableOverlayState(myDataOverlay, myDataModal);
+  if (updateScrollLock) {
     updateBodyScrollLockFromVisibleOverlays();
-  }, 170);
+  }
+  if (restoreViewport) {
+    restoreViewportAfterOverlayTransition();
+  }
+  myDataOverlayTransitioning = false;
+  return true;
 }
 
-function openProfileEditorFromMyData() {
+async function openProfileEditorFromMyData() {
   if (!state.userId) {
     showToast("Сначала открой профиль в боте");
-    return;
+    return false;
   }
   if (myDataOverlay && !myDataOverlay.hidden) {
-    state.myDataOverlayOpen = false;
-    myDataOverlay.hidden = true;
+    await closeMyDataOverlay({ restoreViewport: false, updateScrollLock: false });
   }
-  openProfileOverlay();
+  return openProfileOverlay();
 }
 
 function closeConfirmOverlayWithResult(confirmed) {
@@ -2512,50 +2538,77 @@ function fillProfileOverlayForm() {
   profileEditExperienceInput.value = user.experience && user.experience !== "Не заполнено" ? String(user.experience) : "";
 }
 
-function openProfileOverlay() {
+async function openProfileOverlay() {
   if (!state.userId) {
     showToast("Сначала открой профиль в боте");
-    return;
+    return false;
   }
+  if (!profileOverlay || !profileModal || !profileOverlay.hidden || profileOverlayTransitioning) {
+    return false;
+  }
+
+  const runId = ++profileOverlayTransitionRunId;
+  profileOverlayTransitioning = true;
   freezeViewportFor(280);
   state.profileOverlayOpen = true;
   fillProfileOverlayForm();
   setBodyScrollLock(true);
+  resetMotionState(profileOverlay, profileModal);
+  resetScrollableOverlayState(profileOverlay, profileModal);
   profileOverlay.hidden = false;
-  runMotion(profileOverlay, { opacity: [0, 1] }, { duration: 0.18, easing: "ease-out" });
-  runMotion(
+  const overlayAnimation = runMotion(profileOverlay, { opacity: [0, 1] }, { duration: 0.18, easing: "ease-out" });
+  const modalAnimation = runMotion(
     profileModal,
     { opacity: [0.6, 1], transform: ["translateY(18px) scale(0.985)", "translateY(0px) scale(1)"] },
     { duration: 0.24, easing: [0.22, 1, 0.36, 1] }
   );
   requestAnimationFrame(() => {
-    focusWithoutScroll(profileEditNameInput);
+    if (!profileOverlay.hidden) {
+      focusWithoutScroll(profileEditNameInput);
+    }
   });
+  await waitForMotionFinish(overlayAnimation, modalAnimation);
+  if (profileOverlayTransitionRunId !== runId) {
+    return false;
+  }
+  resetMotionState(profileOverlay, profileModal);
+  resetScrollableOverlayState(profileOverlay, profileModal);
+  profileOverlayTransitioning = false;
+  return true;
 }
 
-function closeProfileOverlay() {
-  if (!profileOverlay || profileOverlay.hidden) {
-    return;
+async function closeProfileOverlay({ restoreViewport = true, updateScrollLock = true } = {}) {
+  if (!profileOverlay || !profileModal || profileOverlay.hidden) {
+    return false;
   }
+
+  const runId = ++profileOverlayTransitionRunId;
+  profileOverlayTransitioning = true;
   blurActiveFieldInside(profileOverlay);
   state.profileOverlayOpen = false;
   freezeViewportFor(320);
+  resetMotionState(profileOverlay, profileModal);
   const overlayAnimation = runMotion(profileOverlay, { opacity: [1, 0] }, { duration: 0.14, easing: "ease-out" });
   const modalAnimation = runMotion(
     profileModal,
     { opacity: [1, 0.75], transform: ["translateY(0px) scale(1)", "translateY(12px) scale(0.99)"] },
     { duration: 0.16, easing: "ease-in" }
   );
-  if (overlayAnimation?.finished) {
-    overlayAnimation.finished.catch(() => undefined);
+  await waitForMotionFinish(overlayAnimation, modalAnimation);
+  if (profileOverlayTransitionRunId !== runId) {
+    return false;
   }
-  if (modalAnimation?.finished) {
-    modalAnimation.finished.catch(() => undefined);
+  profileOverlay.hidden = true;
+  resetMotionState(profileOverlay, profileModal);
+  resetScrollableOverlayState(profileOverlay, profileModal);
+  if (updateScrollLock) {
+    updateBodyScrollLockFromVisibleOverlays();
   }
-  setTimeout(() => {
-    profileOverlay.hidden = true;
-    setBodyScrollLock(false);
-  }, 170);
+  if (restoreViewport) {
+    restoreViewportAfterOverlayTransition();
+  }
+  profileOverlayTransitioning = false;
+  return true;
 }
 
 async function saveProfileOverlay() {
@@ -2604,7 +2657,7 @@ async function saveProfileOverlay() {
       throw new Error(result.error || "failed to update profile");
     }
     triggerHaptic("success");
-    closeProfileOverlay();
+    await closeProfileOverlay();
     showToast("Профиль обновлён");
     await refreshAppDataStable();
     return true;
@@ -2642,7 +2695,7 @@ async function clearProfileData() {
       throw new Error(result.error || "failed to clear profile");
     }
     triggerHaptic("warning");
-    closeProfileOverlay();
+    await closeProfileOverlay();
     showToast("Все данные очищены");
     await refreshAppDataStable();
   } catch (error) {

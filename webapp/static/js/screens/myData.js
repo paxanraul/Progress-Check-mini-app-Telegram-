@@ -5,6 +5,45 @@
  */
 import { renderTelegramAvatar } from "../ui/telegram.js";
 
+function resetScrollableOverlayState(overlay, modal) {
+  [overlay, modal].forEach((node) => {
+    if (!(node instanceof HTMLElement)) {
+      return;
+    }
+    node.scrollTop = 0;
+    node.scrollLeft = 0;
+  });
+}
+
+function resetMotionState(overlay, modal) {
+  [overlay, modal].forEach((node) => {
+    if (!(node instanceof HTMLElement)) {
+      return;
+    }
+    if (typeof node.getAnimations === "function") {
+      node.getAnimations().forEach((animation) => {
+        try {
+          animation.cancel();
+        } catch (error) {
+          console.warn("animation cancel failed", error);
+        }
+      });
+    }
+    node.style.opacity = "";
+    node.style.transform = "";
+  });
+}
+
+async function waitForMotionFinish(...animations) {
+  const pending = animations
+    .filter((animation) => animation?.finished)
+    .map((animation) => animation.finished.catch(() => undefined));
+  if (!pending.length) {
+    return;
+  }
+  await Promise.all(pending);
+}
+
 export function createMyDataOverlay({
   state,
   dom,
@@ -15,6 +54,9 @@ export function createMyDataOverlay({
   runMotion,
   updateBodyScrollLockFromVisibleOverlays,
 }) {
+  let overlayTransitioning = false;
+  let overlayTransitionRunId = 0;
+
   function renderProfileSummary(user = {}) {
     renderTelegramAvatar(dom, user);
 
@@ -35,29 +77,54 @@ export function createMyDataOverlay({
     }
   }
 
-  function open() {
-    if (!dom.modals.myData.overlay || !dom.modals.myData.modal) {
-      return;
+  async function open() {
+    if (
+      !dom.modals.myData.overlay ||
+      !dom.modals.myData.modal ||
+      !dom.modals.myData.overlay.hidden ||
+      overlayTransitioning
+    ) {
+      return false;
     }
+
+    const runId = ++overlayTransitionRunId;
+    overlayTransitioning = true;
     freezeViewportFor?.(280);
     state.myDataOverlayOpen = true;
     setBodyScrollLock?.(true);
+    resetMotionState(dom.modals.myData.overlay, dom.modals.myData.modal);
+    resetScrollableOverlayState(dom.modals.myData.overlay, dom.modals.myData.modal);
     dom.modals.myData.overlay.hidden = false;
-    runMotion?.(dom.modals.myData.overlay, { opacity: [0, 1] }, { duration: 0.18, easing: "ease-out" });
-    runMotion?.(
+    const overlayAnimation = runMotion?.(
+      dom.modals.myData.overlay,
+      { opacity: [0, 1] },
+      { duration: 0.18, easing: "ease-out" }
+    );
+    const modalAnimation = runMotion?.(
       dom.modals.myData.modal,
       { opacity: [0.6, 1], transform: ["translateY(18px) scale(0.985)", "translateY(0px) scale(1)"] },
       { duration: 0.24, easing: [0.22, 1, 0.36, 1] }
     );
+    await waitForMotionFinish(overlayAnimation, modalAnimation);
+    if (overlayTransitionRunId !== runId) {
+      return false;
+    }
+    resetMotionState(dom.modals.myData.overlay, dom.modals.myData.modal);
+    resetScrollableOverlayState(dom.modals.myData.overlay, dom.modals.myData.modal);
+    overlayTransitioning = false;
+    return true;
   }
 
-  function close() {
-    if (!dom.modals.myData.overlay || dom.modals.myData.overlay.hidden) {
-      return;
+  async function close({ updateScrollLock = true } = {}) {
+    if (!dom.modals.myData.overlay || !dom.modals.myData.modal || dom.modals.myData.overlay.hidden) {
+      return false;
     }
 
+    const runId = ++overlayTransitionRunId;
+    overlayTransitioning = true;
     state.myDataOverlayOpen = false;
     freezeViewportFor?.(320);
+    resetMotionState(dom.modals.myData.overlay, dom.modals.myData.modal);
     const overlayAnimation = runMotion?.(
       dom.modals.myData.overlay,
       { opacity: [1, 0] },
@@ -68,34 +135,45 @@ export function createMyDataOverlay({
       { opacity: [1, 0.75], transform: ["translateY(0px) scale(1)", "translateY(12px) scale(0.99)"] },
       { duration: 0.16, easing: "ease-in" }
     );
-    overlayAnimation?.finished?.catch(() => undefined);
-    modalAnimation?.finished?.catch(() => undefined);
+    await waitForMotionFinish(overlayAnimation, modalAnimation);
+    if (overlayTransitionRunId !== runId) {
+      return false;
+    }
 
-    setTimeout(() => {
-      dom.modals.myData.overlay.hidden = true;
+    dom.modals.myData.overlay.hidden = true;
+    resetMotionState(dom.modals.myData.overlay, dom.modals.myData.modal);
+    resetScrollableOverlayState(dom.modals.myData.overlay, dom.modals.myData.modal);
+    if (updateScrollLock) {
       updateBodyScrollLockFromVisibleOverlays?.();
-    }, 170);
+    }
+    overlayTransitioning = false;
+    return true;
   }
 
-  function openProfileEditor() {
+  async function openProfileEditor() {
     if (!state.userId) {
       showToast?.("Сначала открой профиль в боте");
-      return;
+      return false;
     }
     if (dom.modals.myData.overlay && !dom.modals.myData.overlay.hidden) {
-      state.myDataOverlayOpen = false;
-      dom.modals.myData.overlay.hidden = true;
+      await close({ updateScrollLock: false });
     }
-    openProfileOverlay?.();
+    return openProfileOverlay?.();
   }
 
   function bindEvents() {
-    dom.app.topbarUser?.addEventListener("click", open);
-    dom.modals.myData.closeButton?.addEventListener("click", close);
-    dom.modals.myData.openProfileOverlayButton?.addEventListener("click", openProfileEditor);
+    dom.app.topbarUser?.addEventListener("click", () => {
+      void open();
+    });
+    dom.modals.myData.closeButton?.addEventListener("click", () => {
+      void close();
+    });
+    dom.modals.myData.openProfileOverlayButton?.addEventListener("click", () => {
+      void openProfileEditor();
+    });
     dom.modals.myData.overlay?.addEventListener("click", (event) => {
       if (event.target === dom.modals.myData.overlay) {
-        close();
+        void close();
       }
     });
   }

@@ -2,16 +2,25 @@ import React from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { getUserLevelMetrics } from "./levelMetrics.js";
 
+function workoutWord(count) {
+  const abs = Math.abs(count) % 100;
+  const last = abs % 10;
+
+  if (abs > 10 && abs < 20) {
+    return "тренировок";
+  }
+  if (last === 1) {
+    return "тренировка";
+  }
+  if (last >= 2 && last <= 4) {
+    return "тренировки";
+  }
+
+  return "тренировок";
+}
+
 function formatRemainingLabel(metrics) {
-  if (metrics.level === 0) {
-    return "1 workout left until Level 1";
-  }
-
-  if (metrics.remainingToNextLevel === 1) {
-    return `1 workout left until Level ${metrics.nextLevel}`;
-  }
-
-  return `${metrics.remainingToNextLevel} тренировок до уровня ${metrics.nextLevel}`;
+  return `До следующего уровня: ${metrics.remainingToNextLevel} ${workoutWord(metrics.remainingToNextLevel)}`;
 }
 
 function getCardPadding(variant) {
@@ -45,12 +54,23 @@ export function UserLevelCard({ workoutCount = 0, variant = "full" }) {
       />
 
       <div className="ul-relative ul-flex ul-flex-col ul-gap-3">
-        <div className="ul-flex ul-items-start ul-justify-between ul-gap-3">
-          <div className="ul-max-w-[240px] ul-text-[12px] ul-font-semibold ul-leading-5 ul-text-white/92">
-        Текущий прогресс
+        <div className="ul-grid ul-gap-2.5">
+          <div className="ul-flex ul-items-start ul-justify-between ul-gap-3">
+            <div className="ul-max-w-[240px] ul-text-[12px] ul-font-semibold ul-leading-5 ul-text-white/92">
+              Текущий прогресс
+            </div>
+            <div className="ul-shrink-0 ul-text-right ul-text-[13px] ul-font-semibold ul-leading-5 ul-text-white">
+              {metrics.progressLabel.replace(" / ", " / ")}
+            </div>
           </div>
-          <div className="ul-text-right ul-text-[13px] ul-font-semibold ul-leading-5 ul-text-white">
-            {metrics.progressLabel.replace(" / ", " / ")}
+          <div
+            className="ul-inline-flex ul-w-fit ul-items-center ul-rounded-full ul-border ul-px-3 ul-py-1.5 ul-text-[14px] ul-font-semibold ul-text-white/92"
+            style={{
+              borderColor: "rgba(255,255,255,0.12)",
+              background: "rgba(255,255,255,0.06)",
+            }}
+          >
+            Уровень {metrics.level}
           </div>
         </div>
 
@@ -100,9 +120,13 @@ export function UserLevelCard({ workoutCount = 0, variant = "full" }) {
           </motion.div>
         </div>
 
-        <div className="ul-flex ul-flex-wrap ul-items-center ul-justify-between ul-gap-3 ul-text-[12px] ul-font-medium">
-          <span className="ul-text-white/92">Уровень {metrics.level}</span>
-          <span className="ul-text-right ul-text-white/92">{formatRemainingLabel(metrics)}</span>
+        <div className="ul-grid ul-gap-1.5">
+          <span className="ul-text-[13px] ul-font-medium ul-leading-[1.35] ul-text-white/56">
+            {metrics.workoutCount} {workoutWord(metrics.workoutCount)} всего
+          </span>
+          <span className="ul-text-[15px] ul-font-semibold ul-leading-[1.4] ul-text-white/84">
+            {formatRemainingLabel(metrics)}
+          </span>
         </div>
       </div>
     </motion.section>

@@ -89,7 +89,7 @@
     return `
       <section class="user-level-widget${compactClass}" aria-label="Прогресс уровня">
         <div class="user-level-widget__head">
-          <div class="user-level-widget__title-block">
+          <div class="user-level-widget__topline">
             <p class="user-level-widget__eyebrow">Текущий прогресс</p>
             <p class="user-level-widget__value">${progress.progressLabel}</p>
           </div>

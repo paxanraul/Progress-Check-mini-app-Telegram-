@@ -46,7 +46,9 @@ export function createQuotesModal({
     return closeOverlay({
       overlay: dom.modals.quote.overlay,
       modal: dom.modals.quote.modal,
+      blurActiveFieldInside: interaction.blurActiveFieldInside,
       freezeViewportFor: interaction.freezeViewportFor,
+      restoreViewportAfterClose: interaction.restoreViewportAfterOverlayTransition,
       setBodyScrollLock: interaction.setBodyScrollLock,
       getBlockingOverlays,
     });

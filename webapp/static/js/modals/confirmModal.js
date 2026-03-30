@@ -26,7 +26,9 @@ export function createConfirmModal({ state, dom, interaction, getBlockingOverlay
     return closeOverlay({
       overlay: dom.modals.confirm.overlay,
       modal: dom.modals.confirm.modal,
+      blurActiveFieldInside: interaction.blurActiveFieldInside,
       freezeViewportFor: interaction.freezeViewportFor,
+      restoreViewportAfterClose: interaction.restoreViewportAfterOverlayTransition,
       setBodyScrollLock: interaction.setBodyScrollLock,
       getBlockingOverlays,
     }).then(() => {

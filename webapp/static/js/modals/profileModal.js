@@ -68,7 +68,9 @@ export function createProfileModal({
     return closeOverlay({
       overlay: dom.modals.profile.overlay,
       modal: dom.modals.profile.modal,
+      blurActiveFieldInside: interaction.blurActiveFieldInside,
       freezeViewportFor: interaction.freezeViewportFor,
+      restoreViewportAfterClose: interaction.restoreViewportAfterOverlayTransition,
       setBodyScrollLock: interaction.setBodyScrollLock,
       getBlockingOverlays,
     });

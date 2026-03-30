@@ -17,6 +17,7 @@ export function createRecordModal({
   getBlockingOverlays,
 }) {
   let recordFlowSaving = false;
+  let transitionInFlight = false;
 
   function isSaving() {
     return recordFlowSaving;
@@ -48,6 +49,15 @@ export function createRecordModal({
       showToast("Сначала открой профиль в боте");
       return;
     }
+    if (
+      transitionInFlight ||
+      !dom.modals.record.overlay ||
+      !dom.modals.record.modal ||
+      !dom.modals.record.overlay.hidden
+    ) {
+      return false;
+    }
+    transitionInFlight = true;
 
     recordFlowSaving = false;
     if (dom.modals.record.exerciseInput) {
@@ -63,31 +73,43 @@ export function createRecordModal({
     syncWeightDisplay();
     syncDateDisplay();
 
-    openOverlay({
+    const opened = openOverlay({
       overlay: dom.modals.record.overlay,
       modal: dom.modals.record.modal,
       freezeViewportFor: interaction.freezeViewportFor,
       setBodyScrollLock: interaction.setBodyScrollLock,
       focusTarget: dom.modals.record.exerciseInput,
     });
+    if (!opened) {
+      transitionInFlight = false;
+      return false;
+    }
 
     syncBottomButtons();
+    requestAnimationFrame(() => {
+      transitionInFlight = false;
+    });
+    return true;
   }
 
   function close() {
-    if (!dom.modals.record.overlay || dom.modals.record.overlay.hidden) {
+    if (!dom.modals.record.overlay || dom.modals.record.overlay.hidden || transitionInFlight) {
       return Promise.resolve(false);
     }
 
+    transitionInFlight = true;
     recordFlowSaving = false;
     return closeOverlay({
       overlay: dom.modals.record.overlay,
       modal: dom.modals.record.modal,
+      blurActiveFieldInside: interaction.blurActiveFieldInside,
       freezeViewportFor: interaction.freezeViewportFor,
+      restoreViewportAfterClose: interaction.restoreViewportAfterOverlayTransition,
       setBodyScrollLock: interaction.setBodyScrollLock,
       getBlockingOverlays,
     }).then((closed) => {
       syncBottomButtons();
+      transitionInFlight = false;
       return closed;
     });
   }

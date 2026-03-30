@@ -32,24 +32,54 @@ export function createInteractionController() {
     freezeViewportFor(220);
   }
 
+  function isEditableField(node) {
+    return (
+      node instanceof HTMLInputElement ||
+      node instanceof HTMLTextAreaElement ||
+      node instanceof HTMLSelectElement ||
+      (node instanceof HTMLElement && node.isContentEditable)
+    );
+  }
+
+  function isVisibleLayoutNode(node) {
+    if (!(node instanceof HTMLElement) || node.hidden) {
+      return false;
+    }
+
+    const style = window.getComputedStyle(node);
+    if (style.display === "none" || style.visibility === "hidden") {
+      return false;
+    }
+
+    return node.getClientRects().length > 0;
+  }
+
   function blurActiveField() {
     const active = document.activeElement;
     if (!active || !(active instanceof HTMLElement)) {
       return;
     }
 
-    const isEditable =
-      active.tagName === "INPUT" ||
-      active.tagName === "TEXTAREA" ||
-      active.tagName === "SELECT" ||
-      active.isContentEditable;
-
-    if (!isEditable || typeof active.blur !== "function") {
+    if (!isEditableField(active) || typeof active.blur !== "function") {
       return;
     }
 
     active.blur();
     freezeViewportFor(220);
+  }
+
+  function blurActiveFieldInside(container) {
+    const active = document.activeElement;
+    if (!(active instanceof HTMLElement) || !container?.contains(active)) {
+      return false;
+    }
+    if (!isEditableField(active) || typeof active.blur !== "function") {
+      return false;
+    }
+
+    active.blur();
+    freezeViewportFor(220);
+    return true;
   }
 
   function registerEnterFieldBehavior(node, behavior = {}) {
@@ -117,7 +147,7 @@ export function createInteractionController() {
   }
 
   function syncViewportHeight(force = false) {
-    if (!force && Date.now() < viewportFreezeUntil) {
+    if (!force && (Date.now() < viewportFreezeUntil || document.documentElement.classList.contains("modal-open"))) {
       return;
     }
 
@@ -133,9 +163,7 @@ export function createInteractionController() {
     }
 
     const active = document.activeElement;
-    const keyboardLikelyOpen =
-      !!active &&
-      (active.tagName === "INPUT" || active.tagName === "TEXTAREA" || active.isContentEditable);
+    const keyboardLikelyOpen = isEditableField(active) && isVisibleLayoutNode(active);
 
     if (!force && stableViewportHeight) {
       if (keyboardLikelyOpen) {
@@ -155,6 +183,13 @@ export function createInteractionController() {
 
     stableViewportHeight = nextHeight;
     document.documentElement.style.setProperty("--app-vh", `${stableViewportHeight}px`);
+  }
+
+  function restoreViewportAfterOverlayTransition(onLayoutChange) {
+    requestAnimationFrame(() => {
+      syncViewportHeight(false);
+      onLayoutChange?.();
+    });
   }
 
   function preventTapFocusShift(node) {
@@ -224,6 +259,7 @@ export function createInteractionController() {
 
   return {
     blurActiveField,
+    blurActiveFieldInside,
     bindGlobalEnterHandler,
     bindKeyboardDismissSurface,
     bindViewportListeners,
@@ -231,6 +267,7 @@ export function createInteractionController() {
     freezeViewportFor,
     preventTapFocusShift,
     registerEnterFieldBehavior,
+    restoreViewportAfterOverlayTransition,
     setBodyScrollLock,
     shouldDismissKeyboard,
     syncViewportHeight,

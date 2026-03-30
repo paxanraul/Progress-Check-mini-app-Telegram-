@@ -20,6 +20,56 @@ const DEFAULT_CLOSE_MODAL_KEYFRAMES = {
 };
 const DEFAULT_CLOSE_MODAL_OPTIONS = { duration: 0.16, easing: "ease-in" };
 
+function isOverlayTransitioning(overlay) {
+  return overlay?.dataset.transitioning === "true";
+}
+
+function setOverlayTransitioning(overlay, active) {
+  if (!overlay) {
+    return;
+  }
+  overlay.dataset.transitioning = active ? "true" : "false";
+}
+
+async function waitForMotionFinish(...animations) {
+  const pending = animations
+    .filter((animation) => animation?.finished)
+    .map((animation) => animation.finished.catch(() => undefined));
+  if (!pending.length) {
+    return;
+  }
+  await Promise.all(pending);
+}
+
+function resetScrollableOverlayState(overlay, modal) {
+  [overlay, modal].forEach((node) => {
+    if (!(node instanceof HTMLElement)) {
+      return;
+    }
+    node.scrollTop = 0;
+    node.scrollLeft = 0;
+  });
+}
+
+function resetMotionState(overlay, modal) {
+  [overlay, modal].forEach((node) => {
+    if (!(node instanceof HTMLElement)) {
+      return;
+    }
+    if (typeof node.getAnimations === "function") {
+      node.getAnimations().forEach((animation) => {
+        try {
+          animation.cancel();
+        } catch (error) {
+          console.warn("animation cancel failed", error);
+        }
+      });
+    }
+    node.style.opacity = "";
+    node.style.transform = "";
+  });
+}
+
 export function hasVisibleBlockingOverlay(overlays) {
   return overlays.some((node) => node && !node.hidden);
 }
@@ -40,18 +90,24 @@ export function openOverlay({
   modalKeyframes = DEFAULT_OPEN_MODAL_KEYFRAMES,
   modalOptions = DEFAULT_OPEN_MODAL_OPTIONS,
 }) {
-  if (!overlay) {
-    return;
+  if (!overlay || !modal || !overlay.hidden || isOverlayTransitioning(overlay)) {
+    return false;
   }
 
+  setOverlayTransitioning(overlay, true);
   freezeViewportFor?.(280);
   setBodyScrollLock?.(true);
+  resetMotionState(overlay, modal);
+  resetScrollableOverlayState(overlay, modal);
   overlay.hidden = false;
-  runMotion(overlay, overlayKeyframes, overlayOptions);
-  runMotion(modal, modalKeyframes, modalOptions);
+  const overlayAnimation = runMotion(overlay, overlayKeyframes, overlayOptions);
+  const modalAnimation = runMotion(modal, modalKeyframes, modalOptions);
 
   if (focusTarget) {
     requestAnimationFrame(() => {
+      if (overlay.hidden) {
+        return;
+      }
       try {
         focusTarget.focus({ preventScroll: true });
       } catch (error) {
@@ -59,13 +115,22 @@ export function openOverlay({
       }
     });
   }
+
+  waitForMotionFinish(overlayAnimation, modalAnimation).finally(() => {
+    resetMotionState(overlay, modal);
+    resetScrollableOverlayState(overlay, modal);
+    setOverlayTransitioning(overlay, false);
+  });
+  return true;
 }
 
 // Унифицированное закрытие модалки с ожиданием завершения анимации.
 export async function closeOverlay({
   overlay,
   modal,
+  blurActiveFieldInside,
   freezeViewportFor,
+  restoreViewportAfterClose,
   setBodyScrollLock,
   getBlockingOverlays = () => [overlay],
   overlayKeyframes = { opacity: [1, 0] },
@@ -74,27 +139,28 @@ export async function closeOverlay({
   modalOptions = DEFAULT_CLOSE_MODAL_OPTIONS,
   delayMs = 170,
 }) {
-  if (!overlay || overlay.hidden) {
+  if (!overlay || !modal || overlay.hidden || isOverlayTransitioning(overlay)) {
     return false;
   }
 
+  setOverlayTransitioning(overlay, true);
+  blurActiveFieldInside?.(overlay);
   freezeViewportFor?.(320);
 
   const overlayAnimation = runMotion(overlay, overlayKeyframes, overlayOptions);
   const modalAnimation = runMotion(modal, modalKeyframes, modalOptions);
-
-  if (overlayAnimation?.finished) {
-    overlayAnimation.finished.catch(() => undefined);
-  }
-  if (modalAnimation?.finished) {
-    modalAnimation.finished.catch(() => undefined);
-  }
-
-  await new Promise((resolve) => {
-    setTimeout(resolve, delayMs);
-  });
+  await Promise.race([
+    waitForMotionFinish(overlayAnimation, modalAnimation),
+    new Promise((resolve) => {
+      setTimeout(resolve, delayMs);
+    }),
+  ]);
 
   overlay.hidden = true;
+  resetMotionState(overlay, modal);
+  resetScrollableOverlayState(overlay, modal);
   updateBodyScrollLockFromVisibleOverlays(getBlockingOverlays(), setBodyScrollLock);
+  setOverlayTransitioning(overlay, false);
+  restoreViewportAfterClose?.();
   return true;
 }

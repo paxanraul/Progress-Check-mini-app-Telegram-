@@ -42,6 +42,7 @@ export function createWorkoutFlowModal({
   getBlockingOverlays,
 }) {
   let lastWorkoutStep = "";
+  let transitionInFlight = false;
 
   // Подготовка данных: находим тренировку в истории и превращаем её в редактируемый черновик.
   function convertHistoryToDraft(day) {
@@ -471,10 +472,14 @@ export function createWorkoutFlowModal({
 
   // Открытие нового flow для создания тренировки с нуля.
   function open() {
+    if (state.workoutFlow.open || transitionInFlight || !dom.modals.workout.overlay || !dom.modals.workout.modal) {
+      return false;
+    }
+    transitionInFlight = true;
     state.workoutFlow.open = true;
     resetWorkoutFlowForNewEntry();
 
-    openOverlay({
+    const opened = openOverlay({
       overlay: dom.modals.workout.overlay,
       modal: dom.modals.workout.modal,
       freezeViewportFor: interaction.freezeViewportFor,
@@ -485,22 +490,34 @@ export function createWorkoutFlowModal({
       },
       modalOptions: { duration: 0.28, easing: [0.22, 1, 0.36, 1] },
     });
-
-    render();
-  }
-
-  async function close() {
-    if (!state.workoutFlow.open) {
+    if (!opened) {
+      state.workoutFlow.open = false;
+      transitionInFlight = false;
       return false;
     }
 
+    render();
+    requestAnimationFrame(() => {
+      transitionInFlight = false;
+    });
+    return true;
+  }
+
+  async function close() {
+    if (!state.workoutFlow.open || transitionInFlight) {
+      return false;
+    }
+
+    transitionInFlight = true;
     state.workoutFlow.open = false;
     lastWorkoutStep = "";
 
     const closed = await closeOverlay({
       overlay: dom.modals.workout.overlay,
       modal: dom.modals.workout.modal,
+      blurActiveFieldInside: interaction.blurActiveFieldInside,
       freezeViewportFor: interaction.freezeViewportFor,
+      restoreViewportAfterClose: interaction.restoreViewportAfterOverlayTransition,
       setBodyScrollLock: interaction.setBodyScrollLock,
       getBlockingOverlays,
       overlayOptions: { duration: 0.16, easing: "ease-out" },
@@ -513,17 +530,22 @@ export function createWorkoutFlowModal({
     });
 
     syncBottomButtons();
+    transitionInFlight = false;
     return closed;
   }
 
   // Открытие flow в режиме редактирования выбранной записи из истории.
   function openEditWorkoutFlow(sourceSessionKey, sourceDate = "") {
+    if (state.workoutFlow.open || transitionInFlight || !dom.modals.workout.overlay || !dom.modals.workout.modal) {
+      return false;
+    }
     const day = findWorkoutEntry(sourceSessionKey, sourceDate);
     if (!day) {
       showToast("Не удалось открыть тренировку для редактирования");
-      return;
+      return false;
     }
 
+    transitionInFlight = true;
     state.workoutFlow.open = true;
     state.workoutFlow.mode = "edit";
     state.workoutFlow.sourceDate = day.date || sourceDate;
@@ -543,7 +565,7 @@ export function createWorkoutFlowModal({
       dom.modals.workout.workoutNameInput.value = day.workout_name || "";
     }
 
-    openOverlay({
+    const opened = openOverlay({
       overlay: dom.modals.workout.overlay,
       modal: dom.modals.workout.modal,
       freezeViewportFor: interaction.freezeViewportFor,
@@ -554,8 +576,17 @@ export function createWorkoutFlowModal({
       },
       modalOptions: { duration: 0.28, easing: [0.22, 1, 0.36, 1] },
     });
+    if (!opened) {
+      state.workoutFlow.open = false;
+      transitionInFlight = false;
+      return false;
+    }
 
     render();
+    requestAnimationFrame(() => {
+      transitionInFlight = false;
+    });
+    return true;
   }
 
   // Здесь связываем UI-кнопки, выбор даты и счётчики подходов/повторов с состоянием flow.

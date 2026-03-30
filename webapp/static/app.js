@@ -139,9 +139,12 @@ let quoteIndex = 0;
 let quoteTypingRunId = 0;
 let quoteRotationPaused = false;
 let recordFlowSaving = false;
+let workoutFlowTransitioning = false;
+let recordFlowTransitioning = false;
 let profileSaving = false;
 let confirmResolver = null;
 let quoteDragState = createQuoteDragState();
+const telegramButtonState = new WeakMap();
 
 const enterFieldBehaviors = new WeakMap();
 
@@ -206,6 +209,39 @@ function isEnterManagedField(node) {
   );
 }
 
+function isEditableField(node) {
+  return (
+    node instanceof HTMLInputElement ||
+    node instanceof HTMLTextAreaElement ||
+    node instanceof HTMLSelectElement ||
+    (node instanceof HTMLElement && node.isContentEditable)
+  );
+}
+
+function isVisibleLayoutNode(node) {
+  if (!(node instanceof HTMLElement) || node.hidden) {
+    return false;
+  }
+  const style = window.getComputedStyle(node);
+  if (style.display === "none" || style.visibility === "hidden") {
+    return false;
+  }
+  return node.getClientRects().length > 0;
+}
+
+function blurActiveFieldInside(container) {
+  const active = document.activeElement;
+  if (!(active instanceof HTMLElement) || !container?.contains(active)) {
+    return false;
+  }
+  if (!isEditableField(active) || typeof active.blur !== "function") {
+    return false;
+  }
+  active.blur();
+  freezeViewportFor(220);
+  return true;
+}
+
 async function handleEnterFieldKeydown(event) {
   if (
     event.key !== "Enter" ||
@@ -255,12 +291,7 @@ function blurActiveField() {
   if (!active || !(active instanceof HTMLElement)) {
     return;
   }
-  const isEditable =
-    active.tagName === "INPUT" ||
-    active.tagName === "TEXTAREA" ||
-    active.tagName === "SELECT" ||
-    active.isContentEditable;
-  if (!isEditable || typeof active.blur !== "function") {
+  if (!isEditableField(active) || typeof active.blur !== "function") {
     return;
   }
   active.blur();
@@ -298,6 +329,42 @@ function freezeViewportFor(ms = 240) {
   viewportFreezeUntil = Math.max(viewportFreezeUntil, Date.now() + ms);
 }
 
+function resetScrollableOverlayState(overlayNode, modalNode) {
+  [overlayNode, modalNode].forEach((node) => {
+    if (!(node instanceof HTMLElement)) {
+      return;
+    }
+    node.scrollTop = 0;
+    node.scrollLeft = 0;
+  });
+}
+
+function restoreViewportAfterOverlayTransition() {
+  requestAnimationFrame(() => {
+    syncViewportHeight(false);
+    syncNavPillPosition(state.activeTab, true);
+  });
+}
+
+function resetMotionState(...nodes) {
+  nodes.forEach((node) => {
+    if (!(node instanceof HTMLElement)) {
+      return;
+    }
+    if (typeof node.getAnimations === "function") {
+      node.getAnimations().forEach((animation) => {
+        try {
+          animation.cancel();
+        } catch (error) {
+          console.warn("animation cancel failed", error);
+        }
+      });
+    }
+    node.style.opacity = "";
+    node.style.transform = "";
+  });
+}
+
 function setBottomButtonParams(button, params) {
   if (!button || typeof button.setParams !== "function") {
     return;
@@ -306,7 +373,139 @@ function setBottomButtonParams(button, params) {
   if (!supportsTelegramButtonEmoji) {
     delete nextParams.icon_custom_emoji_id;
   }
+  const runtime = telegramButtonState.get(button) || {
+    paramsKey: null,
+    clickHandler: null,
+    visible: null,
+    enabled: null,
+    progressVisible: null,
+  };
+  telegramButtonState.set(button, runtime);
+  const nextKey = JSON.stringify(
+    Object.keys(nextParams)
+      .sort()
+      .reduce((accumulator, key) => {
+        accumulator[key] = nextParams[key];
+        return accumulator;
+      }, {})
+  );
+  if (runtime.paramsKey === nextKey) {
+    return;
+  }
   button.setParams(nextParams);
+  runtime.paramsKey = nextKey;
+}
+
+function setBottomButtonClickHandler(button, handler) {
+  if (!button) {
+    return;
+  }
+  const runtime = telegramButtonState.get(button) || {
+    paramsKey: null,
+    clickHandler: null,
+    visible: null,
+    enabled: null,
+    progressVisible: null,
+  };
+  telegramButtonState.set(button, runtime);
+  if (runtime.clickHandler === handler) {
+    return;
+  }
+  if (runtime.clickHandler && typeof button.offClick === "function") {
+    button.offClick(runtime.clickHandler);
+  }
+  if (handler && typeof button.onClick === "function") {
+    button.onClick(handler);
+  }
+  runtime.clickHandler = handler || null;
+}
+
+function setBottomButtonProgressVisibility(button, visible) {
+  if (!button) {
+    return;
+  }
+  const runtime = telegramButtonState.get(button) || {
+    paramsKey: null,
+    clickHandler: null,
+    visible: null,
+    enabled: null,
+    progressVisible: null,
+  };
+  telegramButtonState.set(button, runtime);
+  if (runtime.progressVisible === visible) {
+    return;
+  }
+  if (visible) {
+    showButtonProgress(button);
+  } else {
+    hideButtonProgress(button);
+  }
+  runtime.progressVisible = visible;
+}
+
+function setBottomButtonEnabled(button, enabled) {
+  if (!button) {
+    return;
+  }
+  const runtime = telegramButtonState.get(button) || {
+    paramsKey: null,
+    clickHandler: null,
+    visible: null,
+    enabled: null,
+    progressVisible: null,
+  };
+  telegramButtonState.set(button, runtime);
+  if (runtime.enabled === enabled) {
+    return;
+  }
+  if (enabled) {
+    button.enable();
+  } else {
+    button.disable();
+  }
+  runtime.enabled = enabled;
+}
+
+function setBottomButtonVisibility(button, visible) {
+  if (!button) {
+    return;
+  }
+  const runtime = telegramButtonState.get(button) || {
+    paramsKey: null,
+    clickHandler: null,
+    visible: null,
+    enabled: null,
+    progressVisible: null,
+  };
+  telegramButtonState.set(button, runtime);
+  if (runtime.visible === visible) {
+    return;
+  }
+  if (visible) {
+    button.show();
+  } else {
+    button.hide();
+    runtime.enabled = null;
+    runtime.progressVisible = false;
+  }
+  runtime.visible = visible;
+}
+
+function applyBottomButtonState(button, config) {
+  if (!button) {
+    return;
+  }
+  if (!config || config.visible === false) {
+    setBottomButtonClickHandler(button, null);
+    setBottomButtonProgressVisibility(button, false);
+    setBottomButtonVisibility(button, false);
+    return;
+  }
+  setBottomButtonParams(button, config.params || {});
+  setBottomButtonClickHandler(button, config.onClick || null);
+  setBottomButtonEnabled(button, Boolean(config.enabled));
+  setBottomButtonVisibility(button, true);
+  setBottomButtonProgressVisibility(button, Boolean(config.progressVisible));
 }
 
 function hideButtonProgress(button) {
@@ -322,30 +521,14 @@ function showButtonProgress(button) {
 }
 
 function hideTelegramBottomButtons() {
-  if (telegramMainButton) {
-    if (typeof telegramMainButton.offClick === "function") {
-      telegramMainButton.offClick(handleWorkoutBottomButtonClick);
-      telegramMainButton.offClick(handleRecordBottomButtonClick);
-    }
-    hideButtonProgress(telegramMainButton);
-    telegramMainButton.hide();
-  }
-  if (telegramSecondaryButton) {
-    if (typeof telegramSecondaryButton.offClick === "function") {
-      telegramSecondaryButton.offClick(handleWorkoutSecondaryButtonClick);
-      telegramSecondaryButton.offClick(handleRecordSecondaryButtonClick);
-    }
-    hideButtonProgress(telegramSecondaryButton);
-    telegramSecondaryButton.hide();
-  }
+  applyBottomButtonState(telegramMainButton, { visible: false });
+  applyBottomButtonState(telegramSecondaryButton, { visible: false });
 }
 
 function syncTelegramBottomButtons() {
   if (!telegramMainButton || !telegramSecondaryButton) {
     return;
   }
-
-  hideTelegramBottomButtons();
 
   if (state.workoutFlow.open) {
     const workoutButtonText =
@@ -360,62 +543,56 @@ function syncTelegramBottomButtons() {
       state.workoutFlow.saving ||
       (state.workoutFlow.step === "list" && !state.workoutFlow.items.length);
 
-    setBottomButtonParams(telegramMainButton, {
-      text: workoutButtonText,
-      has_shine_effect: !workoutButtonDisabled,
-      icon_custom_emoji_id: TELEGRAM_BUTTON_ICON_ID,
+    applyBottomButtonState(telegramMainButton, {
+      visible: true,
+      params: {
+        text: workoutButtonText,
+        has_shine_effect: !workoutButtonDisabled,
+        icon_custom_emoji_id: TELEGRAM_BUTTON_ICON_ID,
+      },
+      onClick: handleWorkoutBottomButtonClick,
+      enabled: !state.workoutFlow.saving && !workoutButtonDisabled,
+      progressVisible: state.workoutFlow.saving,
     });
-    telegramMainButton.onClick(handleWorkoutBottomButtonClick);
-    if (state.workoutFlow.saving) {
-      telegramMainButton.disable();
-      showButtonProgress(telegramMainButton);
-    } else if (workoutButtonDisabled) {
-      hideButtonProgress(telegramMainButton);
-      telegramMainButton.disable();
-    } else {
-      hideButtonProgress(telegramMainButton);
-      telegramMainButton.enable();
-    }
-    telegramMainButton.show();
-
-    setBottomButtonParams(telegramSecondaryButton, {
-      text: "Назад",
-      position: "left",
+    applyBottomButtonState(telegramSecondaryButton, {
+      visible: true,
+      params: {
+        text: "Назад",
+        position: "left",
+      },
+      onClick: handleWorkoutSecondaryButtonClick,
+      enabled: !state.workoutFlow.saving,
+      progressVisible: false,
     });
-    telegramSecondaryButton.onClick(handleWorkoutSecondaryButtonClick);
-    telegramSecondaryButton.enable();
-    telegramSecondaryButton.show();
     return;
   }
 
   if (recordOverlay && !recordOverlay.hidden) {
-    setBottomButtonParams(telegramMainButton, {
-      text: "Сохранить",
-      has_shine_effect: !recordFlowSaving,
-      icon_custom_emoji_id: TELEGRAM_BUTTON_ICON_ID,
+    applyBottomButtonState(telegramMainButton, {
+      visible: true,
+      params: {
+        text: "Сохранить",
+        has_shine_effect: !recordFlowSaving,
+        icon_custom_emoji_id: TELEGRAM_BUTTON_ICON_ID,
+      },
+      onClick: handleRecordBottomButtonClick,
+      enabled: !recordFlowSaving,
+      progressVisible: recordFlowSaving,
     });
-    telegramMainButton.onClick(handleRecordBottomButtonClick);
-    if (recordFlowSaving) {
-      telegramMainButton.disable();
-      showButtonProgress(telegramMainButton);
-    } else {
-      hideButtonProgress(telegramMainButton);
-      telegramMainButton.enable();
-    }
-    telegramMainButton.show();
-
-    setBottomButtonParams(telegramSecondaryButton, {
-      text: "Отмена",
-      position: "left",
+    applyBottomButtonState(telegramSecondaryButton, {
+      visible: true,
+      params: {
+        text: "Отмена",
+        position: "left",
+      },
+      onClick: handleRecordSecondaryButtonClick,
+      enabled: !recordFlowSaving,
+      progressVisible: false,
     });
-    telegramSecondaryButton.onClick(handleRecordSecondaryButtonClick);
-    if (recordFlowSaving) {
-      telegramSecondaryButton.disable();
-    } else {
-      telegramSecondaryButton.enable();
-    }
-    telegramSecondaryButton.show();
+    return;
   }
+
+  hideTelegramBottomButtons();
 }
 
 function clearQuoteLoopTimer() {
@@ -1156,7 +1333,7 @@ function triggerLightTapHaptic() {
 }
 
 function syncViewportHeight(force = false) {
-  if (!force && Date.now() < viewportFreezeUntil) {
+  if (!force && (Date.now() < viewportFreezeUntil || document.documentElement.classList.contains("modal-open"))) {
     return;
   }
 
@@ -1166,8 +1343,7 @@ function syncViewportHeight(force = false) {
   }
   const active = document.activeElement;
   const keyboardLikelyOpen =
-    !!active &&
-    (active.tagName === "INPUT" || active.tagName === "TEXTAREA" || active.isContentEditable);
+    isEditableField(active) && isVisibleLayoutNode(active);
 
   // Keep viewport height stable while keyboard is open, but allow corrections after Telegram recalculates viewport.
   if (!force && stableViewportHeight) {
@@ -1206,6 +1382,16 @@ function runMotion(target, keyframes, options) {
     console.warn("motion animate failed", error);
     return null;
   }
+}
+
+async function waitForMotionFinish(...animations) {
+  const pending = animations
+    .filter((animation) => animation?.finished)
+    .map((animation) => animation.finished.catch(() => undefined));
+  if (!pending.length) {
+    return;
+  }
+  await Promise.all(pending);
 }
 
 function animatePanelEnter(tab) {
@@ -1271,12 +1457,12 @@ function animateExerciseRows(root) {
 }
 
 function animateModalOpen() {
-  runMotion(
+  const overlayAnimation = runMotion(
     overlay,
     { opacity: [0, 1] },
     { duration: 0.2, easing: "ease-out" }
   );
-  runMotion(
+  const modalAnimation = runMotion(
     workoutModal,
     {
       opacity: [0.6, 1],
@@ -1284,6 +1470,7 @@ function animateModalOpen() {
     },
     { duration: 0.28, easing: [0.22, 1, 0.36, 1] }
   );
+  return { overlayAnimation, modalAnimation };
 }
 
 function animateWorkoutStep(step) {
@@ -2186,6 +2373,7 @@ function closeQuoteOverlay() {
   if (!quoteOverlay || quoteOverlay.hidden) {
     return;
   }
+  blurActiveFieldInside(quoteOverlay);
   finishQuoteReorder();
   state.quoteOverlayOpen = false;
   setQuoteEditorMode("create");
@@ -2347,6 +2535,7 @@ function closeProfileOverlay() {
   if (!profileOverlay || profileOverlay.hidden) {
     return;
   }
+  blurActiveFieldInside(profileOverlay);
   state.profileOverlayOpen = false;
   freezeViewportFor(320);
   const overlayAnimation = runMotion(profileOverlay, { opacity: [1, 0] }, { duration: 0.14, easing: "ease-out" });
@@ -2581,21 +2770,33 @@ function previousWorkoutStep(step) {
 
 
 
-function openWorkoutFlow() {
+async function openWorkoutFlow() {
+  if (state.workoutFlow.open || workoutFlowTransitioning || !overlay || !workoutModal) {
+    return false;
+  }
+  workoutFlowTransitioning = true;
   state.workoutFlow.open = true;
   freezeViewportFor(280);
   resetWorkoutFlowForNewEntry();
   setBodyScrollLock(true);
+  resetMotionState(overlay, workoutModal);
+  resetScrollableOverlayState(overlay, workoutModal);
   overlay.hidden = false;
-  animateModalOpen();
+  const { overlayAnimation, modalAnimation } = animateModalOpen();
   renderWorkoutFlow();
+  resetScrollableOverlayState(overlay, workoutModal);
   syncTelegramBottomButtons();
+  await waitForMotionFinish(overlayAnimation, modalAnimation);
+  workoutFlowTransitioning = false;
+  return true;
 }
 
 async function closeWorkoutFlow() {
-  if (!state.workoutFlow.open) {
-    return;
+  if (!state.workoutFlow.open || workoutFlowTransitioning || !overlay || !workoutModal) {
+    return false;
   }
+  workoutFlowTransitioning = true;
+  blurActiveFieldInside(overlay);
   freezeViewportFor(320);
   state.workoutFlow.open = false;
   lastWorkoutStep = "";
@@ -2612,12 +2813,15 @@ async function closeWorkoutFlow() {
     },
     { duration: 0.18, easing: "ease-in" }
   );
-  if (overlayAnimation?.finished || modalAnimation?.finished) {
-    await Promise.all([overlayAnimation?.finished, modalAnimation?.finished].filter(Boolean)).catch(() => null);
-  }
+  await waitForMotionFinish(overlayAnimation, modalAnimation);
   overlay.hidden = true;
+  resetMotionState(overlay, workoutModal);
+  resetScrollableOverlayState(overlay, workoutModal);
   setBodyScrollLock(false);
+  restoreViewportAfterOverlayTransition();
   syncTelegramBottomButtons();
+  workoutFlowTransitioning = false;
+  return true;
 }
 
 function setWorkoutStep(step) {
@@ -2634,12 +2838,16 @@ function openDraftFormForCreate() {
 }
 
 function openEditWorkoutFlow(sourceSessionKey, sourceDate = "") {
+  if (state.workoutFlow.open || workoutFlowTransitioning || !overlay || !workoutModal) {
+    return;
+  }
   const day = findWorkoutEntry(sourceSessionKey, sourceDate);
   if (!day) {
     showToast("Не удалось открыть тренировку для редактирования");
     return;
   }
 
+  workoutFlowTransitioning = true;
   state.workoutFlow.open = true;
   state.workoutFlow.mode = "edit";
   state.workoutFlow.sourceDate = day.date || sourceDate;
@@ -2656,10 +2864,16 @@ function openEditWorkoutFlow(sourceSessionKey, sourceDate = "") {
   }
   workoutNameInput.value = day.workout_name || "";
   setBodyScrollLock(true);
+  resetMotionState(overlay, workoutModal);
+  resetScrollableOverlayState(overlay, workoutModal);
   overlay.hidden = false;
-  animateModalOpen();
+  const { overlayAnimation, modalAnimation } = animateModalOpen();
   renderWorkoutFlow();
+  resetScrollableOverlayState(overlay, workoutModal);
   syncTelegramBottomButtons();
+  waitForMotionFinish(overlayAnimation, modalAnimation).finally(() => {
+    workoutFlowTransitioning = false;
+  });
 }
 
 function resetWorkoutFlowForNewEntry() {
@@ -3197,11 +3411,15 @@ async function refreshAppDataStable() {
   });
 }
 
-function openRecordFlow() {
+async function openRecordFlow() {
   if (!state.userId) {
     showToast("Сначала открой профиль в боте");
-    return;
+    return false;
   }
+  if (!recordOverlay || !recordModal || !recordOverlay.hidden || recordFlowTransitioning) {
+    return false;
+  }
+  recordFlowTransitioning = true;
   freezeViewportFor(280);
   recordFlowSaving = false;
   recordExerciseInput.value = "";
@@ -3212,24 +3430,34 @@ function openRecordFlow() {
   syncRecordWeightDisplay();
   syncRecordDateDisplay();
   setBodyScrollLock(true);
+  resetMotionState(recordOverlay, recordModal);
+  resetScrollableOverlayState(recordOverlay, recordModal);
   recordOverlay.hidden = false;
-  runMotion(recordOverlay, { opacity: [0, 1] }, { duration: 0.18, easing: "ease-out" });
-  runMotion(
+  const overlayAnimation = runMotion(recordOverlay, { opacity: [0, 1] }, { duration: 0.18, easing: "ease-out" });
+  const modalAnimation = runMotion(
     recordModal,
     { opacity: [0.6, 1], transform: ["translateY(18px) scale(0.985)", "translateY(0px) scale(1)"] },
     { duration: 0.24, easing: [0.22, 1, 0.36, 1] }
   );
+  resetScrollableOverlayState(recordOverlay, recordModal);
   syncTelegramBottomButtons();
   requestAnimationFrame(() => {
-    focusWithoutScroll(recordExerciseInput);
+    if (!recordOverlay.hidden) {
+      focusWithoutScroll(recordExerciseInput);
+    }
   });
+  await waitForMotionFinish(overlayAnimation, modalAnimation);
+  recordFlowTransitioning = false;
+  return true;
 }
 
-function closeRecordFlow() {
-  if (!recordOverlay || recordOverlay.hidden) {
-    return;
+async function closeRecordFlow() {
+  if (!recordOverlay || !recordModal || recordOverlay.hidden || recordFlowTransitioning) {
+    return false;
   }
+  recordFlowTransitioning = true;
   recordFlowSaving = false;
+  blurActiveFieldInside(recordOverlay);
   freezeViewportFor(320);
   const overlayAnimation = runMotion(recordOverlay, { opacity: [1, 0] }, { duration: 0.14, easing: "ease-out" });
   const modalAnimation = runMotion(
@@ -3237,17 +3465,15 @@ function closeRecordFlow() {
     { opacity: [1, 0.75], transform: ["translateY(0px) scale(1)", "translateY(12px) scale(0.99)"] },
     { duration: 0.16, easing: "ease-in" }
   );
-  if (overlayAnimation?.finished) {
-    overlayAnimation.finished.catch(() => undefined);
-  }
-  if (modalAnimation?.finished) {
-    modalAnimation.finished.catch(() => undefined);
-  }
-  setTimeout(() => {
-    recordOverlay.hidden = true;
-    setBodyScrollLock(false);
-    syncTelegramBottomButtons();
-  }, 170);
+  await waitForMotionFinish(overlayAnimation, modalAnimation);
+  recordOverlay.hidden = true;
+  resetMotionState(recordOverlay, recordModal);
+  resetScrollableOverlayState(recordOverlay, recordModal);
+  setBodyScrollLock(false);
+  restoreViewportAfterOverlayTransition();
+  syncTelegramBottomButtons();
+  recordFlowTransitioning = false;
+  return true;
 }
 
 async function submitRecordFlow() {

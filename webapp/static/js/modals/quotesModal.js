@@ -19,15 +19,11 @@ export function createQuotesModal({
       return;
     }
 
-    const currentIndex = quoteFeature.currentCustomQuoteIndex();
-    if (currentIndex >= 0) {
-      quoteFeature.setEditorMode("edit", currentIndex);
-    } else {
-      quoteFeature.setEditorMode("create");
-    }
+    quoteFeature.setEditorMode("create");
 
     state.quoteOverlayOpen = true;
     quoteFeature.fillOverlayForm();
+    quoteFeature.renderSection();
 
     openOverlay({
       overlay: dom.modals.quote.overlay,
@@ -43,6 +39,7 @@ export function createQuotesModal({
       return Promise.resolve(false);
     }
 
+    quoteFeature.finishQuoteReorder();
     state.quoteOverlayOpen = false;
     quoteFeature.setEditorMode("create");
 
@@ -64,17 +61,11 @@ export function createQuotesModal({
     });
     dom.modals.quote.addButton?.addEventListener("click", quoteFeature.startCreateCustomQuote);
     dom.modals.quote.deleteButton?.addEventListener("click", async () => {
-      const deleted = await quoteFeature.deleteQuoteFromOverlay();
-      if (deleted) {
-        void close();
-      }
+      await quoteFeature.deleteQuoteFromOverlay();
     });
     dom.modals.quote.saveButton?.addEventListener("click", async () => {
       interaction.blurActiveField();
-      const saved = await quoteFeature.saveCustomQuote();
-      if (saved) {
-        void close();
-      }
+      await quoteFeature.saveCustomQuote();
     });
     dom.modals.quote.overlay?.addEventListener("click", (event) => {
       if (event.target === dom.modals.quote.overlay) {

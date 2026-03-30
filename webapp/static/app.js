@@ -141,8 +141,23 @@ let quoteRotationPaused = false;
 let recordFlowSaving = false;
 let profileSaving = false;
 let confirmResolver = null;
+let quoteDragState = createQuoteDragState();
 
 const enterFieldBehaviors = new WeakMap();
+
+function createQuoteDragState() {
+  return {
+    active: false,
+    pointerId: null,
+    handle: null,
+    draggedItem: null,
+    sourceIndex: -1,
+    selectedIndex: -1,
+    startY: 0,
+    didMove: false,
+    ignoreClicksUntil: 0,
+  };
+}
 
 const handleWorkoutBottomButtonClick = () => {
   if (state.workoutFlow.step === "form") {
@@ -668,11 +683,11 @@ function updateQuoteFormState() {
   const hasSelectedQuote = currentEditableQuoteIndex() >= 0;
   if (quoteFormHint) {
     quoteFormHint.textContent = isEditing
-      ? "Измените текст или автора, затем сохраните обновлённую цитату."
+      ? "Измените текст или автора, затем сохраните. Порядок можно менять перетаскиванием."
       : currentCount >= MAX_CUSTOM_QUOTES
         ? `Лимит достигнут: можно хранить максимум ${MAX_CUSTOM_QUOTES} цитат.`
         : currentCount > 0
-          ? "Выберите цитату из списка, чтобы изменить ее, или добавьте новую."
+          ? "Введите новую цитату или выберите сохраненную ниже. Порядок меняется перетаскиванием."
           : `Можно добавить до ${MAX_CUSTOM_QUOTES} цитат.`;
   }
   if (saveQuoteBtn) {
@@ -689,8 +704,7 @@ function updateQuoteFormState() {
   }
   const quoteManageButton = document.getElementById("open-quote-overlay");
   if (quoteManageButton) {
-    const hasQuote = currentCustomQuoteIndex() >= 0;
-    quoteManageButton.setAttribute("aria-label", hasQuote ? "Редактировать цитату" : "Добавить цитату");
+    quoteManageButton.setAttribute("aria-label", "Управление цитатами");
   }
 }
 
@@ -719,6 +733,13 @@ function renderQuoteLibrary() {
             <p class="quote-library-text">${escapeHtml(quote.text)}</p>
             ${quote.author ? `<p class="quote-library-author">${escapeHtml(quote.author)}</p>` : ""}
           </div>
+          <button
+            class="quote-library-handle"
+            type="button"
+            data-quote-handle
+            aria-label="Переместить цитату"
+            title="Перетащите, чтобы изменить порядок"
+          ></button>
         </article>
       `
     )
@@ -726,6 +747,9 @@ function renderQuoteLibrary() {
 
   quoteLibraryList.querySelectorAll(".quote-library-item").forEach((item) => {
     const openSelectedQuote = () => {
+      if (Date.now() < quoteDragState.ignoreClicksUntil) {
+        return;
+      }
       const index = Number(item.dataset.quoteIndex);
       startEditCustomQuote(index);
     };
@@ -738,6 +762,192 @@ function renderQuoteLibrary() {
       openSelectedQuote();
     });
   });
+
+  quoteLibraryList.querySelectorAll("[data-quote-handle]").forEach((handle) => {
+    handle.addEventListener("click", (event) => {
+      event.stopPropagation();
+    });
+    handle.addEventListener("pointerdown", startQuoteReorder);
+  });
+}
+
+function resetQuoteDragState() {
+  const ignoreClicksUntil = quoteDragState.ignoreClicksUntil;
+  document.removeEventListener("pointermove", handleQuoteReorderMove);
+  document.removeEventListener("pointerup", finishQuoteReorder);
+  document.removeEventListener("pointercancel", finishQuoteReorder);
+
+  if (quoteDragState.handle && quoteDragState.pointerId !== null) {
+    try {
+      quoteDragState.handle.releasePointerCapture?.(quoteDragState.pointerId);
+    } catch (error) {
+      // noop: some browsers throw if capture was never established
+    }
+  }
+
+  if (quoteDragState.draggedItem) {
+    quoteDragState.draggedItem.classList.remove("is-dragging");
+    quoteDragState.draggedItem.style.removeProperty("transform");
+    quoteDragState.draggedItem.style.removeProperty("z-index");
+  }
+
+  quoteLibraryList?.classList.remove("is-reordering");
+  quoteDragState = createQuoteDragState();
+  quoteDragState.ignoreClicksUntil = ignoreClicksUntil;
+}
+
+function collectQuoteLibraryOrder() {
+  if (!quoteLibraryList) {
+    return [];
+  }
+  return [...quoteLibraryList.querySelectorAll(".quote-library-item")]
+    .map((item) => Number(item.dataset.quoteIndex))
+    .filter((index) => Number.isInteger(index) && index >= 0 && state.userQuotes[index]);
+}
+
+function applyQuoteLibraryOrder(order, selectedOriginalIndex = -1) {
+  if (!Array.isArray(order) || order.length !== state.userQuotes.length) {
+    return false;
+  }
+
+  const currentDraft = {
+    text: String(quoteInput?.value || ""),
+    author: String(quoteAuthorInput?.value || ""),
+  };
+
+  const nextQuotes = order.map((index) => state.userQuotes[index]).filter(Boolean);
+  if (nextQuotes.length !== state.userQuotes.length) {
+    return false;
+  }
+
+  persistCustomQuotes(nextQuotes);
+
+  const nextEditingIndex = selectedOriginalIndex >= 0 ? order.indexOf(selectedOriginalIndex) : -1;
+  if (nextEditingIndex >= 0) {
+    setQuoteEditorMode("edit", nextEditingIndex);
+  } else {
+    setQuoteEditorMode("create");
+  }
+
+  renderQuotesSection({ resetLoop: true });
+
+  if (quoteInput) {
+    quoteInput.value = currentDraft.text;
+    quoteInput.classList.remove("is-invalid");
+  }
+  if (quoteAuthorInput) {
+    quoteAuthorInput.value = currentDraft.author;
+  }
+  updateQuoteFormState();
+  triggerHaptic("selection");
+  return true;
+}
+
+function handleQuoteReorderMove(event) {
+  if (!quoteDragState.active || event.pointerId !== quoteDragState.pointerId || !quoteLibraryList || !quoteDragState.draggedItem) {
+    return;
+  }
+
+  event.preventDefault();
+  const deltaY = event.clientY - quoteDragState.startY;
+  if (Math.abs(deltaY) > 4) {
+    quoteDragState.didMove = true;
+  }
+
+  quoteDragState.draggedItem.style.transform = `translateY(${deltaY}px) scale(1.01)`;
+
+  const hoveredItem = document.elementFromPoint(event.clientX, event.clientY)?.closest(".quote-library-item");
+  const otherItems = [...quoteLibraryList.querySelectorAll(".quote-library-item:not(.is-dragging)")];
+
+  if (hoveredItem && hoveredItem !== quoteDragState.draggedItem && quoteLibraryList.contains(hoveredItem)) {
+    const hoveredRect = hoveredItem.getBoundingClientRect();
+    const insertBeforeNode =
+      event.clientY > hoveredRect.top + hoveredRect.height / 2 ? hoveredItem.nextElementSibling : hoveredItem;
+    if (insertBeforeNode !== quoteDragState.draggedItem) {
+      quoteLibraryList.insertBefore(quoteDragState.draggedItem, insertBeforeNode);
+    }
+    return;
+  }
+
+  if (!otherItems.length) {
+    return;
+  }
+
+  const firstRect = otherItems[0].getBoundingClientRect();
+  if (event.clientY <= firstRect.top) {
+    quoteLibraryList.insertBefore(quoteDragState.draggedItem, otherItems[0]);
+    return;
+  }
+
+  const lastItem = otherItems[otherItems.length - 1];
+  const lastRect = lastItem.getBoundingClientRect();
+  if (event.clientY >= lastRect.bottom) {
+    quoteLibraryList.append(quoteDragState.draggedItem);
+  }
+}
+
+function finishQuoteReorder(event) {
+  if (!quoteDragState.active) {
+    return;
+  }
+  if (event?.pointerId != null && quoteDragState.pointerId != null && event.pointerId !== quoteDragState.pointerId) {
+    return;
+  }
+
+  const { didMove, selectedIndex } = quoteDragState;
+  const nextOrder = collectQuoteLibraryOrder();
+  const orderChanged = nextOrder.some((index, position) => index !== position);
+  const ignoreClicksUntil = didMove ? Date.now() + 260 : quoteDragState.ignoreClicksUntil;
+
+  quoteDragState.ignoreClicksUntil = ignoreClicksUntil;
+
+  resetQuoteDragState();
+
+  if (didMove && orderChanged) {
+    applyQuoteLibraryOrder(nextOrder, selectedIndex);
+    return;
+  }
+
+  renderQuoteLibrary();
+  updateQuoteFormState();
+}
+
+function startQuoteReorder(event) {
+  const handle = event.target.closest("[data-quote-handle]");
+  const item = handle?.closest(".quote-library-item");
+  if (!handle || !item || !quoteLibraryList) {
+    return;
+  }
+  if (event.pointerType === "mouse" && event.button !== 0) {
+    return;
+  }
+
+  const sourceIndex = Number(item.dataset.quoteIndex);
+  if (!Number.isInteger(sourceIndex) || !state.userQuotes[sourceIndex]) {
+    return;
+  }
+
+  event.preventDefault();
+  event.stopPropagation();
+  blurActiveField();
+  resetQuoteDragState();
+
+  quoteDragState.active = true;
+  quoteDragState.pointerId = event.pointerId;
+  quoteDragState.handle = handle;
+  quoteDragState.draggedItem = item;
+  quoteDragState.sourceIndex = sourceIndex;
+  quoteDragState.selectedIndex = currentEditableQuoteIndex();
+  quoteDragState.startY = event.clientY;
+
+  handle.setPointerCapture?.(event.pointerId);
+  item.classList.add("is-dragging");
+  item.style.zIndex = "3";
+  quoteLibraryList.classList.add("is-reordering");
+
+  document.addEventListener("pointermove", handleQuoteReorderMove);
+  document.addEventListener("pointerup", finishQuoteReorder);
+  document.addEventListener("pointercancel", finishQuoteReorder);
 }
 
 function renderQuotesSection(options = {}) {
@@ -840,14 +1050,8 @@ function startEditCustomQuote(index = currentEditableQuoteIndex()) {
   focusWithoutScroll(quoteInput);
 }
 
-function syncQuoteEditorAfterDelete(deletedIndex) {
-  if (!state.userQuotes.length) {
-    setQuoteEditorMode("create");
-    fillQuoteOverlayForm();
-    return;
-  }
-  const nextIndex = Math.min(deletedIndex, state.userQuotes.length - 1);
-  setQuoteEditorMode("edit", nextIndex);
+function syncQuoteEditorAfterDelete() {
+  setQuoteEditorMode("create");
   fillQuoteOverlayForm();
 }
 
@@ -1960,15 +2164,11 @@ function openQuoteOverlay() {
     showToast("Сначала открой профиль в боте");
     return;
   }
-  const currentIndex = currentCustomQuoteIndex();
-  if (currentIndex >= 0) {
-    setQuoteEditorMode("edit", currentIndex);
-  } else {
-    setQuoteEditorMode("create");
-  }
+  setQuoteEditorMode("create");
   freezeViewportFor(280);
   state.quoteOverlayOpen = true;
   fillQuoteOverlayForm();
+  renderQuoteLibrary();
   setBodyScrollLock(true);
   quoteOverlay.hidden = false;
   runMotion(quoteOverlay, { opacity: [0, 1] }, { duration: 0.18, easing: "ease-out" });
@@ -1986,6 +2186,7 @@ function closeQuoteOverlay() {
   if (!quoteOverlay || quoteOverlay.hidden) {
     return;
   }
+  finishQuoteReorder();
   state.quoteOverlayOpen = false;
   setQuoteEditorMode("create");
   freezeViewportFor(320);
@@ -2297,8 +2498,10 @@ async function saveCustomQuote() {
   }
   renderQuotesSection({ resetLoop: true });
   triggerHaptic("success");
+  setQuoteEditorMode("create");
   resetQuoteForm();
-  closeQuoteOverlay();
+  renderQuoteLibrary();
+  focusWithoutScroll(quoteInput);
   showToast(isEditing ? "Цитата обновлена" : "Цитата добавлена");
   return true;
 }
@@ -2309,7 +2512,7 @@ function deleteCustomQuote(index) {
   }
   const nextQuotes = state.userQuotes.filter((_, quoteIndex) => quoteIndex !== index);
   persistCustomQuotes(nextQuotes);
-  syncQuoteEditorAfterDelete(index);
+  syncQuoteEditorAfterDelete();
   renderQuotesSection({ resetLoop: true });
   updateQuoteFormState();
   triggerHaptic("selection");
@@ -2331,7 +2534,6 @@ async function deleteQuoteFromOverlay() {
     return;
   }
   deleteCustomQuote(index);
-  closeQuoteOverlay();
 }
 
 function syncNavPillPosition(tab, immediate) {

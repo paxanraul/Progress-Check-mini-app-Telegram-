@@ -12,8 +12,8 @@
   <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
 
   <!-- Подключение основных стилей приложения -->
-<link rel="stylesheet" href="/static/styles.css?v=96">
-<link rel="stylesheet" href="/static/generated/user-level-widget.css?v=7">
+<link rel="stylesheet" href="/static/styles.css?v=97">
+<link rel="stylesheet" href="/static/generated/user-level-widget.css?v=9">
 </head>
 <body>
   <!-- Внешняя рамка интерфейса -->
@@ -319,7 +319,7 @@
         <button class="modal-close-btn" id="close-quote-overlay" type="button" aria-label="Отмена">×</button>
 
         <!-- Заголовок режима работы с цитатой -->
-        <p id="quote-modal-title">Новая цитата</p>
+        <p id="quote-modal-title" class="quote-modal-title">Новая цитата</p>
       </div>
 
       <!-- Основной шаг редактирования цитат -->
@@ -334,6 +334,7 @@
         <section class="quote-library" aria-label="Сохраненные цитаты">
           <div class="quote-library-head">
             <p class="quote-library-title">Сохраненные цитаты</p>
+            <p class="quote-library-meta">Тяните за ручку, чтобы менять порядок</p>
           </div>
 
           <!-- Список сохраненных цитат -->
@@ -504,9 +505,9 @@
   <script src="https://unpkg.com/motion@11.11.13/dist/motion.js"></script>
 
   <!-- React-виджет User Level -->
-<script src="/static/generated/user-level-widget.js?v=7"></script>
+  <script src="/static/generated/user-level-widget.js?v=10"></script>
 
   <!-- Подключение основного JavaScript-файла приложения -->
-  <script src="/static/app.js?v=65"></script>
+  <script src="/static/app.js?v=66"></script>
 </body>
 </html>

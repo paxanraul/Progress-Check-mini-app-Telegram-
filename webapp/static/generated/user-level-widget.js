@@ -1,14 +1,14 @@
 (function () {
-  const LEVEL_THRESHOLDS = [0, 3, 5, 8, 12, 17, 23, 30, 38, 47, 57, 68];
+  const LEVEL_THRESHOLDS = [0, 3, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50];
 
-  function normalizeWorkoutCount(value) {
-    const parsed = Number(value);
-    if (!Number.isFinite(parsed) || parsed <= 0) {
-      return 0;
+    function normalizeWorkoutCount(value) {
+      const parsed = Number(value);
+      if (!Number.isFinite(parsed) || parsed <= 0) {
+        return 0;
     }
     return Math.floor(parsed);
   }
-
+///здесь остановился
   function thresholdForLevel(level) {
     if (level <= 1) {
       return 0;

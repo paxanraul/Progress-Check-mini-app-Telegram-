@@ -4,11 +4,12 @@ from pathlib import Path
 
 from aiohttp import web
 from aiogram import Bot, Dispatcher
-from aiogram.types import BotCommand, MenuButtonCommands
+from aiogram.types import BotCommand, MenuButtonWebApp, WebAppInfo
 from dotenv import load_dotenv
 
 from bot.db import init_db
 from bot.handlers import FEEDBACK_COMMAND, router
+from bot.keyboards import build_mini_app_url
 from webapp.server import create_web_app
 
 
@@ -19,7 +20,14 @@ async def configure_bot_menu(bot: Bot) -> None:
             BotCommand(command=FEEDBACK_COMMAND, description="Открыть ссылку на опрос"),
         ]
     )
-    await bot.set_chat_menu_button(menu_button=MenuButtonCommands())
+    mini_app_url = build_mini_app_url()
+    if mini_app_url:
+        await bot.set_chat_menu_button(
+            menu_button=MenuButtonWebApp(
+                text="Mini App",
+                web_app=WebAppInfo(url=mini_app_url),
+            )
+        )
 
 
 async def main():

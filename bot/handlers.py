@@ -41,7 +41,9 @@ from bot.keyboards import admin_panel_keyboard, faq_keyboard, main_menu_keyboard
 
 router = Router()
 START_NAME_PHOTO = FSInputFile(Path(__file__).resolve().parent / "assets" / "start_name_photo.jpeg")
+VIDEO_INSTRUCTION_FILE = FSInputFile(Path(__file__).resolve().parent / "assets" / "video_instruction_placeholder.mp4")
 FEEDBACK_COMMAND = "feedback"
+VIDEO_COMMAND = "video"
 FEEDBACK_MENU_TEXT = "Отзыв"
 DEFAULT_SURVEY_URL = "https://your-google-form-link"
 
@@ -101,6 +103,20 @@ router.message.register(
     StateFilter(None),
     F.text == FEEDBACK_MENU_TEXT,
 )
+
+
+@router.message(Command(VIDEO_COMMAND))
+async def handle_video_instruction_request(message: Message) -> None:
+    await message.answer_video(
+        video=VIDEO_INSTRUCTION_FILE,
+        caption=(
+            "Видео-инструкция по боту.\n\n"
+            "Сейчас здесь стоит mp4-заглушка. Позже можно просто заменить файл "
+            "`bot/assets/video_instruction_placeholder.mp4` на нужное видео."
+        ),
+        parse_mode="Markdown",
+        supports_streaming=True,
+    )
 
 
 FAQ_TEXTS = {

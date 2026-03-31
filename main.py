@@ -8,7 +8,7 @@ from aiogram.types import BotCommand, MenuButtonWebApp, WebAppInfo
 from dotenv import load_dotenv
 
 from bot.db import init_db
-from bot.handlers import FEEDBACK_COMMAND, router
+from bot.handlers import FEEDBACK_COMMAND, VIDEO_COMMAND, router
 from bot.keyboards import build_mini_app_url
 from webapp.server import create_web_app
 
@@ -18,6 +18,7 @@ async def configure_bot_menu(bot: Bot) -> None:
         [
             BotCommand(command="start", description="Открыть главное меню"),
             BotCommand(command=FEEDBACK_COMMAND, description="Открыть ссылку на опрос"),
+            BotCommand(command=VIDEO_COMMAND, description="Открыть видео-инструкцию"),
         ]
     )
     mini_app_url = build_mini_app_url()

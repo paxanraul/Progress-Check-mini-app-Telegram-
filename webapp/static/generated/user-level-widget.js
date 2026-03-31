@@ -14,17 +14,17 @@
       return 0;
     }
 
-    const thresholds = [...LEVEL_THRESHOLDS];
-    while (thresholds.length < level) {
-      const previousGap = thresholds[thresholds.length - 1] - thresholds[thresholds.length - 2];
-      thresholds.push(thresholds[thresholds.length - 1] + Math.max(previousGap, 2) + 1);
+    const thresholds = [...LEVEL_THRESHOLDS];///копируем массив 
+    while (thresholds.length < level) {/// пока кол-во уровней  меньше чем сам уровень -выполнять цикл  
+      const previousGap = thresholds[thresholds.length - 1] - thresholds[thresholds.length - 2];//вычитаем значение ласт уровня из предласт уровня чтобы понять сколько трен.разница
+      thresholds.push(thresholds[thresholds.length - 1] + Math.max(previousGap, 2));//добавляем в массив новый уровень ,который складывается из последнего уровня + разница между уровнями 
     }
-    return thresholds[level - 1];
+    return thresholds[level - 1];///возвращяем новый уровень 
   }
 
   function workoutWord(count) {
-    const abs = Math.abs(count) % 100;
-    const last = abs % 10;
+    const abs = Math.abs(count) % 100;  ////последние 2 числа  возвращается положительным в любом случае - это окончание слова 
+    const last = abs % 10;// по такой же аналогии возвращается последняя цифра 
     if (abs > 10 && abs < 20) {
       return "тренировок";
     }
@@ -38,10 +38,10 @@
   }
 
   function resolveLevel(workoutCount) {
-    const count = normalizeWorkoutCount(workoutCount);
-    let level = 1;
+    const count = normalizeWorkoutCount(workoutCount);//создаем переменную куда помещаем результат функции преобразущей кол-во  тренировок пользователя в  число 
+    let level = 1; ///отсчет от 1 уровня
 
-    while (count >= thresholdForLevel(level + 1)) {
+    while (count >= thresholdForLevel(level + 1)) {///пока кол-во тренировок больше,чем нужно для следующего  уровня прибавляем +1 к уровню
       level += 1;
     }
 
@@ -49,14 +49,14 @@
   }
 
   function getProgress(workoutCount) {
-    const count = normalizeWorkoutCount(workoutCount);
-    const level = resolveLevel(count);
-    const currentLevelStart = thresholdForLevel(level);
+    const count = normalizeWorkoutCount(workoutCount);//// переменная для функции,превращающей значение в число
+    const level = resolveLevel(count);///переменная для функции уровня
+    const currentLevelStart = thresholdForLevel(level);//возвращение нового уровня
     const nextLevelAt = thresholdForLevel(level + 1);
-    const workoutsPerLevel = Math.max(nextLevelAt - currentLevelStart, 1);
-    const progressInLevel = Math.max(count - currentLevelStart, 0);
-    const remainingToNextLevel = Math.max(nextLevelAt - count, 0);
-    const progressPercent = Number((Math.min(progressInLevel / workoutsPerLevel, 1) * 100).toFixed(2));
+    const workoutsPerLevel = Math.max(nextLevelAt - currentLevelStart, 1);//разница между текущим уровнем и след.уровнем 
+    const progressInLevel = Math.max(count - currentLevelStart, 0);//кол-во тренировок всего - кол-во тренировок  с которого начался уровень 
+    const remainingToNextLevel = Math.max(nextLevelAt - count, 0);///сколько  тренировок будет в начале некст уровня - кол-во тренировок всего 
+    const progressPercent = Number((Math.min(progressInLevel / workoutsPerLevel, 1) * 100).toFixed(1));//кол-во тренировок ,которые сделал в новом уровне /разницу между след.уровнем и  тек.,умножаем на  100 тк выйдет десятичное ,если не делится -округлить до одного знака после запятой,потом в число преобразовать
 
     return {
       workoutCount: count,

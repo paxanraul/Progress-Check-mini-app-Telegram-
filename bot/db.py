@@ -1,3 +1,4 @@
+import json
 import sqlite3
 from contextlib import closing
 from pathlib import Path
@@ -59,6 +60,15 @@ def init_db() -> None:
                 is_record INTEGER NOT NULL DEFAULT 0,
                 reps INTEGER NOT NULL,
                 FOREIGN KEY(user_id) REFERENCES users(user_id)
+            )
+            """
+        )
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS custom_quotes (
+                user_id INTEGER PRIMARY KEY,
+                quotes_json TEXT NOT NULL DEFAULT '[]',
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
             """
         )
@@ -138,6 +148,36 @@ def get_user(user_id: int) -> sqlite3.Row | None:
         cursor = connection.cursor()
         cursor.execute("SELECT * FROM users WHERE user_id = ?", (user_id,))
         return cursor.fetchone()
+
+
+def get_custom_quotes(user_id: int) -> list[dict]:
+    with closing(get_connection()) as connection:
+        cursor = connection.cursor()
+        cursor.execute("SELECT quotes_json FROM custom_quotes WHERE user_id = ?", (user_id,))
+        row = cursor.fetchone()
+        if not row:
+            return []
+        try:
+            quotes = json.loads(row["quotes_json"] or "[]")
+        except Exception:
+            return []
+        return quotes if isinstance(quotes, list) else []
+
+
+def upsert_custom_quotes(user_id: int, quotes_json: str) -> None:
+    with closing(get_connection()) as connection:
+        cursor = connection.cursor()
+        cursor.execute(
+            """
+            INSERT INTO custom_quotes (user_id, quotes_json, updated_at)
+            VALUES (?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(user_id) DO UPDATE SET
+                quotes_json=excluded.quotes_json,
+                updated_at=CURRENT_TIMESTAMP
+            """,
+            (user_id, quotes_json),
+        )
+        connection.commit()
 
 
 def add_workout(

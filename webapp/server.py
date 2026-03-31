@@ -1,3 +1,4 @@
+import json
 import os
 from pathlib import Path
 from datetime import date, datetime
@@ -8,6 +9,7 @@ from aiohttp import ClientSession, ClientTimeout, web
 
 from bot.db import (
     add_workout,
+    get_custom_quotes,
     get_connection,
     get_records,
     get_started_user,
@@ -15,6 +17,7 @@ from bot.db import (
     get_user,
     get_workout_days,
     upsert_user,
+    upsert_custom_quotes,
 )
 
 
@@ -66,6 +69,8 @@ FAQ_DATA = {
     ],
 }
 
+MAX_CUSTOM_QUOTES = 5
+
 
 @web.middleware
 async def no_cache_static_middleware(request: web.Request, handler):
@@ -87,6 +92,34 @@ async def read_json_payload(request: web.Request) -> dict | None:
     except Exception:
         return None
     return payload if isinstance(payload, dict) else None
+
+
+def normalize_custom_quotes(items: object) -> list[dict[str, str]]:
+    if isinstance(items, str):
+        return normalize_custom_quotes([{"text": items}])
+    if isinstance(items, dict):
+        return normalize_custom_quotes([items])
+    if not isinstance(items, list):
+        return []
+
+    normalized: list[dict[str, str]] = []
+    for item in items:
+        if isinstance(item, str):
+            text = item.strip()
+            if text:
+                normalized.append({"text": text[:240], "author": ""})
+            continue
+        if not isinstance(item, dict):
+            continue
+
+        text = str(item.get("text", "")).strip()
+        author = str(item.get("author", "")).strip()
+        if not text:
+            continue
+
+        normalized.append({"text": text[:240], "author": author[:80]})
+
+    return normalized[:MAX_CUSTOM_QUOTES]
 
 
 def started_user_exists(user_id: int) -> bool:
@@ -331,6 +364,7 @@ async def app_data(request: web.Request) -> web.Response:
 
         history_payload = [serialize_history_row(row) for row in get_workout_days(user_id, limit=8)]
         records_payload = [item for row in get_records(user_id) if (item := serialize_record_row(row))]
+        custom_quotes_payload = normalize_custom_quotes(get_custom_quotes(user_id))
 
         payload = {
             "ready": True,
@@ -343,6 +377,7 @@ async def app_data(request: web.Request) -> web.Response:
             },
             "history": history_payload,
             "records": records_payload,
+            "custom_quotes": custom_quotes_payload,
             "faq": FAQ_DATA,
         }
         payload["user"]["avatar_url"] = await resolve_telegram_avatar_url(user_id, request.app)
@@ -393,6 +428,22 @@ async def update_profile(request: web.Request) -> web.Response:
         experience=experience or "Не заполнено",
     )
     return web.json_response({"ok": True})
+
+
+async def update_custom_quotes(request: web.Request) -> web.Response:
+    payload = await read_json_payload(request)
+    if payload is None:
+        return json_error("invalid json")
+
+    user_id = payload.get("user_id")
+    if not isinstance(user_id, int):
+        return json_error("user_id must be int")
+    if not started_user_exists(user_id):
+        return json_error("user not found", status=404)
+
+    quotes = normalize_custom_quotes(payload.get("quotes", []))
+    upsert_custom_quotes(user_id, json.dumps(quotes, ensure_ascii=False))
+    return web.json_response({"ok": True, "quotes": quotes})
 
 
 async def clear_profile_data(request: web.Request) -> web.Response:
@@ -770,6 +821,7 @@ def create_web_app() -> web.Application:
     app.router.add_get("/api/faq", faq_data)
     app.router.add_put("/api/profile", update_profile)
     app.router.add_delete("/api/profile", clear_profile_data)
+    app.router.add_put("/api/custom-quotes", update_custom_quotes)
     app.router.add_post("/api/workouts", save_workout)
     app.router.add_put("/api/workouts", update_workout)
     app.router.add_delete("/api/workouts", delete_workout)

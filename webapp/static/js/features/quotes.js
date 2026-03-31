@@ -15,6 +15,7 @@ import {
   QUOTE_TYPING_MIN_STEP_MS,
   QUOTE_TYPING_TARGET_DURATION_MS,
 } from "../core/constants.js";
+import { updateCustomQuotes } from "../services/api.js";
 import { loadCustomQuotes, persistCustomQuotes } from "../services/storage.js";
 import { escapeHtml } from "../shared/utils.js";
 
@@ -248,12 +249,26 @@ export function createQuoteFeature({
     scheduleNextQuote(nextText, { immediate });
   }
 
-  function loadForUser() {
+  function loadForUser(serverQuotes = null) {
+    if (Array.isArray(serverQuotes) && serverQuotes.length) {
+      state.userQuotes = persistCustomQuotes(state.userId, serverQuotes);
+      return;
+    }
+
     state.userQuotes = loadCustomQuotes(state.userId);
   }
 
   function persistQuotes(quotes) {
-    state.userQuotes = persistCustomQuotes(state.userId, quotes);
+    const normalized = persistCustomQuotes(state.userId, quotes);
+    state.userQuotes = normalized;
+    if (state.userId) {
+      void updateCustomQuotes({
+        user_id: Number(state.userId),
+        quotes: normalized,
+      }).catch((error) => {
+        console.warn("custom quotes sync failed", error);
+      });
+    }
   }
 
   function updateFormState() {

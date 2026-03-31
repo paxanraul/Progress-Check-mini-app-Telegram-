@@ -856,14 +856,41 @@ function loadCustomQuotes() {
   }
 }
 
-function persistCustomQuotes(quotes) {
-  const normalized = normalizeCustomQuotes(quotes);
-  state.userQuotes = normalized;
+function writeCustomQuotesCache(quotes) {
   try {
-    localStorage.setItem(customQuotesStorageKey(), JSON.stringify(normalized));
+    localStorage.setItem(customQuotesStorageKey(), JSON.stringify(quotes));
   } catch (error) {
     console.warn("custom quotes storage failed", error);
   }
+}
+
+async function syncCustomQuotesToServer(quotes) {
+  if (!state.userId) {
+    return;
+  }
+
+  try {
+    const response = await fetch("/api/custom-quotes", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        user_id: Number(state.userId),
+        quotes,
+      }),
+    });
+    if (!response.ok) {
+      return;
+    }
+  } catch (error) {
+    console.warn("custom quotes sync failed", error);
+  }
+}
+
+function persistCustomQuotes(quotes) {
+  const normalized = normalizeCustomQuotes(quotes);
+  state.userQuotes = normalized;
+  writeCustomQuotesCache(normalized);
+  void syncCustomQuotesToServer(normalized);
 }
 
 function updateQuoteFormState() {
@@ -1978,6 +2005,17 @@ async function bootstrap() {
   state.payload = payload;
   // После загрузки payload уточняем fallback-букву уже с учётом имени из профиля.
   renderTelegramAvatar(payload.user || null);
+
+  const serverCustomQuotes = normalizeCustomQuotes(payload.custom_quotes || []);
+  const cachedCustomQuotes = normalizeCustomQuotes(state.userQuotes || []);
+  if (serverCustomQuotes.length) {
+    state.userQuotes = serverCustomQuotes;
+    writeCustomQuotesCache(serverCustomQuotes);
+  } else if (cachedCustomQuotes.length) {
+    state.userQuotes = cachedCustomQuotes;
+    void syncCustomQuotesToServer(cachedCustomQuotes);
+  }
+  renderQuotesSection({ resetLoop: true });
 
   if (!payload.ready) {
     document.getElementById("profile-name").textContent = "Нет данных";

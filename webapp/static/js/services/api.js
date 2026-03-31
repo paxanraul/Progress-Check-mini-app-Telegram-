@@ -139,3 +139,15 @@ export function clearProfile(userId) {
     "failed to clear profile"
   );
 }
+
+export function updateCustomQuotes(payload) {
+  return expectOkJson(
+    "/api/custom-quotes",
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    },
+    "failed to save custom quotes"
+  );
+}

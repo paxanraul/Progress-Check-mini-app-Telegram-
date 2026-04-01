@@ -107,15 +107,14 @@ router.message.register(
 
 @router.message(Command(VIDEO_COMMAND))
 async def handle_video_instruction_request(message: Message) -> None:
-    await message.answer_video(
-        video=VIDEO_INSTRUCTION_FILE,
+    await message.answer_document(
+        document=VIDEO_INSTRUCTION_FILE,
         caption=(
             "Видео-инструкция по боту.\n\n"
             "Сейчас здесь стоит mp4-заглушка. Позже можно просто заменить файл "
             "`bot/assets/video_instruction_placeholder.mp4` на нужное видео."
         ),
         parse_mode="Markdown",
-        supports_streaming=True,
     )
 
 
@@ -400,7 +399,8 @@ async def send_main_screen(message: Message, user_id: int) -> None:
     records = get_records(user_id)
 
     summary = (
-        "Для полного использования бота открой Mini App кнопкой Mini App под сообщением<tg-emoji emoji-id=\"5282869697463740318\">✨</tg-emoji>\n\n"
+        "Для полного использования бота открой Mini App кнопкой Mini App под сообщением<tg-emoji emoji-id=\"5282869697463740318\">✨</tg-emoji>\n" \
+        "Так же есть видео-инструкция по команде /video\n\n"
         "Мой прогресс: <tg-emoji emoji-id=\"5334882760735598374\">📝</tg-emoji>\n"
         f"Имя: {user['name']}\n"
         f"Возраст: {user['age']}\n"

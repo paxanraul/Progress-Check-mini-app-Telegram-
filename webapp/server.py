@@ -1,3 +1,9 @@
+"""HTTP backend для Telegram Mini App.
+
+Файл раздаёт статику mini-app и предоставляет JSON API для:
+профиля, тренировок, рекордов, FAQ, кастомных цитат и Telegram-аватарок.
+"""
+
 import json
 import os
 from pathlib import Path
@@ -23,6 +29,7 @@ from bot.db import (
 
 BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR / "static"
+# Аватар Telegram запрашиваем через Bot API и кэшируем ненадолго, чтобы не бить сеть на каждый запрос.
 TELEGRAM_AVATAR_CACHE_TTL = 300
 _TELEGRAM_AVATAR_CACHE: dict[int, tuple[float, str]] = {}
 
@@ -74,6 +81,7 @@ MAX_CUSTOM_QUOTES = 5
 
 @web.middleware
 async def no_cache_static_middleware(request: web.Request, handler):
+    # Для mini-app важно отдавать свежую статику без агрессивного кэша Telegram/WebView.
     response = await handler(request)
     if request.path in {"/", "/app"} or request.path.startswith("/static/"):
         response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
@@ -87,6 +95,7 @@ def json_error(message: str, status: int = 400) -> web.Response:
 
 
 async def read_json_payload(request: web.Request) -> dict | None:
+    # Все mutating-роуты ждут JSON-объект; helper даёт единый fallback на invalid body.
     try:
         payload = await request.json()
     except Exception:
@@ -95,6 +104,7 @@ async def read_json_payload(request: web.Request) -> dict | None:
 
 
 def normalize_custom_quotes(items: object) -> list[dict[str, str]]:
+    # Сервер валидирует цитаты теми же ограничениями, что и фронт, чтобы не хранить мусор в БД.
     if isinstance(items, str):
         return normalize_custom_quotes([{"text": items}])
     if isinstance(items, dict):
@@ -127,6 +137,7 @@ def started_user_exists(user_id: int) -> bool:
 
 
 async def create_http_session(app: web.Application) -> None:
+    # Общая HTTP-сессия нужна для запросов к Telegram Bot API за аватарками.
     app["http_session"] = ClientSession(timeout=ClientTimeout(total=10))
 
 
@@ -137,6 +148,7 @@ async def close_http_session(app: web.Application) -> None:
 
 
 async def resolve_telegram_avatar_url(user_id: int, app: web.Application) -> str:
+    # Mini-app не всегда получает photo_url напрямую, поэтому добираем аватар через Bot API.
     if user_id <= 0:
         return ""
 
@@ -198,6 +210,7 @@ async def resolve_telegram_avatar_url(user_id: int, app: web.Application) -> str
 
 
 def parse_exercise_payload(item: object) -> dict[str, float | int | str] | None:
+    # Единая валидация exercise-item используется и для сохранения, и для сериализации истории.
     if not isinstance(item, dict):
         return None
 
@@ -280,6 +293,7 @@ def parse_history_exercises(raw: object) -> list[dict[str, int | str]]:
 
 
 def serialize_history_row(row) -> dict[str, object]:
+    # Приводим DB-строку к формату, который фронт уже умеет рендерить без дополнительной обработки.
     row_keys = set(row.keys()) if hasattr(row, "keys") else set()
     wellbeing_note = (
         row["wellbeing_note"]
@@ -314,6 +328,7 @@ def delete_workout_rows(
     workout_date: str = "",
     session_key: str = "",
 ) -> int:
+    # Удаление поддерживает и новые session_key, и старые legacy-записи только по workout_date.
     if session_key:
         cursor.execute(
             """
@@ -347,6 +362,7 @@ async def index(request: web.Request) -> web.Response:
 
 
 async def app_data(request: web.Request) -> web.Response:
+    # Главный bootstrap-endpoint mini-app: возвращает весь базовый снимок экрана одним запросом.
     try:
         user_id = parse_user_id(request)
         if user_id is None:
@@ -391,6 +407,7 @@ async def faq_data(request: web.Request) -> web.Response:
 
 
 async def update_profile(request: web.Request) -> web.Response:
+    # Профиль обновляется отдельно от истории тренировок, но остаётся привязанным к тому же user_id.
     payload = await read_json_payload(request)
     if payload is None:
         return json_error("invalid json")
@@ -431,6 +448,7 @@ async def update_profile(request: web.Request) -> web.Response:
 
 
 async def update_custom_quotes(request: web.Request) -> web.Response:
+    # Цитаты синхронизируются между устройствами полным массивом, а не отдельными patch-запросами.
     payload = await read_json_payload(request)
     if payload is None:
         return json_error("invalid json")
@@ -447,6 +465,7 @@ async def update_custom_quotes(request: web.Request) -> web.Response:
 
 
 async def clear_profile_data(request: web.Request) -> web.Response:
+    # Полная очистка удаляет и профиль, и все пользовательские записи, связанные с ним.
     payload = await read_json_payload(request)
     if payload is None:
         return json_error("invalid json")
@@ -467,6 +486,7 @@ async def clear_profile_data(request: web.Request) -> web.Response:
 
 
 async def save_workout(request: web.Request) -> web.Response:
+    # Новая тренировка может содержать несколько упражнений, поэтому сервер раскладывает её в несколько строк.
     payload = await read_json_payload(request)
     if payload is None:
         return json_error("invalid json")
@@ -514,6 +534,7 @@ async def save_workout(request: web.Request) -> web.Response:
 
 
 async def update_workout(request: web.Request) -> web.Response:
+    # Редактирование тренировки работает как replace набора упражнений внутри одной session_key.
     payload = await read_json_payload(request)
     if payload is None:
         return json_error("invalid json")
@@ -641,6 +662,7 @@ async def delete_all_workouts(request: web.Request) -> web.Response:
 
 
 async def save_record(request: web.Request) -> web.Response:
+    # Рекорд сохраняется отдельной строкой в workouts с флагом is_record=1.
     payload = await read_json_payload(request)
     if payload is None:
         return json_error("invalid json")
@@ -690,6 +712,7 @@ async def save_record(request: web.Request) -> web.Response:
 
 
 async def update_record(request: web.Request) -> web.Response:
+    # Обновление рекорда реализовано как delete старой записи + insert новой.
     payload = await read_json_payload(request)
     if payload is None:
         return json_error("invalid json")
@@ -774,6 +797,7 @@ async def update_record(request: web.Request) -> web.Response:
 
 
 async def delete_record(request: web.Request) -> web.Response:
+    # Для совместимости удаление рекорда поддерживает и query-параметры, и JSON-body.
     payload = await read_json_payload(request) or {}
 
     user_id = payload.get("user_id")
@@ -812,6 +836,7 @@ async def delete_record(request: web.Request) -> web.Response:
 
 
 def create_web_app() -> web.Application:
+    # Здесь собирается весь aiohttp-app: middleware, lifecycle hooks и публичные роуты mini-app.
     app = web.Application(middlewares=[no_cache_static_middleware])
     app.on_startup.append(create_http_session)
     app.on_cleanup.append(close_http_session)

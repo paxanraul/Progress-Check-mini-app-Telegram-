@@ -1,3 +1,9 @@
+"""Низкоуровневый слой работы с SQLite.
+
+Здесь живут таблицы и CRUD-хелперы для профилей, тренировок, рекордов,
+пользовательских цитат и данных админки.
+"""
+
 import json
 import sqlite3
 from contextlib import closing
@@ -5,6 +11,7 @@ from pathlib import Path
 
 
 DB_PATH = Path("gym_bot.db")
+# Эти колонки добавляются миграционно, чтобы старая БД продолжала работать после обновлений.
 WORKOUT_OPTIONAL_COLUMNS = (
     ("sets", "INTEGER NOT NULL DEFAULT 1"),
     ("is_record", "INTEGER NOT NULL DEFAULT 0"),
@@ -15,12 +22,14 @@ WORKOUT_OPTIONAL_COLUMNS = (
 
 
 def get_connection() -> sqlite3.Connection:
+    # sqlite3.Row позволяет читать колонки по имени и делает код обработчиков понятнее.
     connection = sqlite3.connect(DB_PATH)
     connection.row_factory = sqlite3.Row
     return connection
 
 
 def init_db() -> None:
+    # Инициализируем схему БД при каждом старте приложения.
     with closing(get_connection()) as connection:
         cursor = connection.cursor()
         cursor.execute(
@@ -83,6 +92,7 @@ def init_db() -> None:
 
 
 def upsert_started_user(user_id: int, username: str | None, full_name: str) -> None:
+    # started_users нужен для аналитики, статистики и массовых рассылок.
     with closing(get_connection()) as connection:
         cursor = connection.cursor()
         cursor.execute(
@@ -101,6 +111,7 @@ def upsert_started_user(user_id: int, username: str | None, full_name: str) -> N
 
 
 def upsert_user_activity(user_id: int, username: str | None, full_name: str) -> None:
+    # Обновляем активность пользователя на каждом сообщении, а не только на /start.
     with closing(get_connection()) as connection:
         cursor = connection.cursor()
         cursor.execute(
@@ -151,6 +162,7 @@ def get_user(user_id: int) -> sqlite3.Row | None:
 
 
 def get_custom_quotes(user_id: int) -> list[dict]:
+    # Пользовательские цитаты храним как JSON-массив в одной строке на пользователя.
     with closing(get_connection()) as connection:
         cursor = connection.cursor()
         cursor.execute("SELECT quotes_json FROM custom_quotes WHERE user_id = ?", (user_id,))
@@ -165,6 +177,7 @@ def get_custom_quotes(user_id: int) -> list[dict]:
 
 
 def upsert_custom_quotes(user_id: int, quotes_json: str) -> None:
+    # Фронт отправляет полный снимок цитат, поэтому здесь нет частичных update-операций.
     with closing(get_connection()) as connection:
         cursor = connection.cursor()
         cursor.execute(
@@ -192,6 +205,7 @@ def add_workout(
     wellbeing_note: str | None = None,
     session_key: str | None = None,
 ) -> None:
+    # Профиль в таблице users обновляется как одна агрегированная запись на пользователя.
     with closing(get_connection()) as connection:
         cursor = connection.cursor()
         cursor.execute(
@@ -242,6 +256,7 @@ def get_workouts_count(user_id: int) -> int:
 
 
 def get_records(user_id: int) -> list[sqlite3.Row]:
+    # Для каждого упражнения выбираем только лучший рекорд по весу и свежести записи.
     with closing(get_connection()) as connection:
         cursor = connection.cursor()
         cursor.execute(
@@ -396,6 +411,7 @@ def get_recent_global_records(limit: int = 8) -> list[sqlite3.Row]:
 
 
 def get_workout_days(user_id: int, limit: int = 10) -> list[sqlite3.Row]:
+    # История mini-app агрегируется по session_key, чтобы одна тренировка содержала много упражнений.
     with closing(get_connection()) as connection:
         cursor = connection.cursor()
         cursor.execute(
@@ -439,6 +455,7 @@ def get_total_workout_days(user_id: int) -> int:
 
 
 def ensure_column(cursor: sqlite3.Cursor, table_name: str, column_name: str, definition: str) -> None:
+    # Простейшая runtime-миграция: добавляем колонку, если приложение обновилось, а БД ещё старая.
     cursor.execute(f"PRAGMA table_info({table_name})")
     existing_columns = {row[1] for row in cursor.fetchall()}
     if column_name not in existing_columns:

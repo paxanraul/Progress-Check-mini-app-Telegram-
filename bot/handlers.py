@@ -1,3 +1,12 @@
+"""Основные обработчики Telegram-бота.
+
+Файл объединяет:
+1) пользовательские команды и reply/callback сценарии;
+2) FSM-анкету для первичного профиля;
+3) админские команды статистики и рассылок;
+4) сборку главного текстового экрана бота.
+"""
+
 import os
 import html
 from pathlib import Path
@@ -40,6 +49,7 @@ from bot.keyboards import admin_panel_keyboard, faq_keyboard, main_menu_keyboard
 
 
 router = Router()
+# Медиа-заготовки вынесены в константы, чтобы их было удобно заменить без поиска по коду.
 START_NAME_PHOTO = FSInputFile(Path(__file__).resolve().parent / "assets" / "start_name_photo.jpeg")
 VIDEO_INSTRUCTION_FILE = FSInputFile(Path(__file__).resolve().parent / "assets" / "video_instruction_placeholder.mp4")
 FEEDBACK_COMMAND = "feedback"
@@ -49,6 +59,7 @@ DEFAULT_SURVEY_URL = "https://your-google-form-link"
 
 
 class TrackUserActivityMiddleware(BaseMiddleware):
+    # Middleware обновляет активность пользователя для статистики ещё до входа в конкретный handler.
     async def __call__(self, handler, event: Message, data):
         if isinstance(event, Message) and event.from_user:
             upsert_user_activity(
@@ -62,6 +73,7 @@ class TrackUserActivityMiddleware(BaseMiddleware):
 router.message.outer_middleware(TrackUserActivityMiddleware())
 
 
+# Feedback вынесен в отдельные helper'ы, чтобы текст и клавиатуру можно было менять независимо.
 def get_feedback_survey_url() -> str:
     return os.getenv("FEEDBACK_FORM_URL", DEFAULT_SURVEY_URL).strip() or DEFAULT_SURVEY_URL
 
@@ -148,6 +160,7 @@ FAQ_TEXTS = {
 }
 
 
+# FSM используется только для стартовой анкеты профиля, пока пользователь ещё не открыл mini app.
 class ProfileForm(StatesGroup):
     name = State()
     age = State()
@@ -165,6 +178,7 @@ class WorkoutForm(StatesGroup):
 
 
 async def ensure_active_workout_state(event: CallbackQuery, state: FSMContext) -> bool:
+    # Если в памяти нет активного workout-сценария, callback не должен выполнять действие вслепую.
     current_state = await state.get_state()
     if current_state and current_state.startswith("WorkoutForm:"):
         return True
@@ -175,6 +189,7 @@ async def ensure_active_workout_state(event: CallbackQuery, state: FSMContext) -
 
 @router.message(CommandStart())
 async def cmd_start(message: Message, state: FSMContext) -> None:
+    # /start либо открывает уже существующее главное меню, либо запускает анкету профиля с нуля.
     if message.from_user:
         upsert_started_user(
             user_id=message.from_user.id,
@@ -200,6 +215,7 @@ async def cmd_start(message: Message, state: FSMContext) -> None:
 
 @router.message(Command("admin"))
 async def cmd_admin(message: Message) -> None:
+    # Админский entrypoint показывает первую секцию панели, если пользователь прошёл проверку доступа.
     if not is_admin(message.from_user.id):
         await message.answer("Команда доступна только админу.")
         return
@@ -214,6 +230,7 @@ async def cmd_admin(message: Message) -> None:
 
 @router.message(Command("stats"))
 async def cmd_stats(message: Message) -> None:
+    # Быстрая текстовая статистика по пользователям без захода в полную админ-панель.
     if not is_admin(message.from_user.id):
         await message.answer("Команда доступна только админу.")
         return
@@ -240,6 +257,7 @@ async def cmd_stats(message: Message) -> None:
 
 @router.message(Command("broadcast"))
 async def cmd_broadcast(message: Message) -> None:
+    # Рассылка намеренно простая: один текст проходит по всем user_id из started_users.
     if not is_admin(message.from_user.id):
         await message.answer("Команда доступна только админу.")
         return
@@ -311,6 +329,7 @@ async def profile_height(message: Message, state: FSMContext) -> None:
 
 @router.message(ProfileForm.experience)
 async def profile_experience(message: Message, state: FSMContext) -> None:
+    # Последний шаг анкеты сохраняет профиль в БД и переводит пользователя на главное сообщение бота.
     data = await state.get_data()
     upsert_user(
         user_id=message.from_user.id,
@@ -337,6 +356,7 @@ async def menu_mini_guide(message: Message) -> None:
 
 
 async def start_workout_flow(message: Message, state: FSMContext, user_id: int) -> None:
+    # Заготовка под старый сценарий записи тренировки в чате; сейчас основной поток ушёл в mini app.
     if not get_user(user_id):
         await message.answer("Сначала заполни профиль через /start.")
         return
@@ -344,6 +364,7 @@ async def start_workout_flow(message: Message, state: FSMContext, user_id: int) 
 
 @router.callback_query(F.data.startswith("faq_"))
 async def faq_callback(callback: CallbackQuery) -> None:
+    # FAQ-кнопки шлют короткие callback_data, а текст темы достаётся из словаря FAQ_TEXTS.
     category = callback.data.split("_", 1)[1]
     text = FAQ_TEXTS.get(category, "Тема не найдена.")
     await callback.message.answer(text)
@@ -352,6 +373,7 @@ async def faq_callback(callback: CallbackQuery) -> None:
 
 @router.callback_query(F.data.startswith("admin:"))
 async def admin_callback(callback: CallbackQuery) -> None:
+    # Все кнопки админки multiplex'ятся через один handler по префиксу admin:*.
     if not is_admin(callback.from_user.id):
         await callback.answer("Доступно только админу.", show_alert=True)
         return
@@ -389,6 +411,7 @@ async def fallback(message: Message) -> None:
 
 
 async def send_main_screen(message: Message, user_id: int) -> None:
+    # Главное сообщение бота — это текстовый summary и reply-клавиатура с входом в mini app.
     user = get_user(user_id)
     if not user:
         await message.answer("Профиль не найден. Запусти /start.")
@@ -436,6 +459,7 @@ async def send_main_screen(message: Message, user_id: int) -> None:
 
 
 def build_admin_panel_text(section: str) -> str:
+    # Секция панели выбирает конкретный builder, чтобы callbacks могли просто передавать ключ раздела.
     builders = {
         "overview": build_admin_overview_text,
         "users": build_admin_users_text,

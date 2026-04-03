@@ -1,3 +1,9 @@
+"""Клавиатуры Telegram-бота.
+
+Здесь собраны reply/inline keyboard'ы и helper для сборки URL mini-app.
+Логика обработки нажатий живёт в handlers, а этот файл отвечает только за UI Telegram.
+"""
+
 import os
 from urllib.parse import urlencode
 
@@ -13,10 +19,12 @@ FEEDBACK_MENU_TEXT = "Отзыв"
 
 
 def get_mini_app_base_url() -> str:
+    # Базовый URL mini app читается из окружения, чтобы не зашивать домен в код.
     return os.getenv("MINI_APP_URL", "").strip()
 
 
 def build_mini_app_url(user_id: int | None = None) -> str | None:
+    # Приводим URL к безопасному https-виду и при необходимости добавляем user_id в query.
     base_url = get_mini_app_base_url().rstrip("/")
     if not base_url:
         return None
@@ -35,6 +43,7 @@ def build_mini_app_url(user_id: int | None = None) -> str | None:
 
 
 def main_menu_keyboard(user_id: int) -> ReplyKeyboardMarkup:
+    # Главное меню reply-клавиатуры живёт под сообщением бота и дополняется кнопкой mini app.
     keyboard = [
         [KeyboardButton(text="Главная"), KeyboardButton(text="Мини-гайд")],
         [KeyboardButton(text=FEEDBACK_MENU_TEXT)],
@@ -55,6 +64,7 @@ def main_menu_keyboard(user_id: int) -> ReplyKeyboardMarkup:
 
 
 def faq_keyboard() -> InlineKeyboardMarkup:
+    # FAQ-кнопки работают через callback_data и обрабатываются в bot.handlers.
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
@@ -70,6 +80,7 @@ def faq_keyboard() -> InlineKeyboardMarkup:
 
 
 def admin_panel_keyboard(current_section: str = "overview") -> InlineKeyboardMarkup:
+    # Админ-панель визуально подсвечивает текущую секцию точкой в названии кнопки.
     def label(section: str, text: str) -> str:
         return f"• {text}" if current_section == section else text
 

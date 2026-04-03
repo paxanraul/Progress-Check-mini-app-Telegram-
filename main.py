@@ -1,3 +1,10 @@
+"""Точка входа backend-части проекта.
+
+Файл поднимает сразу два процесса в одном event loop:
+1) Telegram-бота на aiogram.
+2) HTTP-сервер mini-app на aiohttp.
+"""
+
 import asyncio
 import os
 from pathlib import Path
@@ -14,6 +21,7 @@ from webapp.server import create_web_app
 
 
 async def configure_bot_menu(bot: Bot) -> None:
+    # Команды нужны для slash-меню бота, а menu button открывает mini app рядом с чатом.
     await bot.set_my_commands(
         [
             BotCommand(command="start", description="Открыть главное меню"),
@@ -32,6 +40,7 @@ async def configure_bot_menu(bot: Bot) -> None:
 
 
 async def main():
+    # Загружаем конфиг, инициализируем БД и стартуем bot + webapp параллельно в одном процессе.
     env_path = Path(__file__).resolve().with_name(".env")
     load_dotenv(env_path)
     token = os.getenv("BOT_TOKEN")
@@ -45,6 +54,7 @@ async def main():
     await bot.delete_webhook(drop_pending_updates=False)
     await configure_bot_menu(bot)
 
+    # Web-сервер mini-app живёт рядом с polling бота, чтобы не требовался отдельный backend-процесс.
     web_app = create_web_app()
     web_runner = web.AppRunner(web_app)
     await web_runner.setup()

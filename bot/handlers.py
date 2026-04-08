@@ -55,7 +55,7 @@ VIDEO_INSTRUCTION_FILE = FSInputFile(Path(__file__).resolve().parent / "assets" 
 FEEDBACK_COMMAND = "feedback"
 VIDEO_COMMAND = "video"
 FEEDBACK_MENU_TEXT = "Отзыв"
-DEFAULT_SURVEY_URL = "https://your-google-form-link"
+DEFAULT_SURVEY_URL = "https://docs.google.com/forms/d/e/1FAIpQLSfngSJ-HYbBNVLxYxc5BOGzraJrnlXt8k9hTMSX8-t4wOZUlQ/viewform?usp=publish-editor"
 
 
 class TrackUserActivityMiddleware(BaseMiddleware):
@@ -122,9 +122,7 @@ async def handle_video_instruction_request(message: Message) -> None:
     await message.answer_document(
         document=VIDEO_INSTRUCTION_FILE,
         caption=(
-            "Видео-инструкция по боту.\n\n"
-            "Сейчас здесь стоит mp4-заглушка. Позже можно просто заменить файл "
-            "`bot/assets/video_instruction_placeholder.mp4` на нужное видео."
+            "Видео-инструкция по боту."
         ),
         parse_mode="Markdown",
     )

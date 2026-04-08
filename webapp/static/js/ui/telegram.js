@@ -24,7 +24,7 @@ export function getTelegramUser() {
   return telegram?.initDataUnsafe?.user || null;
 }
 
-// Буквенный fallback нужен, когда Telegram не прислал photo_url или картинка не загрузилась.
+// Буквенный fallback нужен, когда mini-app не использует фото профиля для ускорения старта.
 export function avatarFallbackLetter(profileUser = null) {
   const telegramUser = getTelegramUser();
   const candidate = String(
@@ -37,38 +37,22 @@ export function avatarFallbackLetter(profileUser = null) {
   return (candidate[0] || "U").toUpperCase();
 }
 
-// Модульный аналог логики из app.js: рисуем Telegram avatar в topbar и откатываемся к букве при ошибке.
+// Для быстрого старта не загружаем фото профиля и всегда оставляем буквенную заглушку.
 export function renderTelegramAvatar(dom, profileUser = null) {
   const avatarNode = dom?.app?.topbarAvatar;
   const fallbackNode = dom?.app?.topbarAvatarFallback;
-  if (!avatarNode || !fallbackNode) {
+  if (!fallbackNode) {
     return;
   }
 
-  const telegramUser = getTelegramUser();
-  const photoUrl = String(profileUser?.avatar_url || telegramUser?.photo_url || "").trim();
-
   fallbackNode.textContent = avatarFallbackLetter(profileUser);
   fallbackNode.hidden = false;
-
-  if (!photoUrl) {
+  if (avatarNode) {
     avatarNode.hidden = true;
     avatarNode.removeAttribute("src");
     avatarNode.onload = null;
     avatarNode.onerror = null;
-    return;
   }
-
-  avatarNode.onload = () => {
-    fallbackNode.hidden = true;
-  };
-  avatarNode.onerror = () => {
-    avatarNode.hidden = true;
-    avatarNode.removeAttribute("src");
-    fallbackNode.hidden = false;
-  };
-  avatarNode.src = photoUrl;
-  avatarNode.hidden = false;
 }
 
 // Единая точка вызова тактильной отдачи с fallback на `navigator.vibrate`.

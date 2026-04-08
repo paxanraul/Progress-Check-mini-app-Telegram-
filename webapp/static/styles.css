@@ -3831,6 +3831,21 @@ body {
   text-align: center;
 }
 
+.bootstrap-status-card {
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+}
+
+.bootstrap-status-actions {
+  display: flex;
+  justify-content: center;
+}
+
+.bootstrap-retry-btn {
+  min-width: 140px;
+}
+
 .history-head {
   margin-bottom: 12px;
 }

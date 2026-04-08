@@ -51,6 +51,9 @@ const HOME_QUOTES = [
   "Consistency builds strength.",
 ];
 const MAX_CUSTOM_QUOTES = 5;
+const APP_DATA_REQUEST_TIMEOUT_MS = 4500;
+const APP_DATA_RETRY_ATTEMPTS = 2;
+const APP_DATA_RETRY_DELAY_MS = 350;
 const QUOTE_DISPLAY_DURATION_MS = 3000;
 const QUOTE_FADE_DURATION_MS = 180;
 const QUOTE_TYPING_MIN_STEP_MS = 12;
@@ -157,6 +160,7 @@ let profileSaving = false;
 let confirmResolver = null;
 let quoteDragState = createQuoteDragState();
 const telegramButtonState = new WeakMap();
+let appDataBootstrapLoading = false;
 
 const enterFieldBehaviors = new WeakMap();
 
@@ -1962,7 +1966,6 @@ syncQuoteLoop();
 
 bootstrap().catch((error) => {
   console.error(error);
-  showToast(`Не удалось загрузить Mini App: ${error.message || "unknown error"}`);
 });
 
 async function bootstrap() {
@@ -1983,54 +1986,8 @@ async function bootstrap() {
   renderTelegramAvatar();
   state.userQuotes = loadCustomQuotes();
   renderQuotesSection({ resetLoop: true });
-
-  const response = await fetch(`/api/app-data?user_id=${encodeURIComponent(userId)}`);
-  if (!response.ok) {
-    let message = "";
-    try {
-      const errorPayload = await response.json();
-      message = errorPayload?.error ? `: ${errorPayload.error}` : "";
-    } catch (error) {
-      message = "";
-    }
-    throw new Error(`api/app-data ${response.status}${message}`);
-  }
-
-  let payload = {};
-  try {
-    payload = await response.json();
-  } catch (error) {
-    throw new Error("invalid app-data json");
-  }
-  state.payload = payload;
-  // После загрузки payload уточняем fallback-букву уже с учётом имени из профиля.
-  renderTelegramAvatar(payload.user || null);
-
-  const serverCustomQuotes = normalizeCustomQuotes(payload.custom_quotes || []);
-  const cachedCustomQuotes = normalizeCustomQuotes(state.userQuotes || []);
-  if (serverCustomQuotes.length) {
-    state.userQuotes = serverCustomQuotes;
-    writeCustomQuotesCache(serverCustomQuotes);
-  } else if (cachedCustomQuotes.length) {
-    state.userQuotes = cachedCustomQuotes;
-    void syncCustomQuotesToServer(cachedCustomQuotes);
-  }
-  renderQuotesSection({ resetLoop: true });
-
-  if (!payload.ready) {
-    document.getElementById("profile-name").textContent = "Нет данных";
-    document.getElementById("weight-value").textContent = "—";
-    document.getElementById("height-value").textContent = "—";
-    document.getElementById("experience-value").textContent = "—";
-    document.getElementById("workouts-value").textContent = "0";
-    syncUserLevelWidget({});
-    document.getElementById("history-list").innerHTML = emptyCard(payload.message || "Сначала открой бота и заполни профиль.");
-    document.getElementById("records-list").innerHTML = emptyCard("Рекорды появятся после первых тренировок.");
-    switchTab("home");
-    return;
-  }
-
-  renderApp(payload);
+  renderBootstrapLoadingState();
+  await loadInitialAppData();
 }
 
 function renderApp(payload) {
@@ -2054,6 +2011,199 @@ function resolveUserId() {
   return tgUserId ? String(tgUserId) : "";
 }
 
+function bootstrapStatusCard(message, action = null) {
+  const actionBlock =
+    action && action.id && action.label
+      ? `
+          <div class="bootstrap-status-actions">
+            <button class="history-bulk-btn subtle bootstrap-retry-btn" id="${escapeHtml(action.id)}" type="button">${escapeHtml(action.label)}</button>
+          </div>
+        `
+      : "";
+  return `
+    <div class="history-card empty-card bootstrap-status-card">
+      <div class="history-main empty-card-text">${escapeHtml(message)}</div>
+      ${actionBlock}
+    </div>
+  `;
+}
+
+function renderBootstrapLoadingState(message = "Загружаем данные...") {
+  document.getElementById("profile-name").textContent = "Загрузка...";
+  document.getElementById("weight-value").textContent = "—";
+  document.getElementById("height-value").textContent = "—";
+  document.getElementById("experience-value").textContent = "—";
+  document.getElementById("workouts-value").textContent = "—";
+  syncUserLevelWidget({});
+  document.getElementById("history-list").innerHTML = bootstrapStatusCard(message);
+  document.getElementById("records-list").innerHTML = bootstrapStatusCard("Загружаем рекорды...");
+  faqTabs.innerHTML = "";
+  faqList.innerHTML = bootstrapStatusCard("Загружаем FAQ...");
+}
+
+function renderBootstrapErrorState(error) {
+  const message = error?.message === "request timeout"
+    ? "Сервер отвечает слишком долго."
+    : "Не удалось загрузить данные.";
+  document.getElementById("history-list").innerHTML = bootstrapStatusCard(message, {
+    id: "retry-app-bootstrap",
+    label: "Повторить",
+  });
+  document.getElementById("records-list").innerHTML = emptyCard("Повторите загрузку приложения.");
+  faqTabs.innerHTML = "";
+  faqList.innerHTML = emptyCard("FAQ загрузится после восстановления соединения.");
+  switchTab("home");
+
+  const retryButton = document.getElementById("retry-app-bootstrap");
+  if (retryButton) {
+    retryButton.addEventListener("click", () => {
+      void retryInitialAppDataLoad();
+    }, { once: true });
+  }
+}
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = APP_DATA_REQUEST_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      throw new Error("request timeout");
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+}
+
+async function fetchAppDataRequest(userId, timeoutMs = APP_DATA_REQUEST_TIMEOUT_MS) {
+  const response = await fetchWithTimeout(
+    `/api/app-data?user_id=${encodeURIComponent(userId)}`,
+    {},
+    timeoutMs
+  );
+
+  if (!response.ok) {
+    let message = "";
+    try {
+      const errorPayload = await response.json();
+      message = errorPayload?.error ? `: ${errorPayload.error}` : "";
+    } catch (error) {
+      message = "";
+    }
+    throw new Error(`api/app-data ${response.status}${message}`);
+  }
+
+  try {
+    return await response.json();
+  } catch (error) {
+    throw new Error("invalid app-data json");
+  }
+}
+
+function delay(ms) {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
+}
+
+async function fetchAppDataWithRetry(userId, options = {}) {
+  const attempts = Math.max(1, Number(options.attempts) || APP_DATA_RETRY_ATTEMPTS);
+  const timeoutMs = Math.max(1000, Number(options.timeoutMs) || APP_DATA_REQUEST_TIMEOUT_MS);
+  let lastError = null;
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return await fetchAppDataRequest(userId, timeoutMs);
+    } catch (error) {
+      lastError = error;
+      if (attempt >= attempts) {
+        break;
+      }
+      await delay(APP_DATA_RETRY_DELAY_MS * attempt);
+    }
+  }
+
+  throw lastError || new Error("app-data request failed");
+}
+
+function applyAppPayload(payload) {
+  state.payload = payload;
+  renderTelegramAvatar(payload.user || null);
+
+  const serverCustomQuotes = normalizeCustomQuotes(payload.custom_quotes || []);
+  const cachedCustomQuotes = normalizeCustomQuotes(state.userQuotes || []);
+  if (serverCustomQuotes.length) {
+    state.userQuotes = serverCustomQuotes;
+    writeCustomQuotesCache(serverCustomQuotes);
+  } else if (cachedCustomQuotes.length) {
+    state.userQuotes = cachedCustomQuotes;
+    void syncCustomQuotesToServer(cachedCustomQuotes);
+  }
+  renderQuotesSection({ resetLoop: true });
+
+  if (!payload.ready) {
+    document.getElementById("profile-name").textContent = "Нет данных";
+    document.getElementById("weight-value").textContent = "—";
+    document.getElementById("height-value").textContent = "—";
+    document.getElementById("experience-value").textContent = "—";
+    document.getElementById("workouts-value").textContent = "0";
+    syncUserLevelWidget({});
+    document.getElementById("history-list").innerHTML = emptyCard(payload.message || "Сначала открой бота и заполни профиль.");
+    document.getElementById("records-list").innerHTML = emptyCard("Рекорды появятся после первых тренировок.");
+    faqTabs.innerHTML = "";
+    faqList.innerHTML = emptyCard("FAQ станет доступен после загрузки данных.");
+    switchTab("home");
+    return payload;
+  }
+
+  renderApp(payload);
+  return payload;
+}
+
+async function loadInitialAppData(options = {}) {
+  if (!state.userId || appDataBootstrapLoading) {
+    return null;
+  }
+
+  appDataBootstrapLoading = true;
+
+  if (options.loadingMessage) {
+    renderBootstrapLoadingState(options.loadingMessage);
+  }
+
+  try {
+    const payload = await fetchAppDataWithRetry(state.userId, {
+      attempts: options.attempts || APP_DATA_RETRY_ATTEMPTS,
+      timeoutMs: options.timeoutMs || APP_DATA_REQUEST_TIMEOUT_MS,
+    });
+    return applyAppPayload(payload);
+  } catch (error) {
+    renderBootstrapErrorState(error);
+    showToast("Не удалось загрузить Mini App");
+    throw error;
+  } finally {
+    appDataBootstrapLoading = false;
+  }
+}
+
+async function retryInitialAppDataLoad() {
+  if (appDataBootstrapLoading) {
+    return;
+  }
+  renderBootstrapLoadingState("Повторно загружаем данные...");
+  try {
+    await loadInitialAppData({
+      attempts: APP_DATA_RETRY_ATTEMPTS,
+      timeoutMs: APP_DATA_REQUEST_TIMEOUT_MS,
+    });
+  } catch (error) {
+    console.error(error);
+  }
+}
+
 // Если фото Telegram недоступно, используем первую букву имени как безопасный fallback.
 function avatarFallbackLetter(profileUser = null) {
   const telegramUser = telegram?.initDataUnsafe?.user;
@@ -2067,40 +2217,20 @@ function avatarFallbackLetter(profileUser = null) {
   return (candidate[0] || "U").toUpperCase();
 }
 
-// Аватар читаем из payload Telegram/бота и откатываемся к буквенной заглушке при любом сбое.
+// Для быстрого старта mini-app не загружаем фото и всегда показываем буквенную заглушку.
 function renderTelegramAvatar(profileUser = null) {
-  if (!topbarAvatar || !topbarAvatarFallback) {
+  if (!topbarAvatarFallback) {
     return;
   }
 
-  const telegramUser = telegram?.initDataUnsafe?.user;
-  const photoUrl = String(
-    profileUser?.avatar_url || telegramUser?.photo_url || ""
-  ).trim();
-
   topbarAvatarFallback.textContent = avatarFallbackLetter(profileUser);
   topbarAvatarFallback.hidden = false;
-
-  // В privacy-сценарии Telegram может не прислать фото, поэтому прячем img и оставляем fallback.
-  if (!photoUrl) {
+  if (topbarAvatar) {
     topbarAvatar.hidden = true;
     topbarAvatar.removeAttribute("src");
     topbarAvatar.onload = null;
     topbarAvatar.onerror = null;
-    return;
   }
-
-  // Скрываем fallback только после успешной загрузки изображения; при ошибке возвращаем заглушку.
-  topbarAvatar.onload = () => {
-    topbarAvatarFallback.hidden = true;
-  };
-  topbarAvatar.onerror = () => {
-    topbarAvatar.hidden = true;
-    topbarAvatar.removeAttribute("src");
-    topbarAvatarFallback.hidden = false;
-  };
-  topbarAvatar.src = photoUrl;
-  topbarAvatar.hidden = false;
 }
 
 function normalizeWorkoutCountForLevelWidget(value) {
@@ -3610,13 +3740,11 @@ async function refreshAppData() {
   if (!state.userId) {
     return;
   }
-  const response = await fetch(`/api/app-data?user_id=${encodeURIComponent(state.userId)}`);
-  const payload = await response.json();
-  if (!payload.ready) {
-    return;
-  }
-  state.payload = payload;
-  renderApp(payload);
+  const payload = await fetchAppDataWithRetry(state.userId, {
+    attempts: 1,
+    timeoutMs: APP_DATA_REQUEST_TIMEOUT_MS,
+  });
+  applyAppPayload(payload);
 }
 
 async function handleDeleteWorkoutDay() {

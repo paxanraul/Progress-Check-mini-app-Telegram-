@@ -8,8 +8,9 @@
   <!-- Заголовок вкладки браузера -->
   <title>Progress Check</title>
 
-  <!-- Подключение библиотеки иконок -->
-  <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+  <!-- Иконки не держим в критическом пути: если CDN тормозит, интерфейс всё равно стартует -->
+  <link rel="preload" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet"></noscript>
 
   <!-- Подключение основных стилей приложения -->
   <link rel="stylesheet" href="/static/styles.css?v=100">
@@ -510,8 +511,8 @@
   <!-- Подключение Telegram Web App API -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-  <!-- Подключение библиотеки анимаций -->
-  <script src="https://unpkg.com/motion@11.11.13/dist/motion.js"></script>
+  <!-- Анимации опциональны, поэтому не блокируем ими запуск Mini App -->
+  <script async src="https://unpkg.com/motion@11.11.13/dist/motion.js"></script>
 
   <!-- React-виджет User Level -->
   <script src="/static/generated/user-level-widget.js?v=10"></script>

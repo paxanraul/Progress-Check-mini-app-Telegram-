@@ -8,11 +8,37 @@ async function parseJsonSafely(response) {
   return response.json().catch(() => ({}));
 }
 
+const APP_DATA_REQUEST_TIMEOUT_MS = 4500;
+const APP_DATA_RETRY_ATTEMPTS = 2;
+const APP_DATA_RETRY_DELAY_MS = 350;
+
 // Внутренние хелперы для унифицированной работы с JSON-ответами backend.
 async function requestJson(url, options = {}) {
   const response = await fetch(url, options);
   const payload = await parseJsonSafely(response);
   return { response, payload };
+}
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = APP_DATA_REQUEST_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      throw new Error("request timeout");
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+}
+
+function delay(ms) {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
 }
 
 async function expectOkJson(url, options = {}, fallbackMessage = "request failed") {
@@ -24,23 +50,42 @@ async function expectOkJson(url, options = {}, fallbackMessage = "request failed
 }
 
 export async function fetchAppData(userId) {
-  const response = await fetch(`/api/app-data?user_id=${encodeURIComponent(userId)}`);
-  if (!response.ok) {
-    let message = "";
+  let lastError = null;
+
+  for (let attempt = 1; attempt <= APP_DATA_RETRY_ATTEMPTS; attempt += 1) {
     try {
-      const errorPayload = await response.json();
-      message = errorPayload?.error ? `: ${errorPayload.error}` : "";
+      const response = await fetchWithTimeout(
+        `/api/app-data?user_id=${encodeURIComponent(userId)}`,
+        {},
+        APP_DATA_REQUEST_TIMEOUT_MS
+      );
+
+      if (!response.ok) {
+        let message = "";
+        try {
+          const errorPayload = await response.json();
+          message = errorPayload?.error ? `: ${errorPayload.error}` : "";
+        } catch (error) {
+          message = "";
+        }
+        throw new Error(`api/app-data ${response.status}${message}`);
+      }
+
+      try {
+        return await response.json();
+      } catch (error) {
+        throw new Error("invalid app-data json");
+      }
     } catch (error) {
-      message = "";
+      lastError = error;
+      if (attempt >= APP_DATA_RETRY_ATTEMPTS) {
+        break;
+      }
+      await delay(APP_DATA_RETRY_DELAY_MS * attempt);
     }
-    throw new Error(`api/app-data ${response.status}${message}`);
   }
 
-  try {
-    return await response.json();
-  } catch (error) {
-    throw new Error("invalid app-data json");
-  }
+  throw lastError || new Error("app-data request failed");
 }
 
 // Сценарии работы с историей тренировок.

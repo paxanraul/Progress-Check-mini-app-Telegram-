@@ -2,14 +2,14 @@
 
 Файл поднимает сразу два процесса в одном event loop:
 1) Telegram-бота на aiogram.
-2) HTTP-сервер mini-app на aiohttp.
+2) HTTP-сервер mini-app на FastAPI.
 """
 
 import asyncio
 import os
 from pathlib import Path
 
-from aiohttp import web
+import uvicorn
 from aiogram import Bot, Dispatcher
 from aiogram.types import BotCommand, MenuButtonWebApp, WebAppInfo
 from dotenv import load_dotenv
@@ -40,7 +40,7 @@ async def configure_bot_menu(bot: Bot) -> None:
 
 
 async def main():
-    # Загружаем конфиг, инициализируем БД и стартуем bot + webapp параллельно в одном процессе.
+    # Загружаем конфиг, инициализируем БД и стартуем bot + FastAPI параллельно в одном процессе.
     env_path = Path(__file__).resolve().with_name(".env")
     load_dotenv(env_path)
     token = os.getenv("BOT_TOKEN")
@@ -54,20 +54,39 @@ async def main():
     await bot.delete_webhook(drop_pending_updates=False)
     await configure_bot_menu(bot)
 
-    # Web-сервер mini-app живёт рядом с polling бота, чтобы не требовался отдельный backend-процесс.
-    web_app = create_web_app()
-    web_runner = web.AppRunner(web_app)
-    await web_runner.setup()
-
     host = os.getenv("WEBAPP_HOST", "127.0.0.1")
     port = int(os.getenv("WEBAPP_PORT", "8080"))
-    web_site = web.TCPSite(web_runner, host=host, port=port)
-    await web_site.start()
+    web_app = create_web_app()
+    web_server = uvicorn.Server(
+        uvicorn.Config(
+            app=web_app,
+            host=host,
+            port=port,
+            loop="asyncio",
+            lifespan="on",
+            log_level="warning",
+        )
+    )
+
+    server_task = asyncio.create_task(web_server.serve(), name="fastapi-server")
+    polling_task = asyncio.create_task(dp.start_polling(bot), name="telegram-polling")
 
     try:
-        await dp.start_polling(bot)
+        done, pending = await asyncio.wait(
+            {server_task, polling_task},
+            return_when=asyncio.FIRST_EXCEPTION,
+        )
+
+        for task in done:
+            exception = task.exception()
+            if exception is not None:
+                raise exception
+
+        for task in pending:
+            task.cancel()
     finally:
-        await web_runner.cleanup()
+        web_server.should_exit = True
+        await asyncio.gather(server_task, polling_task, return_exceptions=True)
 
 
 if __name__ == "__main__":

@@ -88,6 +88,24 @@ def init_db() -> None:
                 column_name=column_name,
                 definition=definition,
             )
+        cursor.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_workouts_user_record
+            ON workouts(user_id, is_record)
+            """
+        )
+        cursor.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_workouts_user_date
+            ON workouts(user_id, workout_date DESC)
+            """
+        )
+        cursor.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_workouts_user_session
+            ON workouts(user_id, session_key)
+            """
+        )
         connection.commit()
 
 

@@ -25,6 +25,17 @@ DEFAULT_SURVEY_URL = "https://docs.google.com/forms/d/e/1FAIpQLSfngSJ-HYbBNVLxYx
 
 class TrackUserActivityMiddleware(BaseMiddleware):
     async def __call__(self, handler, event: Message, data):
+        state: FSMContext | None = data.get("state")
+        if (
+            isinstance(event, Message)
+            and state is not None
+            and isinstance(event.text, str)
+            and event.text.startswith("/")
+        ):
+            current_state = await state.get_state()
+            if current_state == BroadcastForm.announcement.state and not event.text.startswith("/broadcast"):
+                await state.clear()
+
         if isinstance(event, Message) and event.from_user:
             upsert_user_activity(
                 user_id=event.from_user.id,
@@ -51,6 +62,10 @@ class WorkoutForm(StatesGroup):
     weight = State()
     reps = State()
     decision = State()
+
+
+class BroadcastForm(StatesGroup):
+    announcement = State()
 
 
 async def ensure_active_workout_state(event: CallbackQuery, state: FSMContext) -> bool:

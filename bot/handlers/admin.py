@@ -5,7 +5,8 @@ import os
 
 from aiogram import F
 from aiogram.exceptions import TelegramBadRequest
-from aiogram.filters import Command
+from aiogram.filters import Command, StateFilter
+from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
 from bot.db import (
@@ -22,7 +23,7 @@ from bot.db import (
 )
 from bot.keyboards import admin_panel_keyboard
 
-from .common import get_admin_ids, is_admin, router
+from .common import BroadcastForm, get_admin_ids, is_admin, router
 
 
 @router.message(Command("admin"))
@@ -66,18 +67,27 @@ async def cmd_stats(message: Message) -> None:
 
 
 @router.message(Command("broadcast"))
-async def cmd_broadcast(message: Message) -> None:
+async def cmd_broadcast(message: Message, state: FSMContext) -> None:
     if not is_admin(message.from_user.id):
         await message.answer("Команда доступна только админу.")
         return
 
-    parts = message.text.split(maxsplit=1)
-    if len(parts) < 2 or not parts[1].strip():
-        await message.answer("Использование: /broadcast (текст объявления)")
+    await state.set_state(BroadcastForm.announcement)
+    await message.answer("Напиши свое объявление, которое хочешь отправить.")
+
+
+@router.message(
+    StateFilter(BroadcastForm.announcement),
+    ~F.text.startswith("/"),
+)
+async def handle_broadcast_announcement(message: Message, state: FSMContext) -> None:
+    if not is_admin(message.from_user.id):
+        await state.clear()
+        await message.answer("Команда доступна только админу.")
         return
 
-    text = parts[1].strip()
     user_ids = get_all_started_user_ids()
+    await state.clear()
     if not user_ids:
         await message.answer("Некому отправлять: в базе пока нет пользователей.")
         return
@@ -86,7 +96,7 @@ async def cmd_broadcast(message: Message) -> None:
     failed = 0
     for user_id in user_ids:
         try:
-            await message.bot.send_message(user_id, f"{text}")
+            await message.copy_to(chat_id=user_id)
             sent += 1
         except Exception:
             failed += 1
@@ -271,14 +281,21 @@ def build_admin_broadcast_text() -> str:
         [
             "<b>Рассылка</b>",
             "",
-            "Массовая отправка уже доступна через команду:",
-            "<code>/broadcast текст сообщения</code>",
+            "Массовая отправка работает в два шага.",
+            "Сначала введи команду:",
+            "<code>/broadcast</code>",
+            "Потом отправь текст, фото или видео отдельным сообщением.",
             "",
             f"Получателей сейчас: <b>{started_total}</b>",
             f"Из них с профилем: <b>{profiles_total}</b>",
             "",
             "<b>Пример</b>",
-            "<code>/broadcast Сегодня обновил mini app, можешь протестировать новый экран рекордов.</code>",
+            "1. Отправь <code>/broadcast</code>",
+            "2. Получи приглашение на ввод объявления",
+            "3. Отправь сообщение с нужным оформлением",
+            "",
+            "Если ввести другую slash-команду, режим рассылки отменится.",
+            "Premium emoji, форматирование и медиа сохраняются.",
         ]
     )
 

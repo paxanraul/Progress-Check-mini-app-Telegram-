@@ -15,7 +15,7 @@ from aiogram.types import BotCommand, MenuButtonWebApp, WebAppInfo
 from dotenv import load_dotenv
 
 from bot.db import init_db
-from bot.handlers import FEEDBACK_COMMAND, VIDEO_COMMAND, router
+from bot.handlers import AI_COMMAND, AI_STOP_COMMAND, FEEDBACK_COMMAND, VIDEO_COMMAND, router
 from bot.keyboards import build_mini_app_url
 from webapp.server import create_web_app
 
@@ -25,6 +25,8 @@ async def configure_bot_menu(bot: Bot) -> None:
     await bot.set_my_commands(
         [
             BotCommand(command="start", description="Открыть главное меню"),
+            BotCommand(command=AI_COMMAND, description="Открыть AI-чат по тренировкам"),
+            BotCommand(command=AI_STOP_COMMAND, description="Остановить AI-чат"),
             BotCommand(command=FEEDBACK_COMMAND, description="Открыть ссылку на опрос"),
             BotCommand(command=VIDEO_COMMAND, description="Открыть видео-инструкцию"),
         ]

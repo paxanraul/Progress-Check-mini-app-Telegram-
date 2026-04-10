@@ -11,6 +11,8 @@ from pathlib import Path
 
 
 DB_PATH = Path("gym_bot.db")
+DEFAULT_AI_HISTORY_JSON = "[]"
+MAX_AI_HISTORY_MESSAGES = 12
 # Эти колонки добавляются миграционно, чтобы старая БД продолжала работать после обновлений.
 WORKOUT_OPTIONAL_COLUMNS = (
     ("sets", "INTEGER NOT NULL DEFAULT 1"),
@@ -77,6 +79,16 @@ def init_db() -> None:
             CREATE TABLE IF NOT EXISTS custom_quotes (
                 user_id INTEGER PRIMARY KEY,
                 quotes_json TEXT NOT NULL DEFAULT '[]',
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS ai_chat_sessions (
+                user_id INTEGER PRIMARY KEY,
+                enabled INTEGER NOT NULL DEFAULT 0,
+                history_json TEXT NOT NULL DEFAULT '[]',
                 updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
             """
@@ -207,6 +219,105 @@ def upsert_custom_quotes(user_id: int, quotes_json: str) -> None:
                 updated_at=CURRENT_TIMESTAMP
             """,
             (user_id, quotes_json),
+        )
+        connection.commit()
+
+
+def get_ai_session(user_id: int) -> sqlite3.Row | None:
+    with closing(get_connection()) as connection:
+        cursor = connection.cursor()
+        cursor.execute(
+            "SELECT user_id, enabled, history_json, updated_at FROM ai_chat_sessions WHERE user_id = ?",
+            (user_id,),
+        )
+        return cursor.fetchone()
+
+
+def is_ai_mode_enabled(user_id: int) -> bool:
+    row = get_ai_session(user_id)
+    return bool(row and int(row["enabled"]) == 1)
+
+
+def set_ai_mode(user_id: int, enabled: bool) -> None:
+    with closing(get_connection()) as connection:
+        cursor = connection.cursor()
+        cursor.execute(
+            """
+            INSERT INTO ai_chat_sessions (user_id, enabled, history_json, updated_at)
+            VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(user_id) DO UPDATE SET
+                enabled = excluded.enabled,
+                updated_at = CURRENT_TIMESTAMP
+            """,
+            (user_id, int(enabled), DEFAULT_AI_HISTORY_JSON),
+        )
+        connection.commit()
+
+
+def get_ai_history(user_id: int) -> list[dict[str, str]]:
+    row = get_ai_session(user_id)
+    if not row:
+        return []
+
+    try:
+        history = json.loads(row["history_json"] or DEFAULT_AI_HISTORY_JSON)
+    except Exception:
+        return []
+
+    if not isinstance(history, list):
+        return []
+
+    safe_history: list[dict[str, str]] = []
+    for item in history[-MAX_AI_HISTORY_MESSAGES:]:
+        if not isinstance(item, dict):
+            continue
+        role = str(item.get("role", "")).strip()
+        content = str(item.get("content", "")).strip()
+        if role in {"user", "assistant"} and content:
+            safe_history.append({"role": role, "content": content})
+    return safe_history
+
+
+def set_ai_history(user_id: int, history: list[dict[str, str]]) -> None:
+    normalized_history: list[dict[str, str]] = []
+    for item in history[-MAX_AI_HISTORY_MESSAGES:]:
+        if not isinstance(item, dict):
+            continue
+        role = str(item.get("role", "")).strip()
+        content = str(item.get("content", "")).strip()
+        if role in {"user", "assistant"} and content:
+            normalized_history.append({"role": role, "content": content})
+
+    with closing(get_connection()) as connection:
+        cursor = connection.cursor()
+        cursor.execute(
+            """
+            INSERT INTO ai_chat_sessions (user_id, enabled, history_json, updated_at)
+            VALUES (?, 1, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(user_id) DO UPDATE SET
+                history_json = excluded.history_json,
+                updated_at = CURRENT_TIMESTAMP
+            """,
+            (
+                user_id,
+                json.dumps(normalized_history, ensure_ascii=False),
+            ),
+        )
+        connection.commit()
+
+
+def clear_ai_history(user_id: int) -> None:
+    with closing(get_connection()) as connection:
+        cursor = connection.cursor()
+        cursor.execute(
+            """
+            INSERT INTO ai_chat_sessions (user_id, enabled, history_json, updated_at)
+            VALUES (?, 0, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(user_id) DO UPDATE SET
+                history_json = excluded.history_json,
+                updated_at = CURRENT_TIMESTAMP
+            """,
+            (user_id, DEFAULT_AI_HISTORY_JSON),
         )
         connection.commit()
 

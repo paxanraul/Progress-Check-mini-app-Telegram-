@@ -50,6 +50,7 @@ async def clear_profile_data(payload: UserIdPayload):
         cursor.execute("DELETE FROM workouts WHERE user_id = ?", (payload.user_id,))
         cursor.execute("DELETE FROM users WHERE user_id = ?", (payload.user_id,))
         cursor.execute("DELETE FROM custom_quotes WHERE user_id = ?", (payload.user_id,))
+        cursor.execute("DELETE FROM ai_chat_sessions WHERE user_id = ?", (payload.user_id,))
         connection.commit()
 
     return {"ok": True}

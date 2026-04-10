@@ -19,6 +19,7 @@ async def send_main_screen(message: Message, user_id: int) -> None:
     summary = (
         "Для полного использования бота открой Mini App кнопкой Mini App под сообщением<tg-emoji emoji-id=\"5282869697463740318\">✨</tg-emoji>\n"
         "Так же есть видео-инструкция по команде /video\n\n"
+        "AI-режим по команде /ai\n\n"
         "Мой прогресс: <tg-emoji emoji-id=\"5334882760735598374\">📝</tg-emoji>\n"
         f"Имя: {user['name']}\n"
         f"Возраст: {user['age']}\n"

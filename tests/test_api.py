@@ -10,6 +10,8 @@ import bot.db as db_module
 from bot.db import (
     add_workout,
     get_connection,
+    set_ai_history,
+    set_ai_mode,
     init_db,
     upsert_custom_quotes,
     upsert_started_user,
@@ -184,6 +186,14 @@ class ProgressCheckApiTests(unittest.TestCase):
             101,
             '[{"text":"Stay hard","author":"David"}]',
         )
+        set_ai_mode(101, True)
+        set_ai_history(
+            101,
+            [
+                {"role": "user", "content": "Как лучше жать?"},
+                {"role": "assistant", "content": "Следи за лопатками."},
+            ],
+        )
 
         response = self.client.request(
             "DELETE",
@@ -200,6 +210,8 @@ class ProgressCheckApiTests(unittest.TestCase):
             cursor.execute("SELECT COUNT(*) AS total FROM workouts WHERE user_id = 101")
             self.assertEqual(int(cursor.fetchone()["total"]), 0)
             cursor.execute("SELECT COUNT(*) AS total FROM custom_quotes WHERE user_id = 101")
+            self.assertEqual(int(cursor.fetchone()["total"]), 0)
+            cursor.execute("SELECT COUNT(*) AS total FROM ai_chat_sessions WHERE user_id = 101")
             self.assertEqual(int(cursor.fetchone()["total"]), 0)
 
 

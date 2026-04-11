@@ -111,6 +111,19 @@ python main.py
 npm run build:user-level
 ```
 
+## Автодеплой
+
+В репозитории есть GitHub Actions workflow для деплоя по `push` в `main`.
+
+Нужные GitHub Secrets:
+
+- `SERVER_HOST` — IP или домен сервера
+- `SERVER_USER` — пользователь на сервере
+- `SERVER_SSH_KEY` — приватный SSH-ключ для входа на сервер
+- `SERVER_PORT` — порт SSH, если не `22`
+- `PROJECT_PATH` — путь до проекта на сервере
+- `PM2_APP_NAME` — имя процесса в PM2, по умолчанию `miniapp`
+
 Тесты API:
 
 ```bash

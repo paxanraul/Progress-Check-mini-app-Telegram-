@@ -12,18 +12,14 @@ git fetch origin "$BRANCH"
 git checkout "$BRANCH"
 git pull --ff-only origin "$BRANCH"
 
-if [[ -d "venv" ]]; then
-  # shellcheck disable=SC1091
-  source venv/bin/activate
-elif [[ -d ".venv" ]]; then
-  # shellcheck disable=SC1091
-  source .venv/bin/activate
+if command -v pip3 >/dev/null 2>&1; then
+  pip3 install -r requirements.txt
+elif command -v pip >/dev/null 2>&1; then
+  pip install -r requirements.txt
 else
-  echo "Python virtual environment not found (expected venv/ or .venv/)." >&2
+  echo "pip/pip3 not found on server." >&2
   exit 1
 fi
-
-pip install -r requirements.txt
 
 if pm2 describe "$PM2_APP_NAME" >/dev/null 2>&1; then
   pm2 restart "$PM2_APP_NAME"

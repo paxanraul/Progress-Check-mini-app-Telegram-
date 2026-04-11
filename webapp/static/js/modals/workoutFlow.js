@@ -245,6 +245,12 @@ export function createWorkoutFlowModal({
       dom.modals.workout.saveButton.innerHTML = saveButtonLabel();
       dom.modals.workout.saveButton.disabled = true;
     }
+    if (dom.modals.workout.confirmDraftItemButton) {
+      dom.modals.workout.confirmDraftItemButton.hidden = true;
+      dom.modals.workout.confirmDraftItemButton.setAttribute("aria-hidden", "true");
+      dom.modals.workout.confirmDraftItemButton.tabIndex = -1;
+      dom.modals.workout.confirmDraftItemButton.disabled = true;
+    }
     if (dom.modals.workout.deleteWorkoutDayButton) {
       dom.modals.workout.deleteWorkoutDayButton.hidden = !(
         state.workoutFlow.mode === "edit" && step === "list"
@@ -442,6 +448,10 @@ export function createWorkoutFlowModal({
   async function handlePrimaryAction() {
     interaction.blurActiveField();
 
+    if (state.workoutFlow.step === "form") {
+      return saveDraftItem();
+    }
+
     if (state.workoutFlow.step === "list") {
       if (!state.workoutFlow.items.length) {
         showToast("Сначала добавь хотя бы одно упражнение");
@@ -468,6 +478,15 @@ export function createWorkoutFlowModal({
     }
 
     return false;
+  }
+
+  async function handleSecondaryAction() {
+    const previousStep = previousWorkoutStep(state.workoutFlow.step);
+    if (previousStep) {
+      setStep(previousStep);
+      return true;
+    }
+    return close();
   }
 
   // Открытие нового flow для создания тренировки с нуля.
@@ -603,12 +622,7 @@ export function createWorkoutFlowModal({
       void handlePrimaryAction();
     });
     dom.modals.workout.secondaryActionButton?.addEventListener("click", () => {
-      const previousStep = previousWorkoutStep(state.workoutFlow.step);
-      if (previousStep) {
-        setStep(previousStep);
-        return;
-      }
-      void close();
+      void handleSecondaryAction();
     });
     dom.modals.workout.deleteWorkoutDayButton?.addEventListener("click", () => {
       void handleDeleteWorkoutDay();
@@ -640,6 +654,7 @@ export function createWorkoutFlowModal({
     bindEvents,
     close,
     handlePrimaryAction,
+    handleSecondaryAction,
     open,
     openDraftFormForCreate,
     openEditWorkoutFlow,

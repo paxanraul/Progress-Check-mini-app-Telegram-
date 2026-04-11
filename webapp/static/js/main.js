@@ -185,10 +185,30 @@ bottomButtons = createBottomButtonsController({
   state,
   dom,
   getRecordFlowSaving: () => recordModal.isSaving(),
-  onWorkoutPrimary: () => dom.modals.workout.primaryActionButton?.click(),
-  onWorkoutSecondary: () => dom.modals.workout.secondaryActionButton?.click(),
-  onRecordPrimary: () => dom.modals.record.primaryActionButton?.click(),
-  onRecordSecondary: () => dom.modals.record.secondaryActionButton?.click(),
+  onWorkoutPrimary: () =>
+    state.workoutFlow.step === "form"
+      ? workoutFlowModal.saveDraftItem()
+      : workoutFlowModal.handlePrimaryAction(),
+  onWorkoutSecondary: () => {
+    const previousStep =
+      state.workoutFlow.step === "form"
+        ? "list"
+        : state.workoutFlow.step === "comment"
+          ? "list"
+          : state.workoutFlow.step === "date"
+            ? "comment"
+            : "";
+
+    if (previousStep) {
+      state.workoutFlow.step = previousStep;
+      workoutFlowModal.render();
+      return true;
+    }
+
+    return workoutFlowModal.close();
+  },
+  onRecordPrimary: () => recordModal.submit(),
+  onRecordSecondary: () => recordModal.close(),
 });
 
 homeScreen = createHomeScreen({

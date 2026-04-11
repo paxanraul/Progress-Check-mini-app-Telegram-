@@ -34,7 +34,8 @@ jobs:
           PM2_APP_NAME: ${{ secrets.PM2_APP_NAME }}
         run: |
           REMOTE_PORT="${SERVER_PORT:-22}"
-          REMOTE_PROJECT_PATH="${PROJECT_PATH:-$HOME/Progress-Check-mini-app-Telegram-}"
-          REMOTE_PM2_APP_NAME="${PM2_APP_NAME:-miniapp}"
           ssh -p "$REMOTE_PORT" "$SERVER_USER@$SERVER_HOST" \
-            "export PROJECT_PATH='$REMOTE_PROJECT_PATH' PM2_APP_NAME='$REMOTE_PM2_APP_NAME' BRANCH='main' && bash '$REMOTE_PROJECT_PATH/scripts/deploy.sh'"
+            "export PROJECT_PATH='${PROJECT_PATH}' PM2_APP_NAME='${PM2_APP_NAME}' BRANCH='main'; \
+             PROJECT_PATH=\${PROJECT_PATH:-/root/Progress-Check-mini-app-Telegram-}; \
+             PM2_APP_NAME=\${PM2_APP_NAME:-miniapp}; \
+             bash \"\$PROJECT_PATH/scripts/deploy.sh\""

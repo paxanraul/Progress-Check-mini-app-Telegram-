@@ -1,0 +1,40 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SERVER_SSH_KEY }}
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "$SERVER_HOST" >> ~/.ssh/known_hosts
+
+      - name: Deploy over SSH
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          SERVER_PORT: ${{ secrets.SERVER_PORT }}
+          PROJECT_PATH: ${{ secrets.PROJECT_PATH }}
+          PM2_APP_NAME: ${{ secrets.PM2_APP_NAME }}
+        run: |
+          REMOTE_PORT="${SERVER_PORT:-22}"
+          REMOTE_PROJECT_PATH="${PROJECT_PATH:-$HOME/Progress-Check-mini-app-Telegram-}"
+          REMOTE_PM2_APP_NAME="${PM2_APP_NAME:-miniapp}"
+          ssh -p "$REMOTE_PORT" "$SERVER_USER@$SERVER_HOST" \
+            "export PROJECT_PATH='$REMOTE_PROJECT_PATH' PM2_APP_NAME='$REMOTE_PM2_APP_NAME' BRANCH='main' && bash '$REMOTE_PROJECT_PATH/scripts/deploy.sh'"

@@ -72,7 +72,7 @@ Telegram-бот с Mini App для учёта тренировок, рекорд
 ## Установка
 
 ```bash
-git clone <URL_РЕПОЗИТОРИЯ>
+git clone https://github.com/paxanraul/Progress-Check-mini-app-Telegram-
 cd progresscheck
 python3 -m venv .venv
 source .venv/bin/activate

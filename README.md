@@ -1,14 +1,14 @@
 # ProgressCheck
 
-Telegram-бот и Telegram Mini App для учёта тренировок, рекордов, профиля и цитат. Данные хранятся в `SQLite`, основной интерфейс работает внутри Telegram.
+Telegram-бот с Mini App для учёта тренировок, рекордов, профиля и цитат. Данные хранятся в `SQLite`.
 
 ## Быстрый обзор
 
-- Telegram Bot + Mini App в одном репозитории
+- Telegram-бот Mini App в одном репозитории
 - backend на Python: `aiogram` + `FastAPI`
 - хранение данных в `SQLite`
 - тренировки, рекорды, профиль, цитаты, AI-чат
-- запуск через один `python main.py`
+- запуск `python main.py`
 
 ## Скриншоты
 
@@ -124,23 +124,20 @@ npm run build:user-level
 - `PROJECT_PATH` — путь до проекта на сервере
 - `PM2_APP_NAME` — имя процесса в PM2, по умолчанию `miniapp`
 
-Тесты API:
-
-```bash
-python -m unittest tests.test_api
-```
-
 ## Пример использования
 
 Команды:
 
 ```text
+Обычные:
 /start
 /ai
 /ai_stop
 /ai_clear
 /feedback
 /video
+
+Админские:
 /admin
 /stats
 /broadcast
@@ -153,24 +150,3 @@ python -m unittest tests.test_api
 3. Пользователь открывает Mini App.
 4. В Mini App добавляет тренировки и рекорды.
 5. При желании использует `/ai` для вопросов по тренировкам и восстановлению.
-
-## Пример данных
-
-```json
-{
-  "user_id": 123456789,
-  "workout_name": "Спина",
-  "exercises": [
-    { "exercise": "Тяга штанги", "weight": 80, "sets": 4, "reps": 8 }
-  ]
-}
-```
-
-## Хранение данных
-
-Основные таблицы:
-
-- `started_users` — кто запускал бота;
-- `users` — профиль пользователя;
-- `workouts` — тренировки и рекорды;
-- `custom_quotes` — пользовательские цитаты.

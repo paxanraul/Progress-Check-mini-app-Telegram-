@@ -32,10 +32,11 @@ jobs:
           SERVER_PORT: ${{ secrets.SERVER_PORT }}
           PROJECT_PATH: ${{ secrets.PROJECT_PATH }}
           PM2_APP_NAME: ${{ secrets.PM2_APP_NAME }}
+          INSTALL_REQUIREMENTS: "0"
         run: |
           REMOTE_PORT="${SERVER_PORT:-22}"
           ssh -p "$REMOTE_PORT" "$SERVER_USER@$SERVER_HOST" \
-            "export PROJECT_PATH='${PROJECT_PATH}' PM2_APP_NAME='${PM2_APP_NAME}' BRANCH='main'; \
+            "export PROJECT_PATH='${PROJECT_PATH}' PM2_APP_NAME='${PM2_APP_NAME}' BRANCH='main' INSTALL_REQUIREMENTS='${INSTALL_REQUIREMENTS}'; \
              PROJECT_PATH=\${PROJECT_PATH:-/root/Progress-Check-mini-app-Telegram-}; \
              PM2_APP_NAME=\${PM2_APP_NAME:-miniapp}; \
              bash \"\$PROJECT_PATH/scripts/deploy.sh\""

@@ -6,4 +6,4 @@ __pycache__/
 gym_bot.db
 .DS_Store
 test.py
-
+.idea

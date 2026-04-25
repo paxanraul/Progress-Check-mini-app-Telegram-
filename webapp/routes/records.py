@@ -78,7 +78,7 @@ async def update_record(payload: RecordUpdatePayload):
                 DELETE FROM workouts
                 WHERE user_id = ?
                   AND is_record = 1
-                  AND TRIM(exercise) = TRIM(?) COLLATE NOCASE
+                  AND LOWER(TRIM(exercise)) = LOWER(TRIM(?))
                   AND workout_date = ?
                 """,
                 (payload.user_id, source_exercise, source_workout_date),
@@ -89,7 +89,7 @@ async def update_record(payload: RecordUpdatePayload):
                 DELETE FROM workouts
                 WHERE user_id = ?
                   AND is_record = 1
-                  AND TRIM(exercise) = TRIM(?) COLLATE NOCASE
+                  AND LOWER(TRIM(exercise)) = LOWER(TRIM(?))
                 """,
                 (payload.user_id, source_exercise),
             )
@@ -141,7 +141,7 @@ async def delete_record(
         cursor.execute(
             """
             DELETE FROM workouts
-            WHERE user_id = ? AND TRIM(exercise) = TRIM(?) COLLATE NOCASE AND is_record = 1
+            WHERE user_id = ? AND LOWER(TRIM(exercise)) = LOWER(TRIM(?)) AND is_record = 1
             """,
             (user_id, exercise),
         )

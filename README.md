@@ -1,12 +1,12 @@
 # ProgressCheck
 
-Telegram-бот с Mini App для учёта тренировок, рекордов, профиля и цитат. Данные хранятся в `SQLite`.
+Telegram-бот с Mini App для учёта тренировок, рекордов, профиля и цитат. Теперь проект работает только с `PostgreSQL`.
 
 ## Быстрый обзор
 
 - Telegram-бот Mini App в одном репозитории
 - backend на Python: `aiogram` + `FastAPI`
-- хранение данных в `SQLite`
+- хранение данных в `PostgreSQL`
 - тренировки, рекорды, профиль, цитаты, AI-чат
 - запуск `python main.py`
 
@@ -40,16 +40,16 @@ Telegram-бот с Mini App для учёта тренировок, рекорд
 - `FastAPI`
 - `uvicorn`
 - `httpx`
-- `SQLite`
+- `PostgreSQL`
 - HTML / CSS / JavaScript
 - Telegram Web App API
 
 ## Как работает
 
 ```text
-Пользователь -> Telegram Bot -> handlers -> SQLite
+Пользователь -> Telegram Bot -> handlers -> PostgreSQL
                       \
-                       -> Mini App -> FastAPI -> SQLite
+                       -> Mini App -> FastAPI -> PostgreSQL
 ```
 
 - бот отвечает за команды и onboarding;
@@ -61,13 +61,15 @@ Telegram-бот с Mini App для учёта тренировок, рекорд
 - `main.py` — запуск бота и FastAPI-сервера Mini App.
 - `bot/handlers/` — команды, FSM-анкета, FAQ и админка по отдельным модулям.
 - `bot/keyboards.py` — Telegram-клавиатуры и URL Mini App.
-- `bot/db.py` — схема `SQLite` и работа с данными.
+- `bot/db.py` — схема PostgreSQL и работа с данными.
 - `webapp/server.py` — сборка FastAPI-приложения и раздача Mini App.
 - `webapp/routes/` — API по доменам: профиль, тренировки, рекорды, цитаты.
 - `webapp/schemas.py` — Pydantic-схемы запросов и ответов.
 - `webapp/services.py` — общие сервисные функции backend.
 - `webapp/static/js/` — модульный runtime Mini App.
 - `frontend/user-level/` — исходники виджета уровня.
+- `docker-compose.yml` — локальный PostgreSQL через Docker.
+- `scripts/migrate_sqlite_to_postgres.py` — одноразовый перенос данных из `gym_bot.db`.
 
 ## Установка
 
@@ -91,6 +93,42 @@ ADMIN_ID=123456789
 ADMIN_IDS=123456789,987654321
 OPENROUTER_API_KEY=your_openrouter_api_key
 OPENROUTER_MODEL=openrouter/free
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/progresscheck
+```
+
+`DATABASE_URL` обязателен. Без него приложение не запустится.
+
+## Локальный PostgreSQL через Docker
+
+Если Docker уже установлен, база поднимается одной командой:
+
+```bash
+docker compose up -d postgres
+```
+
+Что это делает:
+
+- скачивает образ PostgreSQL, если его ещё нет;
+- запускает контейнер `progresscheck-postgres`;
+- создаёт базу `progresscheck`;
+- сохраняет данные в Docker volume `postgres_data`
+
+Проверить, что база поднялась:
+
+```bash
+docker compose ps
+```
+
+Остановить базу:
+
+```bash
+docker compose stop postgres
+```
+
+Запустить снова:
+
+```bash
+docker compose up -d postgres
 ```
 
 Если нужно пересобирать виджет уровня:
@@ -111,6 +149,17 @@ python main.py
 npm run build:user-level
 ```
 
+
+
+## Тесты
+
+Тесты теперь работают только с PostgreSQL. Для них нужен отдельный DSN:
+
+```bash
+export TEST_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/progresscheck_test
+python -m unittest tests.test_api
+```
+
 ## Автодеплой
 
 В репозитории есть GitHub Actions workflow для деплоя по `push` в `main`.
@@ -123,6 +172,26 @@ npm run build:user-level
 - `SERVER_PORT` — порт SSH, если не `22`
 - `PROJECT_PATH` — путь до проекта на сервере
 - `PM2_APP_NAME` — имя процесса в PM2, по умолчанию `miniapp`
+
+`git pull` переносит на сервер только файлы проекта из репозитория. Он не переносит данные из старого `gym_bot.db` в PostgreSQL и не создаёт Docker volume автоматически с вашими старыми данными.
+
+Если вы закоммитите эти изменения и сделаете `git pull` на сервере, на сервере всё равно нужно отдельно:
+
+1. Установить Docker и Docker Compose, если их ещё нет.
+2. Запустить PostgreSQL:
+
+```bash
+docker compose up -d postgres
+```
+
+3. Прописать `DATABASE_URL` в серверный `.env`.
+4. Если на сервере уже есть старый `gym_bot.db`, выполнить миграцию:
+
+```bash
+python scripts/migrate_sqlite_to_postgres.py --sqlite-path gym_bot.db
+```
+
+То есть код после `git pull` обновится сам, а данные нужно перенести отдельной командой один раз.
 
 ## Пример использования
 

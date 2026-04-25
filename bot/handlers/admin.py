@@ -2,6 +2,7 @@
 
 import html
 import os
+from urllib.parse import urlparse
 
 from aiogram import F
 from aiogram.exceptions import TelegramBadRequest
@@ -10,9 +11,9 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
 from bot.db import (
-    DB_PATH,
     get_active_started_users_since,
     get_all_started_user_ids,
+    get_database_url,
     get_profiles_count,
     get_recent_global_records,
     get_recent_global_workouts,
@@ -248,14 +249,21 @@ def build_admin_records_text() -> str:
 def build_admin_diagnostics_text() -> str:
     mini_app_url = os.getenv("MINI_APP_URL", "").strip()
     admin_ids = sorted(get_admin_ids())
+    database_url = get_database_url()
+    parsed_database_url = urlparse(database_url)
+    database_host = parsed_database_url.hostname or "unknown"
+    database_port = parsed_database_url.port or 5432
+    database_name = parsed_database_url.path.lstrip("/") or "unknown"
 
     lines = [
         "<b>Диагностика</b>",
         "",
         f"BOT_TOKEN задан: <b>{'да' if bool(os.getenv('BOT_TOKEN', '').strip()) else 'нет'}</b>",
         f"MINI_APP_URL задан: <b>{'да' if bool(mini_app_url) else 'нет'}</b>",
-        f"База найдена: <b>{'да' if DB_PATH.exists() else 'нет'}</b>",
-        f"Путь к БД: <code>{html.escape(str(DB_PATH.resolve()))}</code>",
+        "Тип БД: <b>PostgreSQL</b>",
+        f"Хост БД: <code>{html.escape(str(database_host))}</code>",
+        f"Порт БД: <code>{database_port}</code>",
+        f"База данных: <code>{html.escape(database_name)}</code>",
         f"Админов настроено: <b>{len(admin_ids)}</b>",
         "",
         "<b>ADMIN_IDS</b>",
@@ -303,7 +311,7 @@ def build_admin_broadcast_text() -> str:
 def format_admin_user_row(row) -> str:
     username = f"@{html.escape(row['username'])}" if row["username"] else "без username"
     full_name = html.escape(row["full_name"] or "без имени")
-    last_start = html.escape(row["last_start_at"] or "неизвестно")
+    last_start = html.escape(str(row["last_start_at"] or "неизвестно"))
     return f"<code>{row['user_id']}</code> · {username} · {full_name} · {last_start}"
 
 

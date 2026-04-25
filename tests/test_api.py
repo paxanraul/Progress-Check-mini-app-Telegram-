@@ -1,18 +1,16 @@
-"""Критические API-тесты Mini App backend."""
+"""Критические API-тесты Mini App backend для PostgreSQL."""
 
-from pathlib import Path
-from tempfile import TemporaryDirectory
+import os
 import unittest
 
 from fastapi.testclient import TestClient
 
-import bot.db as db_module
 from bot.db import (
     add_workout,
     get_connection,
+    init_db,
     set_ai_history,
     set_ai_mode,
-    init_db,
     upsert_custom_quotes,
     upsert_started_user,
     upsert_user,
@@ -20,13 +18,49 @@ from bot.db import (
 from webapp.server import create_web_app
 
 
+TEST_DATABASE_URL_ENV = "TEST_DATABASE_URL"
+
+
+def reset_database() -> None:
+    with get_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute(
+            """
+            TRUNCATE TABLE
+                workouts,
+                users,
+                custom_quotes,
+                ai_chat_sessions,
+                started_users
+            RESTART IDENTITY
+            """
+        )
+        connection.commit()
+
+
 class ProgressCheckApiTests(unittest.TestCase):
-    def setUp(self):
-        self.tmpdir = TemporaryDirectory()
-        self.original_db_path = db_module.DB_PATH
-        db_module.DB_PATH = Path(self.tmpdir.name) / "test.db"
+    @classmethod
+    def setUpClass(cls):
+        cls.test_database_url = os.getenv(TEST_DATABASE_URL_ENV, "").strip()
+        if not cls.test_database_url:
+            raise unittest.SkipTest(
+                "Для запуска тестов укажите TEST_DATABASE_URL с отдельной PostgreSQL-базой."
+            )
+
+        cls.original_database_url = os.environ.get("DATABASE_URL")
+        os.environ["DATABASE_URL"] = cls.test_database_url
         init_db()
 
+    @classmethod
+    def tearDownClass(cls):
+        reset_database()
+        if cls.original_database_url is None:
+            os.environ.pop("DATABASE_URL", None)
+        else:
+            os.environ["DATABASE_URL"] = cls.original_database_url
+
+    def setUp(self):
+        reset_database()
         upsert_started_user(
             user_id=101,
             username="tester",
@@ -40,13 +74,10 @@ class ProgressCheckApiTests(unittest.TestCase):
             height=182,
             experience="2 года",
         )
-
         self.client = TestClient(create_web_app())
 
     def tearDown(self):
         self.client.close()
-        db_module.DB_PATH = self.original_db_path
-        self.tmpdir.cleanup()
 
     def test_app_data_returns_profile_history_records_and_quotes(self):
         add_workout(

@@ -69,7 +69,6 @@ Telegram-бот с Mini App для учёта тренировок, рекорд
 - `webapp/static/js/` — модульный runtime Mini App.
 - `frontend/user-level/` — исходники виджета уровня.
 - `docker-compose.yml` — локальный PostgreSQL через Docker.
-- `scripts/migrate_sqlite_to_postgres.py` — одноразовый перенос данных из `gym_bot.db`.
 
 ## Установка
 
@@ -173,7 +172,7 @@ python -m unittest tests.test_api
 - `PROJECT_PATH` — путь до проекта на сервере
 - `PM2_APP_NAME` — имя процесса в PM2, по умолчанию `miniapp`
 
-`git pull` переносит на сервер только файлы проекта из репозитория. Он не переносит данные из старого `gym_bot.db` в PostgreSQL и не создаёт Docker volume автоматически с вашими старыми данными.
+`git pull` переносит на сервер только файлы проекта из репозитория. Он не создаёт Docker volume автоматически и не заменяет серверный `.env`.
 
 Если вы закоммитите эти изменения и сделаете `git pull` на сервере, на сервере всё равно нужно отдельно:
 
@@ -185,13 +184,7 @@ docker compose up -d postgres
 ```
 
 3. Прописать `DATABASE_URL` в серверный `.env`.
-4. Если на сервере уже есть старый `gym_bot.db`, выполнить миграцию:
-
-```bash
-python scripts/migrate_sqlite_to_postgres.py --sqlite-path gym_bot.db
-```
-
-То есть код после `git pull` обновится сам, а данные нужно перенести отдельной командой один раз.
+4. Перезапустить приложение после обновления зависимостей и конфигурации.
 
 ## Пример использования
 
